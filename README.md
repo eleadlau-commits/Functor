@@ -33,6 +33,33 @@ npm install
 npm run dev
 ```
 
+## Use the desktop app
+
+The desktop app is the same editor in a native window. The compiler runs as native Rust, not WebAssembly.
+
+```text
+ .fn file on disk ──► editor (web/) ──► functor-core (native) ──► preview
+        ▲                                      │
+        └────────── watch: reload on change ◄──┘
+```
+
+- **Open** (Ctrl+O) opens a `.fn` file from disk. **Save** (Ctrl+S) writes it back. Shift+Save is "Save as".
+- When another program changes the open file, the app loads the new text. It does not do this when you have unsaved changes.
+- The app opens your last file at start. You can also give a path: `functor-desktop notes.fn`.
+- It works with no network.
+
+Run it on your computer (Linux needs `libwebkit2gtk-4.1-dev`):
+
+```sh
+rustup target add wasm32-unknown-unknown
+(cd web && npm install)
+cd desktop
+npm install
+npm run dev
+```
+
+`npm run build` makes an installer in `desktop/target/release/bundle`. The **Desktop** workflow on GitHub makes installers for Linux, macOS and Windows.
+
 ## Use the command line
 
 ```sh

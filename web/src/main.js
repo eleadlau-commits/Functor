@@ -3,7 +3,7 @@ import { EditorState } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { forceLinting } from '@codemirror/lint';
-import { loadFunctor } from './functor.js';
+import { loadFunctor, loadNative, isDesktop } from './functor.js';
 import { functorLanguage, functorHighlight, functorCompletion, functorLinter } from './lang.js';
 import sample from '../../examples/sample.fn?raw';
 import docCss from './doc.css?raw';
@@ -32,13 +32,19 @@ let fn;
 let last = null;
 let timer = 0;
 let view;
+let seq = 0;
+let current = null;
+let savedText = null;
 
-function render(src) {
-  last = fn.compile(src);
+async function render(src) {
+  const mine = ++seq;
+  const out = await fn.compile(src);
+  if (mine !== seq) return;
+  last = out;
   previewEl.innerHTML = last.html;
   const errors = last.diagnostics.filter((d) => d.severity === 'error').length;
   const warnings = last.diagnostics.length - errors;
-  const parts = [`Compiled in ${last.ms.toFixed(1)} ms`];
+  const parts = [fn.native ? `Compiled in ${last.nativeMs.toFixed(1)} ms (native)` : `Compiled in ${last.ms.toFixed(1)} ms`];
   parts.push(errors ? `${errors} error${errors > 1 ? 's' : ''}` : 'no errors');
   if (warnings) parts.push(`${warnings} warning${warnings > 1 ? 's' : ''}`);
   parts.push(`${last.stats.built} built, ${last.stats.hits} cached, ${last.stats.fromFont} from font`);
@@ -84,12 +90,94 @@ function schedule(src) {
   clearTimeout(timer);
   timer = setTimeout(() => {
     render(src);
-    store.set(KEY_SRC, src);
-  }, 60);
+    if (!fn.native) store.set(KEY_SRC, src);
+    markDirty();
+  }, fn.native ? 30 : 60);
 }
 
 function setSource(text) {
-  view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+  const head = Math.min(view.state.selection.main.head, text.length);
+  view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text }, selection: { anchor: head } });
+}
+
+function markDirty() {
+  if (!fn.native) return;
+  const dirty = savedText !== null ? view.state.doc.toString() !== savedText : view.state.doc.length > 0;
+  document.title = `${dirty ? '• ' : ''}${fileName()} · Functor`;
+  fn.setTitle(document.title).catch(() => {});
+}
+
+function useDoc(doc) {
+  current = doc.path;
+  savedText = doc.text;
+  nameEl.value = doc.name;
+  if (view.state.doc.toString() !== doc.text) setSource(doc.text);
+  markDirty();
+}
+
+function showError(err) {
+  statusEl.textContent = String(err);
+  statusEl.className = 'status bad';
+}
+
+async function saveNative(as) {
+  const text = view.state.doc.toString();
+  const doc = current && !as ? await fn.files.save(current, text) : await fn.files.saveAs(fileName(), text);
+  if (doc) useDoc(doc);
+}
+
+function setupDesktop() {
+  const files = fn.files;
+  nameEl.readOnly = true;
+  $('save').textContent = 'Save';
+  $('save').title = 'Save the file (Ctrl+S). Shift-click to save as';
+  $('open').title = 'Open a .fn file from disk';
+  $('html').title = 'Export the compiled HTML';
+  $('new').addEventListener('click', () => {
+    current = null;
+    savedText = null;
+    files.close();
+    markDirty();
+  });
+  $('open').addEventListener('click', () => files.open().then((d) => d && useDoc(d)).catch(showError));
+  $('save').addEventListener('click', (e) => saveNative(e.shiftKey).catch(showError));
+  $('html').addEventListener('click', () => files.exportHtml(fileName().replace(/\.fn$/, '.html'), standalone()).catch(showError));
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      saveNative(e.shiftKey).catch(showError);
+    } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'o') {
+      e.preventDefault();
+      $('open').click();
+    }
+  });
+  files.onChange((doc) => {
+    const dirty = savedText !== null && view.state.doc.toString() !== savedText;
+    if (doc.path !== current || dirty) return;
+    useDoc(doc);
+  });
+}
+
+function setupWeb() {
+  nameEl.addEventListener('change', () => store.set(KEY_NAME, fileName()));
+  $('open').addEventListener('click', () => $('file').click());
+  $('file').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    nameEl.value = f.name;
+    store.set(KEY_NAME, f.name);
+    setSource(await f.text());
+    e.target.value = '';
+  });
+  $('save').addEventListener('click', () => download(fileName(), view.state.doc.toString(), 'text/plain'));
+  $('html').addEventListener('click', () => download(fileName().replace(/\.fn$/, '.html'), standalone(), 'text/html'));
+  $('new').addEventListener('click', () => store.set(KEY_NAME, nameEl.value));
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault();
+      download(fileName(), view.state.doc.toString(), 'text/plain');
+    }
+  });
 }
 
 function download(name, text, type) {
@@ -131,10 +219,15 @@ function setupDivider() {
 }
 
 async function main() {
-  fn = await loadFunctor(new URL('functor.wasm', document.baseURI).href);
-  const info = fn.symbols();
-  const initial = store.get(KEY_SRC) ?? sample;
-  nameEl.value = store.get(KEY_NAME) ?? (store.get(KEY_SRC) ? 'untitled.fn' : 'sample.fn');
+  fn = isDesktop ? await loadNative() : await loadFunctor(new URL('functor.wasm', document.baseURI).href);
+  const info = await fn.symbols();
+  const opened = fn.native ? await fn.files.initial() : null;
+  const initial = opened ? opened.text : fn.native ? sample : store.get(KEY_SRC) ?? sample;
+  nameEl.value = opened ? opened.name : fn.native ? 'sample.fn' : store.get(KEY_NAME) ?? (store.get(KEY_SRC) ? 'untitled.fn' : 'sample.fn');
+  if (opened) {
+    current = opened.path;
+    savedText = opened.text;
+  }
 
   view = new EditorView({
     parent: $('editor'),
@@ -154,35 +247,19 @@ async function main() {
       ],
     }),
   });
-  render(initial);
+  await render(initial);
+  markDirty();
 
-  nameEl.addEventListener('change', () => store.set(KEY_NAME, fileName()));
   $('new').addEventListener('click', () => {
     nameEl.value = 'untitled.fn';
-    store.set(KEY_NAME, nameEl.value);
     setSource('---\nfunctor: 1\ntitle: Untitled\n---\n\n# Start\n\nWrite $x.hat$ here.\n');
   });
-  $('open').addEventListener('click', () => $('file').click());
-  $('file').addEventListener('change', async (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    nameEl.value = f.name;
-    store.set(KEY_NAME, f.name);
-    setSource(await f.text());
-    e.target.value = '';
-  });
-  $('save').addEventListener('click', () => download(fileName(), view.state.doc.toString(), 'text/plain'));
-  $('html').addEventListener('click', () => download(fileName().replace(/\.fn$/, '.html'), standalone(), 'text/html'));
+  if (fn.native) setupDesktop();
+  else setupWeb();
   $('print').addEventListener('click', () => window.print());
   $('toggle').addEventListener('click', (e) => {
     const open = document.body.classList.toggle('problems-closed');
     e.target.setAttribute('aria-expanded', String(!open));
-  });
-  document.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-      e.preventDefault();
-      download(fileName(), view.state.doc.toString(), 'text/plain');
-    }
   });
   setupDivider();
 }
