@@ -1,0 +1,54 @@
+.fn-doc {
+  --fn-ink: #1b1b1f;
+  --fn-muted: #5b5b66;
+  --fn-rule: #d9d9e0;
+  --fn-accent: #2f4fb3;
+  --fn-error: #c0322b;
+  font-family: var(--fn-font, "Latin Modern Roman", "CMU Serif", "STIX Two Text", "Times New Roman", serif);
+  font-size: var(--fn-text-size, 11pt);
+  line-height: 1.45;
+  color: var(--fn-ink);
+  background: #fff;
+  max-width: 42em;
+  margin: 0 auto;
+  padding: var(--fn-margin, 2.5cm);
+  box-sizing: border-box;
+}
+.fn-doc .fn-math { display: inline-block; overflow: visible; }
+.fn-doc .fn-title { text-align: center; margin-bottom: 2em; }
+.fn-doc .fn-title h1 { font-size: 1.7em; font-weight: normal; margin: 0 0 .4em; }
+.fn-doc .fn-title p { margin: .2em 0; text-align: center; }
+.fn-doc .fn-date { color: var(--fn-muted); }
+.fn-doc h2 { font-size: 1.3em; margin: 1.6em 0 .6em; }
+.fn-doc h3 { font-size: 1.12em; margin: 1.4em 0 .5em; }
+.fn-doc h4, .fn-doc h5, .fn-doc h6 { font-size: 1em; margin: 1.2em 0 .4em; }
+.fn-doc .fn-num { margin-right: .6em; }
+.fn-doc p { margin: .6em 0; text-align: justify; hyphens: auto; }
+.fn-doc .fn-equation { display: flex; align-items: center; justify-content: center; position: relative; margin: .9em 0; }
+.fn-doc .fn-eqnum { position: absolute; right: 0; }
+.fn-doc .fn-env { margin: 1em 0; }
+.fn-doc .fn-env > p:first-of-type { display: inline; }
+.fn-doc .fn-env-name { font-weight: bold; }
+.fn-doc .fn-env-title { font-weight: normal; }
+.fn-doc .fn-theorem, .fn-doc .fn-lemma, .fn-doc .fn-corollary, .fn-doc .fn-proposition { font-style: italic; }
+.fn-doc .fn-theorem .fn-env-name, .fn-doc .fn-lemma .fn-env-name, .fn-doc .fn-corollary .fn-env-name, .fn-doc .fn-proposition .fn-env-name { font-style: normal; }
+.fn-doc .fn-proof .fn-env-name { font-weight: normal; font-style: italic; }
+.fn-doc .fn-qed { float: right; }
+.fn-doc .fn-note { border-left: 3px solid var(--fn-rule); padding-left: 1em; }
+.fn-doc .fn-quote { margin-left: 2em; margin-right: 2em; }
+.fn-doc .fn-figure { margin: 1.2em auto; text-align: center; }
+.fn-doc .fn-figure img { max-width: 100%; }
+.fn-doc figcaption { margin-top: .5em; font-size: .92em; }
+.fn-doc .fn-table { border-collapse: collapse; margin: 1em auto; }
+.fn-doc .fn-table th, .fn-doc .fn-table td { padding: .25em .8em; }
+.fn-doc .fn-table thead { border-top: 1.5px solid var(--fn-ink); border-bottom: 1px solid var(--fn-ink); }
+.fn-doc .fn-table tbody { border-bottom: 1.5px solid var(--fn-ink); }
+.fn-doc .fn-code { background: #f5f5f8; padding: .7em 1em; overflow-x: auto; font-size: .9em; }
+.fn-doc code { font-family: "Latin Modern Mono", "SFMono-Regular", Menlo, Consolas, monospace; font-size: .92em; }
+.fn-doc a { color: var(--fn-accent); text-decoration: none; }
+.fn-doc .fn-missing { color: var(--fn-error); border-bottom: 1px dashed var(--fn-error); }
+.fn-doc hr { border: 0; border-top: 1px solid var(--fn-rule); margin: 1.5em 0; }
+@media print {
+  .fn-doc { max-width: none; padding: 0; }
+  @page { margin: var(--fn-margin, 2.5cm); }
+}

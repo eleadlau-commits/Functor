@@ -1,0 +1,418 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::sync::OnceLock;
+
+const DATA: &str = include_str!("../data/glyphs.tsv");
+
+pub const STROKE: f64 = 40.0;
+
+#[derive(Clone, Copy)]
+pub struct FontGlyph {
+    pub h: f64,
+    pub d: f64,
+    pub w: f64,
+    pub path: &'static str,
+}
+
+fn table() -> &'static HashMap<(bool, u32), FontGlyph> {
+    static TABLE: OnceLock<HashMap<(bool, u32), FontGlyph>> = OnceLock::new();
+    TABLE.get_or_init(|| {
+        let mut map = HashMap::new();
+        for line in DATA.lines() {
+            let mut f = line.splitn(6, '\t');
+            let (Some(v), Some(cp), Some(h), Some(d), Some(w)) = (f.next(), f.next(), f.next(), f.next(), f.next()) else {
+                continue;
+            };
+            let path = f.next().unwrap_or("");
+            let Ok(cp) = u32::from_str_radix(cp, 16) else { continue };
+            let num = |s: &str| s.parse::<f64>().unwrap_or(0.0);
+            map.insert((v == "L", cp), FontGlyph { h: num(h), d: num(d), w: num(w), path });
+        }
+        map
+    })
+}
+
+pub fn font_glyph(cp: u32, large: bool) -> Option<FontGlyph> {
+    let t = table();
+    if large {
+        if let Some(g) = t.get(&(true, cp)) {
+            return Some(*g);
+        }
+    }
+    t.get(&(false, cp)).copied()
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Affine(pub [f64; 6]);
+
+impl Affine {
+    pub const ID: Affine = Affine([1.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
+
+    pub fn translate(x: f64, y: f64) -> Affine {
+        Affine([1.0, 0.0, 0.0, 1.0, x, y])
+    }
+
+    pub fn scale(sx: f64, sy: f64) -> Affine {
+        Affine([sx, 0.0, 0.0, sy, 0.0, 0.0])
+    }
+
+    pub fn then(self, next: Affine) -> Affine {
+        let [a, b, c, d, e, f] = self.0;
+        let [a2, b2, c2, d2, e2, f2] = next.0;
+        Affine([
+            a2 * a + c2 * b,
+            b2 * a + d2 * b,
+            a2 * c + c2 * d,
+            b2 * c + d2 * d,
+            a2 * e + c2 * f + e2,
+            b2 * e + d2 * f + f2,
+        ])
+    }
+
+    pub fn apply(self, x: f64, y: f64) -> (f64, f64) {
+        let [a, b, c, d, e, f] = self.0;
+        (a * x + c * y + e, b * x + d * y + f)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Shape {
+    Font(&'static str),
+    Stroke(String),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Item {
+    pub shape: Shape,
+    pub tf: Affine,
+    pub bold: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Glyph {
+    pub w: f64,
+    pub h: f64,
+    pub d: f64,
+    pub items: Vec<Item>,
+    pub italic: bool,
+}
+
+impl Glyph {
+    pub fn from_font(cp: u32, large: bool) -> Option<Glyph> {
+        let g = font_glyph(cp, large)?;
+        Some(Glyph {
+            w: g.w,
+            h: g.h,
+            d: g.d,
+            items: vec![Item { shape: Shape::Font(g.path), tf: Affine::ID, bold: false }],
+            italic: false,
+        })
+    }
+
+    pub fn empty(w: f64) -> Glyph {
+        Glyph { w, h: 0.0, d: 0.0, items: Vec::new(), italic: false }
+    }
+
+    pub fn transformed(&self, tf: Affine) -> Vec<Item> {
+        self.items.iter().map(|it| Item { shape: it.shape.clone(), tf: it.tf.then(tf), bold: it.bold }).collect()
+    }
+
+    pub fn ink_box(&self) -> (f64, f64, f64, f64) {
+        let mut b = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
+        for it in &self.items {
+            let pts = match &it.shape {
+                Shape::Font(p) => path_points(p),
+                Shape::Stroke(p) => path_points(p),
+            };
+            for (x, y) in pts {
+                let (x, y) = it.tf.apply(x, y);
+                b = (b.0.min(x), b.1.min(y), b.2.max(x), b.3.max(y));
+            }
+        }
+        if b.0 > b.2 {
+            (0.0, -self.d, self.w, self.h)
+        } else {
+            b
+        }
+    }
+
+    pub fn decorate(&self, mark_cp: u32, below: bool) -> Option<Glyph> {
+        let mark = Glyph::from_font(mark_cp, false)?;
+        let (mx0, my0, mx1, my1) = mark.ink_box();
+        let (bx0, by0, bx1, by1) = self.ink_box();
+        let skew = if self.italic { 0.12 * (by1 - by0.max(0.0)) } else { 0.0 };
+        let center = (bx0 + bx1) / 2.0 + if below { 0.0 } else { skew };
+        let mw = mx1 - mx0;
+        let base_w = bx1 - bx0;
+        let sx = if mw > base_w * 1.6 && base_w > 0.0 { (base_w * 1.4 / mw).max(0.6) } else { 1.0 };
+        let dx = center - (mx0 + mx1) / 2.0 * sx;
+        let gap = 60.0;
+        let dy = if below { by0.min(0.0) - gap - my1 } else { by1.max(430.0) + gap - my0 };
+        let tf = Affine::scale(sx, 1.0).then(Affine::translate(dx, dy));
+        let mut items = self.items.clone();
+        items.extend(mark.transformed(tf));
+        let (x0, _, x1, _) = (mx0 * sx + dx, 0.0, mx1 * sx + dx, 0.0);
+        let left = (-x0).max(0.0);
+        let w = self.w.max(x1) + left;
+        let shifted: Vec<Item> = items.into_iter().map(|it| Item { tf: it.tf.then(Affine::translate(left, 0.0)), ..it }).collect();
+        let (h, d) = if below { (self.h, self.d.max(-(my0 + dy))) } else { (self.h.max(my1 + dy), self.d) };
+        Some(Glyph { w, h, d, items: shifted, italic: self.italic })
+    }
+
+    pub fn enclose(&self, shape: &str) -> Glyph {
+        let (x0, y0, x1, y1) = self.ink_box();
+        let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+        let pad = 90.0;
+        let side = 50.0;
+        let (path, half_w, half_h) = match shape {
+            "circle" => {
+                let r = ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt() / 2.0 * 0.86 + pad * 0.5;
+                let r = r.max((x1 - x0) / 2.0 + pad * 0.4).max((y1 - y0) / 2.0 + pad * 0.4);
+                (circle_path(0.0, 0.0, r), r, r)
+            }
+            _ => {
+                let hw = (x1 - x0) / 2.0 + pad;
+                let hh = (y1 - y0) / 2.0 + pad;
+                (format!("M{} {}L{} {}L{} {}L{} {}Z", -hw, -hh, hw, -hh, hw, hh, -hw, hh), hw, hh)
+            }
+        };
+        let new_cx = half_w + side + STROKE / 2.0;
+        let shift = Affine::translate(new_cx - cx, 0.0);
+        let mut items = self.transformed(shift);
+        items.push(Item { shape: Shape::Stroke(path), tf: Affine::translate(new_cx, cy), bold: false });
+        Glyph {
+            w: 2.0 * (half_w + side + STROKE / 2.0),
+            h: self.h.max(cy + half_h + STROKE / 2.0),
+            d: self.d.max(-(cy - half_h - STROKE / 2.0)),
+            items,
+            italic: false,
+        }
+    }
+
+    pub fn strike(&self, kind: &str) -> Glyph {
+        let (x0, y0, x1, y1) = self.ink_box();
+        let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+        let path = if kind == "cross" {
+            let y = y0 + (y1 - y0) * 0.62;
+            let half = ((x1 - x0) * 0.42).max(120.0);
+            format!("M{} {}L{} {}", cx - half - 40.0, y, cx + half - 40.0, y)
+        } else {
+            let hh = ((y1 - y0) / 2.0 + 120.0).max(330.0);
+            let hw = hh * 0.36;
+            format!("M{} {}L{} {}", cx - hw, cy - hh, cx + hw, cy + hh)
+        };
+        let mut items = self.items.clone();
+        items.push(Item { shape: Shape::Stroke(path), tf: Affine::ID, bold: false });
+        let hh = ((y1 - y0) / 2.0 + 120.0).max(330.0);
+        let (h, d) = if kind == "cross" { (self.h, self.d) } else { (self.h.max(cy + hh), self.d.max(-(cy - hh))) };
+        Glyph { w: self.w, h, d, items, italic: self.italic }
+    }
+
+    pub fn repeat(&self, n: usize) -> Glyph {
+        let (x0, _, x1, _) = self.ink_box();
+        let step = ((x1 - x0) * 0.62).max(self.w * 0.45);
+        let mut items = Vec::new();
+        for i in 0..n {
+            items.extend(self.transformed(Affine::translate(step * i as f64, 0.0)));
+        }
+        Glyph { w: self.w + step * (n as f64 - 1.0), h: self.h, d: self.d, items, italic: self.italic }
+    }
+
+    pub fn reflect(&self, kind: &str) -> Glyph {
+        let (x0, y0, x1, y1) = self.ink_box();
+        let tf = match kind {
+            "flip" => Affine([-1.0, 0.0, 0.0, 1.0, x0 + x1, 0.0]),
+            "flipv" => Affine([1.0, 0.0, 0.0, -1.0, 0.0, y0 + y1]),
+            _ => Affine([-1.0, 0.0, 0.0, -1.0, x0 + x1, y0 + y1]),
+        };
+        Glyph { w: self.w, h: self.h, d: self.d, items: self.transformed(tf), italic: false }
+    }
+
+    pub fn emboldened(&self) -> Glyph {
+        let items = self.items.iter().map(|it| Item { bold: true, ..it.clone() }).collect();
+        Glyph { w: self.w + 30.0, items, ..self.clone() }
+    }
+
+    pub fn to_svg_group(&self, out: &mut String, tf: Affine) {
+        for it in &self.items {
+            let m = it.tf.then(tf).0;
+            let matrix = format!("matrix({} {} {} {} {} {})", r(m[0]), r(m[1]), r(m[2]), r(m[3]), r(m[4]), r(m[5]));
+            match &it.shape {
+                Shape::Font(p) => {
+                    if it.bold {
+                        out.push_str(&format!(
+                            "<path transform=\"{matrix}\" d=\"{p}\" stroke=\"currentColor\" stroke-width=\"30\" stroke-linejoin=\"round\"/>"
+                        ));
+                    } else {
+                        out.push_str(&format!("<path transform=\"{matrix}\" d=\"{p}\"/>"));
+                    }
+                }
+                Shape::Stroke(p) => out.push_str(&format!(
+                    "<path transform=\"{matrix}\" d=\"{p}\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"{STROKE}\" stroke-linecap=\"round\"/>"
+                )),
+            }
+        }
+    }
+
+    pub fn to_svg(&self, height_em: f64) -> String {
+        let pad = 20.0;
+        let total = self.h + self.d + 2.0 * pad;
+        let mut body = String::new();
+        self.to_svg_group(&mut body, Affine([1.0, 0.0, 0.0, -1.0, pad, self.h + pad]));
+        format!(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {} {}\" height=\"{}em\" fill=\"currentColor\">{}</svg>",
+            r(self.w + 2.0 * pad),
+            r(total),
+            r(height_em * total / 1000.0),
+            body
+        )
+    }
+}
+
+fn r(x: f64) -> String {
+    let v = (x * 100.0).round() / 100.0;
+    if v == v.trunc() {
+        format!("{}", v as i64)
+    } else {
+        format!("{v}")
+    }
+}
+
+fn circle_path(cx: f64, cy: f64, r: f64) -> String {
+    format!("M{} {}A{r} {r} 0 1 0 {} {}A{r} {r} 0 1 0 {} {}Z", cx - r, cy, cx + r, cy, cx - r, cy)
+}
+
+pub fn path_points(p: &str) -> Vec<(f64, f64)> {
+    let mut pts = Vec::new();
+    let mut nums: Vec<f64> = Vec::new();
+    let mut cmd = 'M';
+    let mut cur = (0.0, 0.0);
+    let flush = |cmd: char, nums: &mut Vec<f64>, pts: &mut Vec<(f64, f64)>, cur: &mut (f64, f64)| {
+        match cmd {
+            'H' => {
+                for &x in nums.iter() {
+                    *cur = (x, cur.1);
+                    pts.push(*cur);
+                }
+            }
+            'V' => {
+                for &y in nums.iter() {
+                    *cur = (cur.0, y);
+                    pts.push(*cur);
+                }
+            }
+            'A' => {
+                for c in nums.chunks(7) {
+                    if c.len() == 7 {
+                        let r = c[0];
+                        pts.push((c[5] - r, c[6] - r));
+                        pts.push((c[5] + r, c[6] + r));
+                        *cur = (c[5], c[6]);
+                        pts.push(*cur);
+                    }
+                }
+            }
+            _ => {
+                for c in nums.chunks(2) {
+                    if c.len() == 2 {
+                        *cur = (c[0], c[1]);
+                        pts.push(*cur);
+                    }
+                }
+            }
+        }
+        nums.clear();
+    };
+    let bytes = p.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        let c = bytes[i] as char;
+        if c.is_ascii_alphabetic() {
+            flush(cmd, &mut nums, &mut pts, &mut cur);
+            cmd = c;
+            i += 1;
+        } else if c == '-' || c == '.' || c.is_ascii_digit() {
+            let start = i;
+            i += 1;
+            let mut seen_dot = c == '.';
+            while i < bytes.len() {
+                let d = bytes[i] as char;
+                if d.is_ascii_digit() || (d == '.' && !seen_dot) {
+                    seen_dot |= d == '.';
+                    i += 1;
+                } else {
+                    break;
+                }
+            }
+            if let Ok(v) = p[start..i].parse() {
+                nums.push(v);
+            }
+        } else {
+            i += 1;
+        }
+    }
+    flush(cmd, &mut nums, &mut pts, &mut cur);
+    pts
+}
+
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CacheStats {
+    pub built: usize,
+    pub hits: usize,
+    pub from_font: usize,
+}
+
+thread_local! {
+    static CACHE: RefCell<HashMap<String, Rc<Glyph>>> = RefCell::new(HashMap::new());
+    static STATS: RefCell<CacheStats> = RefCell::new(CacheStats::default());
+}
+
+pub fn cached(recipe: &str, build: impl FnOnce() -> Option<Glyph>) -> Option<Rc<Glyph>> {
+    if let Some(g) = CACHE.with(|c| c.borrow().get(recipe).cloned()) {
+        STATS.with(|s| s.borrow_mut().hits += 1);
+        return Some(g);
+    }
+    let g = Rc::new(build()?);
+    STATS.with(|s| s.borrow_mut().built += 1);
+    CACHE.with(|c| c.borrow_mut().insert(recipe.to_string(), g.clone()));
+    Some(g)
+}
+
+pub fn note_font_glyph() {
+    STATS.with(|s| s.borrow_mut().from_font += 1);
+}
+
+pub fn take_stats() -> CacheStats {
+    STATS.with(|s| std::mem::take(&mut *s.borrow_mut()))
+}
+
+pub fn clear_cache() {
+    CACHE.with(|c| c.borrow_mut().clear());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn table_loads_and_has_sum() {
+        let g = font_glyph(0x2211, true).expect("large sum");
+        assert!(g.w > 1000.0);
+        assert!(font_glyph(0x1D44E, false).is_some());
+    }
+
+    #[test]
+    fn enclose_grows_the_box() {
+        let sum = Glyph::from_font(0x2211, false).unwrap();
+        let c = sum.enclose("circle");
+        assert!(c.w > sum.w && c.h > sum.h);
+        assert_eq!(c.items.len(), 2);
+    }
+
+    #[test]
+    fn path_points_reads_implicit_negatives() {
+        let pts = path_points("M10-20L30 40H5V-7");
+        assert_eq!(pts, vec![(10.0, -20.0), (30.0, 40.0), (5.0, 40.0), (5.0, -7.0)]);
+    }
+}

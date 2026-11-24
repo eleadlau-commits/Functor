@@ -1,0 +1,12 @@
+[package]
+name = "functor-wasm"
+description = "WebAssembly entry points for the Functor compiler"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+functor-core = { path = "../functor-core" }
