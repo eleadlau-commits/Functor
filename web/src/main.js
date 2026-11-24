@@ -74,7 +74,10 @@ function render(src) {
       return li;
     }),
   );
-  if (view) forceLinting(view);
+  if (view) {
+    forceLinting(view);
+    if (view.hasFocus) view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: 'nearest' }) });
+  }
 }
 
 function schedule(src) {
