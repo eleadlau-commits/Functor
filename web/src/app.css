@@ -60,16 +60,7 @@ body {
   border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; }
-.logo {
-  display: inline-grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font: italic 600 16px/1 Georgia, serif;
-}
+.wordmark { height: 34px; width: auto; display: block; }
 .name {
   flex: 1;
   min-width: 80px;

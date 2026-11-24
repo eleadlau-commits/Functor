@@ -130,13 +130,13 @@ pub const FUNCTIONS: &[(&str, Limits)] = &[
     ("inf", Limits::Display),
 ];
 
-pub const SPACES: &[(&str, f64)] = &[("thin", 167.0), ("med", 222.0), ("thick", 278.0), ("quad", 1000.0), ("qquad", 2000.0)];
+pub const SPACES: &[(&str, f64)] = &[("neg", -83.0), ("thin", 167.0), ("med", 222.0), ("thick", 278.0), ("quad", 1000.0), ("qquad", 2000.0)];
 
 pub fn space(name: &str) -> Option<f64> {
     SPACES.iter().find(|(n, _)| *n == name).map(|(_, w)| *w)
 }
 
-pub const CALLS: &[&str] = &["frac", "sqrt", "vec", "text"];
+pub const CALLS: &[&str] = &["frac", "sqrt", "vec", "text", "join"];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OpKind {
@@ -181,6 +181,9 @@ pub const OPS: &[OpDef] = &[
     op("turn", OpKind::Reflect, 0, "turn half a circle: a dual or opposite"),
     op("bold", OpKind::Style, 0, "style: a new kind of object, often a vector"),
     op("bb", OpKind::Style, 0, "style: a number set"),
+    op("frak", OpKind::Style, 0, "style: an ideal, an algebra or a structure"),
+    op("script", OpKind::Style, 0, "style: a family, a category or a transform"),
+    op("up", OpKind::Style, 0, "style: a constant, a unit or a name"),
 ];
 
 pub const LATER_OPS: &[(&str, &str)] = &[
@@ -277,6 +280,49 @@ pub fn double_struck(c: char) -> Option<u32> {
         'R' => Some(0x211D),
         'Z' => Some(0x2124),
         'A'..='Z' => Some(0x1D538 + (c as u32 - 'A' as u32)),
+        _ => None,
+    }
+}
+
+pub fn fraktur_letter(c: char) -> Option<u32> {
+    match c {
+        'C' => Some(0x212D),
+        'H' => Some(0x210C),
+        'I' => Some(0x2111),
+        'R' => Some(0x211C),
+        'Z' => Some(0x2128),
+        'A'..='Z' => Some(0x1D504 + (c as u32 - 'A' as u32)),
+        'a'..='z' => Some(0x1D51E + (c as u32 - 'a' as u32)),
+        _ => None,
+    }
+}
+
+pub fn script_letter(c: char) -> Option<u32> {
+    match c {
+        'B' => Some(0x212C),
+        'E' => Some(0x2130),
+        'F' => Some(0x2131),
+        'H' => Some(0x210B),
+        'I' => Some(0x2110),
+        'L' => Some(0x2112),
+        'M' => Some(0x2133),
+        'R' => Some(0x211B),
+        'e' => Some(0x212F),
+        'g' => Some(0x210A),
+        'o' => Some(0x2134),
+        'A'..='Z' => Some(0x1D49C + (c as u32 - 'A' as u32)),
+        'a'..='z' => Some(0x1D4B6 + (c as u32 - 'a' as u32)),
+        _ => None,
+    }
+}
+
+pub fn styled_letter(style: &str, c: char) -> Option<u32> {
+    match style {
+        "bold" => bold_letter(c),
+        "bb" => double_struck(c),
+        "frak" => fraktur_letter(c),
+        "script" => script_letter(c),
+        "up" => c.is_ascii_alphabetic().then_some(c as u32),
         _ => None,
     }
 }

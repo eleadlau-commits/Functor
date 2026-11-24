@@ -6,6 +6,7 @@ use std::sync::OnceLock;
 const DATA: &str = include_str!("../data/glyphs.tsv");
 
 pub const STROKE: f64 = 40.0;
+pub const JOIN_OVERLAP: f64 = 45.0;
 
 #[derive(Clone, Copy)]
 pub struct FontGlyph {
@@ -229,6 +230,21 @@ impl Glyph {
         Glyph { w: self.w, h: self.h, d: self.d, items: self.transformed(tf), italic: false }
     }
 
+    pub fn join(&self, other: &Glyph) -> Glyph {
+        let (_, _, ax1, _) = self.ink_box();
+        let (bx0, _, bx1, _) = other.ink_box();
+        let dx = ax1 - JOIN_OVERLAP - bx0;
+        let mut items = self.items.clone();
+        items.extend(other.transformed(Affine::translate(dx, 0.0)));
+        Glyph {
+            w: self.w.max(dx + other.w).max(dx + bx1),
+            h: self.h.max(other.h),
+            d: self.d.max(other.d),
+            items,
+            italic: other.italic,
+        }
+    }
+
     pub fn emboldened(&self) -> Glyph {
         let items = self.items.iter().map(|it| Item { bold: true, ..it.clone() }).collect();
         Glyph { w: self.w + 30.0, items, ..self.clone() }
@@ -414,5 +430,17 @@ mod tests {
     fn path_points_reads_implicit_negatives() {
         let pts = path_points("M10-20L30 40H5V-7");
         assert_eq!(pts, vec![(10.0, -20.0), (30.0, 40.0), (5.0, 40.0), (5.0, -7.0)]);
+    }
+
+    #[test]
+    fn join_overlaps_by_the_join_amount() {
+        let o = Glyph::from_font(0x6F, false).unwrap();
+        let r = Glyph::from_font(0x72, false).unwrap();
+        let j = o.join(&r);
+        let (ox0, _, ox1, _) = o.ink_box();
+        let (rx0, _, rx1, _) = r.ink_box();
+        let (jx0, _, jx1, _) = j.ink_box();
+        assert!(((jx1 - jx0) - ((ox1 - ox0) + (rx1 - rx0) - JOIN_OVERLAP)).abs() < 1e-6);
+        assert!(j.w >= jx1);
     }
 }
