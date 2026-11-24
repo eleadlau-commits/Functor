@@ -1,0 +1,12 @@
+Functor
+Copyright 2026 E and Functor contributors. The code is under the MIT licence (see LICENSE).
+
+The file crates/functor-core/data/glyphs.tsv contains glyph outlines from
+@mathjax/mathjax-newcm-font 4.1.3 (https://github.com/mathjax/MathJax-fonts),
+which is under the Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0).
+The outlines come from the New Computer Modern fonts by Antonis Tsolomitis,
+which are under the GUST Font License.
+
+scripts/extract-glyphs.mjs makes this file. The script changes the format of the
+data only: it adds a move command at the start of each path and writes one glyph
+on each line.
