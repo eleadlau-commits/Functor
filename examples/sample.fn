@@ -1,0 +1,64 @@
+---
+functor: 1
+title: A first Functor document
+author: E
+date: 24 November 2026
+---
+
+object vec: F, v, u
+sym csum = sum.circle
+sym dint = integral.x2
+let n = 3
+
+# Symbols are built, not memorised {#sec:symbols}
+
+A symbol has a base and a few short operations. The base $sum$ with the operation `circle` gives $sum.circle$. The base $in$ with `not` gives $in.not$. The compiler uses the font glyph when one exists, and it builds the glyph when none exists.
+
+| Recipe | Result | Layer |
+|:--|:-:|:--|
+| `theta.hat` | $theta.hat$ | decorate |
+| `sum.circle` | $sum.circle$ | enclose |
+| `in.not` | $in.not$ | strike |
+| `integral.x3` | $integral.x3$ | repeat |
+| `E.flip` | $E.flip$ | reflect |
+| `R.bb` | $R.bb$ | style |
+| `nabla.circle` | $nabla.circle$ | enclose, built |
+| `Sigma.turn` | $Sigma.turn$ | reflect, built |
+
+# Vectors and objects {#sec:vectors}
+
+The line `object vec: F, v, u` makes $F$, $v$ and $u$ vectors. Their look comes from one style rule, so $F = m a$ shows $F$ with an arrow. Change `set vec(style: bold)` once, and every vector changes.
+
+$$
+F = frac(d, d t) (m v)
+$$ {#eq:newton}
+
+# Results {#sec:results}
+
+::: theorem {#thm:circ title="Closed sums"}
+For {n} terms $a_k$, a closed sum over a loop $gamma$ is
+
+$$
+csum_(k = 1)^n a_k = dint_D (partial_x u - partial_y v) d x d y
+$$ {#eq:green}
+:::
+
+::: proof
+Apply @eq:newton to each term, then use @thm:circ with $x in.not A$.
+:::
+
+::: definition {#def:est}
+An estimate of $theta$ is $theta.hat$. A related value is $theta.tilde$, and a mean is $x.bar$.
+:::
+
+From @def:est and @eq:green, the limit is
+
+$$
+lim_(m to infty) (1 + frac(1, m))^m = e, quad sqrt(x^2 + y^2) le |x| + |y|
+$$
+
+Each operation has one meaning. See @sec:symbols for the full table.
+
+- $forall x in A.bb$, $exists y$ with $y = x.hat$.
+- $E.flip$ and $A.turn$ come from the font.
+- $theta.hat.box$ is built and cached.

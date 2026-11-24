@@ -1,0 +1,13 @@
+[package]
+name = "functor-cli"
+description = "Command line interface for the Functor compiler"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "functor"
+path = "src/main.rs"
+
+[dependencies]
+functor-core = { path = "../functor-core" }
