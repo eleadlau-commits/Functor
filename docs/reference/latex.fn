@@ -68,7 +68,7 @@ Functor is not compatible with LaTeX, and it does not try to be. This page maps 
 | `\sqsubset`, `\sqsubseteq` | `subset.square`, `subseteq.square` | $subset.square, subseteq.square$ |
 | `\subsetneq`, `\Subset` | `stack(subset, eq.not)`, `subset.x2` | $stack(subset, eq.not), subset.x2$ |
 | `\vdash`, `\dashv`, `\models`, `\Vdash` | `proves`, `proves.flip`, `models`, `forces` | $proves, proves.flip, models, forces$ |
-| `\top`, `\bot`, `\neg` | `bot.flipv`, `bot`, `neg` | $bot.flipv, bot, neg$ |
+| `\top`, `\bot`, `\neg` | `bot.flipv`, `bot`, `lnot` | $bot.flipv, bot, lnot$ |
 | `\therefore`, `\because`, `\Diamond` | `therefore`, `because`, `diamond` | $therefore, because, diamond$ |
 | `\multimap`, `\parr` | `lollipop`, `par` | $lollipop, par$ |
 | `\ltimes`, `\rtimes`, `\wr` | `ltimes`, `rtimes`, `wr` | $ltimes, rtimes, wr$ |

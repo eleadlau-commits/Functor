@@ -135,7 +135,7 @@ pub const NAMES: &[Named] = &[
     n("epi", 0x21A0, Rel),
     n("incl", 0x21AA, Rel),
     n("bot", 0x22A5, Ord),
-    n("neg", 0xAC, Ord),
+    n("lnot", 0xAC, Ord),
     n("complement", 0x2201, Ord),
     n("diamond", 0x25C7, Ord),
     n("wp", 0x2118, Ord),
@@ -709,6 +709,25 @@ mod tests {
             .map(|(r, _)| r)
             .collect();
         assert!(missing.is_empty(), "no glyph for {missing:?}");
+    }
+
+    #[test]
+    fn no_name_is_in_two_tables() {
+        let mut seen: std::collections::HashMap<&str, &str> = std::collections::HashMap::new();
+        let tables: [(&str, Vec<&str>); 5] = [
+            ("names", NAMES.iter().map(|n| n.name).collect()),
+            ("greek", GREEK.to_vec()),
+            ("functions", FUNCTIONS.iter().map(|(f, _)| *f).collect()),
+            ("spaces", SPACES.iter().map(|(n, _)| *n).collect()),
+            ("calls", CALLS.to_vec()),
+        ];
+        for (table, names) in tables.iter() {
+            for n in names {
+                if let Some(other) = seen.insert(n, table) {
+                    panic!("`{n}` is in {other} and in {table}");
+                }
+            }
+        }
     }
 
     #[test]

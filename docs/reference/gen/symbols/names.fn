@@ -116,7 +116,7 @@ Write a symbol by its name, with spaces between names: `x in A`. Each name is sh
 | `cdots` | $cdots$ | U+22EF |
 | `prime` | $prime$ | U+2032 |
 | `bot` | $bot$ | U+22A5 |
-| `neg` | $neg$ | U+00AC |
+| `lnot` | $lnot$ | U+00AC |
 | `complement` | $complement$ | U+2201 |
 | `diamond` | $diamond$ | U+25C7 |
 | `wp` | $wp$ | U+2118 |
