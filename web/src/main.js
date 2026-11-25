@@ -7,6 +7,8 @@ import { loadFunctor, loadNative, isDesktop } from './functor.js';
 import { functorLanguage, functorHighlight, functorCompletion, functorLinter } from './lang.js';
 import sample from '../../examples/sample.fn?raw';
 import docCss from './doc.css?raw';
+import refsJs from './refs.js?raw';
+import './refs.js';
 import './app.css';
 import './doc.css';
 import './fonts.css';
@@ -18,6 +20,7 @@ import lmMono from './fonts/functor-lm-mono.woff2?url';
 
 const KEY_SRC = 'functor.source';
 const KEY_NAME = 'functor.name';
+const KEY_DARK = 'functor.dark';
 
 const store = {
   get(k) {
@@ -255,7 +258,7 @@ async function fontFaces() {
 async function standalone() {
   const fonts = await fontFaces().catch(() => '');
   const title = fileName().replace(/\.fn$/, '');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title.replace(/[<&]/g, '')}</title><style>${fonts}${docCss}</style></head><body>${last ? last.html : ''}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title.replace(/[<&]/g, '')}</title><style>${fonts}${docCss}</style></head><body>${last ? last.html : ''}<script>${refsJs}functorRefs(document.body);</script></body></html>`;
 }
 
 function setupDivider() {
@@ -316,6 +319,15 @@ async function main() {
   if (fn.native) setupDesktop();
   else setupWeb();
   $('print').addEventListener('click', () => window.print());
+  window.functorRefs(previewEl);
+  const dark = $('dark');
+  const setDark = (on) => {
+    previewEl.classList.toggle('fn-dark', on);
+    dark.setAttribute('aria-pressed', String(on));
+    store.set(KEY_DARK, on ? '1' : '0');
+  };
+  setDark(store.get(KEY_DARK) === '1');
+  dark.addEventListener('click', () => setDark(!previewEl.classList.contains('fn-dark')));
   $('toggle').addEventListener('click', (e) => {
     const open = document.body.classList.toggle('problems-closed');
     e.target.setAttribute('aria-expanded', String(!open));

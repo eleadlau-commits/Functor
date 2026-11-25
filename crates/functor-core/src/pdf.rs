@@ -212,7 +212,12 @@ fn content(draws: &[Draw]) -> Vec<u8> {
                             c.save_state();
                             c.transform(mat(it.tf.then(a).then(base)));
                             match &it.shape {
-                                Shape::Font(path) => {
+                                Shape::Font(_) | Shape::Outline(_) => {
+                                    let path: &str = match &it.shape {
+                                        Shape::Font(p) => p,
+                                        Shape::Outline(p) => p,
+                                        _ => "",
+                                    };
                                     svg_path(&mut c, path);
                                     if it.bold {
                                         c.set_line_width(30.0);

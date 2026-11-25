@@ -78,10 +78,11 @@ fn font_faces() -> String {
 
 fn page(body: &str, title: &str) -> String {
     format!(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{}</title><style>{}{}</style></head><body>{body}</body></html>",
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{}</title><style>{}{}</style></head><body>{body}<script>{}functorRefs(document.body);</script></body></html>",
         functor_core::render::escape(title),
         font_faces(),
-        include_str!("../../../web/src/doc.css")
+        include_str!("../../../web/src/doc.css"),
+        include_str!("../../../web/src/refs.js")
     )
 }
 
