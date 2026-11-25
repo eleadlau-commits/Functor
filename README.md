@@ -62,6 +62,10 @@ npm run dev
 
 `npm run build` makes an installer in `desktop/target/release/bundle`. The **Desktop** workflow on GitHub makes installers for Linux, macOS and Windows.
 
+## Use Functor in Claude chats
+
+The browser extension in [`extension/`](extension/README.md) shows `fn` code blocks in claude.ai chats as typeset math. It runs the WebAssembly compiler in the browser. The **Browser extension** workflow on GitHub builds it as the `functor-extension` artifact. Load it with **Load unpacked** in `chrome://extensions`.
+
 ## Use the command line
 
 ```sh
