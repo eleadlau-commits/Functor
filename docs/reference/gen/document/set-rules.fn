@@ -35,6 +35,7 @@ A `set` line changes the look of the whole document. Write it on its own line, b
 | `set wrap(...)` | `grow` | `stretch` |
 | `set diagram(...)` | `gap` | `normal` |
 | `set diagram(...)` | `inline` | `small` |
+| `set diagram(...)` | `cross` | `gap` |
 | `set mono(...)` | `style` | `tail` |
 | `set epi(...)` | `style` | `twohead` |
 | `set incl(...)` | `style` | `hook` |

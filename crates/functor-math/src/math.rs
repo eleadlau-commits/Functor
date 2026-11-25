@@ -71,7 +71,13 @@ pub enum Node {
     Diff(Box<Node>),
     Over { g: Rc<Glyph>, class: Class, above: Option<Box<Node>>, below: Option<Box<Node>> },
     Small(Box<Node>),
-    Diagram { rows: Vec<Vec<Node>>, edges: Vec<Edge>, gap: f64 },
+    Diagram { rows: Vec<Vec<Node>>, edges: Vec<Edge>, gap: f64, cross: bool },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum End {
+    Cell(usize, usize),
+    Arrow(usize),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -83,10 +89,12 @@ pub enum Side {
 
 #[derive(Clone, Debug)]
 pub struct Edge {
-    pub from: (usize, usize),
-    pub to: (usize, usize),
+    pub from: End,
+    pub to: End,
     pub g: Rc<Glyph>,
     pub labels: Vec<(Node, Side)>,
+    pub name: Option<String>,
+    pub bend: f64,
 }
 
 impl Node {
@@ -118,7 +126,7 @@ pub fn parse(src: &str, ctx: &mut Ctx) -> Node {
 }
 
 fn parse_at(src: &str, base: usize, ctx: &mut Ctx) -> Node {
-    let mut p = Parser { s: src, i: 0, base, ctx };
+    let mut p = Parser { s: src, i: 0, base, ctx, edge_mode: false, edge_bend: 0.0 };
     let row = p.row(&[]);
     if p.i < p.s.len() {
         let at = p.i;
@@ -177,6 +185,8 @@ struct Parser<'a, 'b, 'c> {
     i: usize,
     base: usize,
     ctx: &'b mut Ctx<'c>,
+    edge_mode: bool,
+    edge_bend: f64,
 }
 
 impl Parser<'_, '_, '_> {
@@ -415,6 +425,7 @@ impl Parser<'_, '_, '_> {
                     return None;
                 }
                 let ops = self.ops();
+                let ops = self.take_bend(&ops);
                 if ops.is_empty() {
                     return Some(font_atom(cp, class));
                 }
@@ -710,7 +721,7 @@ impl Parser<'_, '_, '_> {
                     }
                     _ => {}
                 }
-                if let Some(e) = self.edge(&texts) {
+                if let Some(e) = self.edge(&texts, &edges) {
                     edges.push(e);
                 }
                 match self.peek() {
@@ -733,7 +744,8 @@ impl Parser<'_, '_, '_> {
             "large" => 1.4,
             _ => 1.0,
         };
-        let node = Node::Diagram { rows, edges, gap };
+        let cross = self.ctx.env.opt("diagram", "cross") != "plain";
+        let node = Node::Diagram { rows, edges, gap, cross };
         Some(self.small("diagram", node))
     }
 
@@ -754,15 +766,20 @@ impl Parser<'_, '_, '_> {
         false
     }
 
-    fn edge(&mut self, texts: &[Vec<String>]) -> Option<Edge> {
+    fn edge(&mut self, texts: &[Vec<String>], done: &[Edge]) -> Option<Edge> {
         let at = self.i;
         let mut labels = Vec::new();
+        let mut name = None;
         if self.top_colon() {
+            let a = self.i;
             let l = self.row(&[':']);
+            name = Some(norm(&self.s[a..self.i]));
             self.bump();
             labels.push((Node::Row(l), Side::Auto));
         }
         let mut parts: Vec<(usize, usize, Node)> = Vec::new();
+        self.edge_mode = true;
+        self.edge_bend = 0.0;
         loop {
             self.skip_ws();
             match self.peek() {
@@ -777,6 +794,8 @@ impl Parser<'_, '_, '_> {
                 self.bump();
             }
         }
+        self.edge_mode = false;
+        let bend = self.edge_bend;
         let Some(k) = parts.iter().position(|(_, _, n)| n.class() == Class::Rel) else {
             self.err(at, "This arrow has no arrow symbol.", Some("Write `f: A to B`. Any relation works, for example `A = B`.".into()));
             return None;
@@ -787,12 +806,43 @@ impl Parser<'_, '_, '_> {
         }
         let from_t = norm(&self.s[parts[0].0..parts[k - 1].1]);
         let to_t = norm(&self.s[parts[k + 1].0..parts[parts.len() - 1].1]);
-        let from = self.find_cell(texts, &from_t, parts[0].0)?;
-        let to = self.find_cell(texts, &to_t, parts[k + 1].0)?;
-        if from == to {
-            self.err(at, "An arrow needs two different cells.", Some("Loops come in a later phase.".into()));
-            return None;
+        let rel_t = &self.s[parts[k].0..parts[k].1];
+        if name.is_none() {
+            if let Some(i) = rel_t.find(['^', '_']) {
+                let n = norm(rel_t[i + 1..].trim().trim_start_matches('(').trim_end_matches(')'));
+                if !n.is_empty() {
+                    name = Some(n);
+                }
+            }
         }
+        let arrow = |t: &str| done.iter().rposition(|e| e.name.as_deref() == Some(t));
+        let fa = arrow(&from_t).filter(|_| !self.is_cell(texts, &from_t));
+        let ta = arrow(&to_t).filter(|_| !self.is_cell(texts, &to_t));
+        let (from, to) = match (fa, ta) {
+            (Some(a), Some(b)) => {
+                if a == b {
+                    self.err(at, "A 2-cell needs two different arrows.", Some("Write `alpha: f implies g`, where f and g name two arrows.".into()));
+                    return None;
+                }
+                if bend != 0.0 {
+                    self.err(at, "A 2-cell cannot bend.", Some("Remove `bend` from this arrow.".into()));
+                }
+                (End::Arrow(a), End::Arrow(b))
+            }
+            (Some(_), None) | (None, Some(_)) => {
+                self.err(at, "An arrow goes from a cell to a cell, or from an arrow to an arrow.", Some("For a 2-cell, name both arrows: `alpha: f implies g`.".into()));
+                return None;
+            }
+            _ => {
+                let from = self.find_cell(texts, &from_t, parts[0].0)?;
+                let to = self.find_cell(texts, &to_t, parts[k + 1].0)?;
+                if from == to {
+                    self.err(at, "An arrow needs two different cells.", Some("Loops come in a later phase.".into()));
+                    return None;
+                }
+                (End::Cell(from.0, from.1), End::Cell(to.0, to.1))
+            }
+        };
         let rel = parts.swap_remove(k).2;
         let g = match rel {
             Node::Glyph { g, .. } => g,
@@ -810,7 +860,30 @@ impl Parser<'_, '_, '_> {
                 return None;
             }
         };
-        Some(Edge { from, to, g, labels })
+        Some(Edge { from, to, g, labels, name, bend })
+    }
+
+    fn is_cell(&self, texts: &[Vec<String>], t: &str) -> bool {
+        texts.iter().any(|r| r.iter().any(|c| c == t))
+    }
+
+    fn take_bend(&mut self, ops: &[(String, usize)]) -> Vec<(String, usize)> {
+        if !self.edge_mode {
+            return ops.to_vec();
+        }
+        let mut out = Vec::with_capacity(ops.len());
+        let mut bent = false;
+        for (o, at) in ops {
+            if o == "bend" {
+                self.edge_bend = (self.edge_bend.abs() + 30.0).min(60.0) * if self.edge_bend < 0.0 { -1.0 } else { 1.0 };
+                bent = true;
+            } else if o == "flipv" && bent {
+                self.edge_bend = -self.edge_bend;
+            } else {
+                out.push((o.clone(), *at));
+            }
+        }
+        out
     }
 
     fn find_cell(&mut self, texts: &[Vec<String>], t: &str, at: usize) -> Option<(usize, usize)> {
@@ -1011,6 +1084,8 @@ impl Parser<'_, '_, '_> {
     }
 
     fn resolve_base(&mut self, word: &str, ops: &[(String, usize)], start: usize) -> Node {
+        let owned = self.take_bend(ops);
+        let ops = &owned[..];
         if let Some(k) = ops.iter().position(|(o, _)| is_fence(o)) {
             let n = self.resolve_base(word, &ops[..k], start);
             return self.node_ops(n, &ops[k..], start).unwrap_or(Node::Row(vec![]));
@@ -1120,6 +1195,9 @@ impl Parser<'_, '_, '_> {
                     OpKind::Repeat => g.repeat(def.mark as usize),
                     OpKind::Reflect => g.reflect(o),
                     OpKind::Magnify => g.magnified(def.mark as f64 / 100.0),
+                    OpKind::Deform if o == "bend" => deform::bend(&g, def.mark as f64),
+                    OpKind::Deform if o == "slant" => deform::slant(&g, def.mark as f64),
+                    OpKind::Deform if o == "taper" => deform::taper(&g, def.mark as f64),
                     OpKind::Deform => {
                         let axis = if o == "wide" { deform::Axis::X } else { deform::Axis::Y };
                         let size = if axis == deform::Axis::Y { g.h + g.d } else { g.w };
@@ -1695,7 +1773,7 @@ fn layout(node: &Node, st: St) -> LBox {
             out.place(b, 0.0, dy);
             out
         }
-        Node::Diagram { rows, edges, gap } => layout_diagram(rows, edges, *gap, st),
+        Node::Diagram { rows, edges, gap, cross } => layout_diagram(rows, edges, *gap, *cross, st),
         Node::Fenced { open, close, body, grow } => {
             let b = layout(body, st);
             let axis = 250.0 * s;
@@ -1746,16 +1824,6 @@ fn rotate(ux: f64, uy: f64) -> Affine {
     Affine([ux, uy, -uy, ux, 0.0, 0.0])
 }
 
-fn line_glyph(len: f64) -> Rc<Glyph> {
-    Rc::new(Glyph {
-        w: len,
-        h: 0.0,
-        d: 0.0,
-        items: vec![glyph::Item { shape: glyph::Shape::Stroke(format!("M0 0L{} 0", f(len))), tf: Affine::ID, bold: false }],
-        italic: false,
-    })
-}
-
 struct Bounds(f64, f64, f64, f64);
 
 impl Bounds {
@@ -1775,7 +1843,55 @@ impl Bounds {
     }
 }
 
-fn layout_diagram(rows: &[Vec<Node>], edges: &[Edge], gap: f64, st: St) -> LBox {
+fn edge_glyph(g: &Rc<Glyph>, len: f64) -> Glyph {
+    let (gx0, _, gx1, _) = g.ink_box();
+    let iw = (gx1 - gx0).max(1.0);
+    if stretchy(g) {
+        let gl = if len > iw { deform::grown(g, deform::Axis::X, (len - iw + g.w) / g.w) } else { g.clone() };
+        let (x0, _, x1, _) = gl.ink_box();
+        let k = (len / (x1 - x0)).min(1.0);
+        let tf = Affine::translate(-x0, 0.0).then(Affine::scale(k, 1.0));
+        return Glyph { w: len, h: gl.h, d: gl.d, items: gl.transformed(tf), italic: false };
+    }
+    let mut items = g.transformed(Affine::translate(len / 2.0 - (gx0 + gx1) / 2.0, 0.0));
+    let side = (len - iw) / 2.0 - 120.0;
+    if side > 150.0 {
+        for a in [0.0, len - side] {
+            items.push(glyph::Item { shape: glyph::Shape::Stroke(format!("M{} 250L{} 250", f(a), f(a + side))), tf: Affine::ID, bold: false });
+        }
+    }
+    Glyph { w: len, h: g.h, d: g.d, items, italic: false }
+}
+
+fn turn((x, y): (f64, f64), a: f64) -> (f64, f64) {
+    let (c, s) = (a.cos(), a.sin());
+    (x * c - y * s, x * s + y * c)
+}
+
+struct Path {
+    place: Affine,
+    len: f64,
+    half: f64,
+    thick: f64,
+    pts: Vec<(f64, f64, f64)>,
+    mid: (f64, f64),
+    normal: (f64, f64),
+    two: bool,
+}
+
+fn seg_hit(a: (f64, f64), b: (f64, f64), c: (f64, f64), d: (f64, f64)) -> Option<(f64, f64)> {
+    let r = (b.0 - a.0, b.1 - a.1);
+    let q = (d.0 - c.0, d.1 - c.1);
+    let den = r.0 * q.1 - r.1 * q.0;
+    if den.abs() < 1e-9 {
+        return None;
+    }
+    let t = ((c.0 - a.0) * q.1 - (c.1 - a.1) * q.0) / den;
+    let u = ((c.0 - a.0) * r.1 - (c.1 - a.1) * r.0) / den;
+    ((0.0..=1.0).contains(&t) && (0.0..=1.0).contains(&u)).then_some((t, u))
+}
+
+fn layout_diagram(rows: &[Vec<Node>], edges: &[Edge], gap: f64, cross: bool, st: St) -> LBox {
     let s = st.scale;
     let cs = St { display: false, ..st };
     let ls = st.script();
@@ -1794,14 +1910,16 @@ fn layout_diagram(rows: &[Vec<Node>], edges: &[Edge], gap: f64, st: St) -> LBox 
     let mut col_gaps = vec![2600.0 * s * gap; ncols.saturating_sub(1)];
     let mut row_gaps = vec![1900.0 * s * gap; nrows.saturating_sub(1)];
     for (e, ls) in edges.iter().zip(&labels) {
+        let (End::Cell(fr, fc), End::Cell(tr, tc)) = (e.from, e.to) else { continue };
         let lw = ls.iter().map(|(b, _)| b.w).fold(0.0, f64::max);
         let gw = if stretchy(&e.g) { 0.0 } else { e.g.w * s + 600.0 * s };
-        if e.from.0 == e.to.0 && e.from.1.abs_diff(e.to.1) == 1 {
-            let c = e.from.1.min(e.to.1);
+        let gw = if e.bend != 0.0 { gw.max(4200.0 * s) } else { gw };
+        if fr == tr && fc.abs_diff(tc) == 1 {
+            let c = fc.min(tc);
             col_gaps[c] = col_gaps[c].max(lw + 700.0 * s).max(gw);
         }
-        if e.from.1 == e.to.1 && e.from.0.abs_diff(e.to.0) == 1 {
-            let r = e.from.0.min(e.to.0);
+        if fc == tc && fr.abs_diff(tr) == 1 {
+            let r = fr.min(tr);
             let lh = ls.iter().filter(|(_, side)| *side != Side::Auto).map(|(b, _)| b.h + b.d).fold(0.0, f64::max);
             row_gaps[r] = row_gaps[r].max(gw).max(lh + 700.0 * s);
         }
@@ -1835,54 +1953,101 @@ fn layout_diagram(rows: &[Vec<Node>], edges: &[Edge], gap: f64, st: St) -> LBox 
     let centre = |(r, c): (usize, usize)| (xs[c], bases[r] + axis);
     let mid = (xs.iter().sum::<f64>() / ncols.max(1) as f64, bases.iter().map(|b| b + axis).sum::<f64>() / nrows.max(1) as f64);
     let pad = 160.0 * s;
-    let exit = |(r, c): (usize, usize), ux: f64, uy: f64| {
+    let exit = |(r, c): (usize, usize), (ux, uy): (f64, f64)| {
         let (hw, up, down) = extent[r][c];
         let tx = if ux.abs() > 1e-9 { (hw + pad) / ux.abs() } else { f64::MAX };
         let ty = if uy > 1e-9 { (up + pad) / uy } else if uy < -1e-9 { (down + pad) / -uy } else { f64::MAX };
         tx.min(ty)
     };
-    for (e, ls) in edges.iter().zip(labels) {
-        let (ax, ay) = centre(e.from);
-        let (bx, by) = centre(e.to);
-        let (dx, dy) = (bx - ax, by - ay);
-        let dist = (dx * dx + dy * dy).sqrt().max(1e-6);
-        let (ux, uy) = (dx / dist, dy / dist);
-        let t0 = exit(e.from, ux, uy);
-        let t1 = exit(e.to, -ux, -uy);
-        let (px, py) = (ax + ux * t0, ay + uy * t0);
-        let len = (dist - t0 - t1).max(200.0 * s);
-        let rot = rotate(ux, uy);
-        let (gx0, gy0, gx1, gy1) = e.g.ink_box();
-        let iw = (gx1 - gx0).max(1.0);
-        let mut thick = (gy1 - gy0) * s;
-        if stretchy(&e.g) {
-            let gl = if len > iw * s { deform::grown(&e.g, deform::Axis::X, (len / s - iw + e.g.w) / e.g.w) } else { e.g.clone() };
-            let (x0, y0, x1, y1) = gl.ink_box();
-            thick = (y1 - y0) * s;
-            let k = (len / ((x1 - x0) * s)).min(1.0);
-            let a = Affine::translate(-x0, -250.0).then(Affine::scale(s * k, s)).then(rot).then(Affine::translate(px, py));
-            bd.add_glyph(&gl, a);
-            out.items.push((a, Draw::G(gl)));
-        } else {
-            let (mx, my) = (px + ux * len / 2.0, py + uy * len / 2.0);
-            let a = Affine::translate(-(gx0 + gx1) / 2.0, -250.0).then(Affine::scale(s, s)).then(rot).then(Affine::translate(mx, my));
-            bd.add_glyph(&e.g, a);
-            out.items.push((a, Draw::G(e.g.clone())));
-            let side = (len - iw * s) / 2.0 - 120.0 * s;
-            if side > 150.0 * s {
-                let line = line_glyph(side / s);
-                for start in [0.0, len - side] {
-                    let la = Affine::scale(s, s).then(rot).then(Affine::translate(px + ux * start, py + uy * start));
-                    bd.add(px + ux * start, py + uy * start);
-                    bd.add(px + ux * (start + side), py + uy * (start + side));
-                    out.items.push((la, Draw::G(line.clone())));
+    let mut paths: Vec<Path> = Vec::with_capacity(edges.len());
+    for e in edges {
+        let thick = {
+            let (_, y0, _, y1) = e.g.ink_box();
+            (y1 - y0) * s
+        };
+        let (p0, p1, half, two) = match (e.from, e.to) {
+            (End::Arrow(a), End::Arrow(b)) if a < paths.len() && b < paths.len() => {
+                let (ma, mb) = (paths[a].mid, paths[b].mid);
+                let d = ((mb.0 - ma.0).powi(2) + (mb.1 - ma.1).powi(2)).sqrt().max(1e-6);
+                let u = ((mb.0 - ma.0) / d, (mb.1 - ma.1) / d);
+                let ta = paths[a].thick / 2.0 + 200.0 * s;
+                let tb = paths[b].thick / 2.0 + 200.0 * s;
+                ((ma.0 + u.0 * ta, ma.1 + u.1 * ta), (mb.0 - u.0 * tb, mb.1 - u.1 * tb), 0.0, true)
+            }
+            (End::Cell(fr, fc), End::Cell(tr, tc)) => {
+                let (ax, ay) = centre((fr, fc));
+                let (bx, by) = centre((tr, tc));
+                let dist = ((bx - ax).powi(2) + (by - ay).powi(2)).sqrt().max(1e-6);
+                let u = ((bx - ax) / dist, (by - ay) / dist);
+                let half = e.bend.to_radians();
+                let u0 = turn(u, half);
+                let u1 = turn(u, -half);
+                let t0 = exit((fr, fc), u0);
+                let t1 = exit((tr, tc), (-u1.0, -u1.1));
+                ((ax + u0.0 * t0, ay + u0.1 * t0), (bx - u1.0 * t1, by - u1.1 * t1), half, false)
+            }
+            _ => ((0.0, 0.0), (0.0, 0.0), 0.0, true),
+        };
+        let chord = ((p1.0 - p0.0).powi(2) + (p1.1 - p0.1).powi(2)).sqrt().max(200.0 * s);
+        let uc = ((p1.0 - p0.0) / chord, (p1.1 - p0.1) / chord);
+        let arc_len = if half.abs() > 1e-6 { chord * half / half.sin() } else { chord };
+        let len = arc_len / s;
+        let c = (len / 2.0, 250.0);
+        let start = deform::arc_point((0.0, 250.0), half, len, c);
+        let place = Affine::translate(-start.0, -start.1).then(Affine::scale(s, s)).then(rotate(uc.0, uc.1)).then(Affine::translate(p0.0, p0.1));
+        let n = if half.abs() > 1e-6 { 16 } else { 1 };
+        let pts = (0..=n)
+            .map(|k| {
+                let lx = len * k as f64 / n as f64;
+                let q = deform::arc_point((lx, 250.0), half, len, c);
+                let (px, py) = place.apply(q.0, q.1);
+                (px, py, lx)
+            })
+            .collect();
+        let m = deform::arc_point((len / 2.0, 250.0), half, len, c);
+        let mid = place.apply(m.0, m.1);
+        paths.push(Path { place, len, half, thick, pts, mid, normal: (-uc.1, uc.0), two });
+    }
+    let mut gaps: Vec<Vec<(f64, f64)>> = vec![Vec::new(); paths.len()];
+    if cross {
+        for i in 0..paths.len() {
+            for j in i + 1..paths.len() {
+                if paths[i].two || paths[j].two {
+                    continue;
+                }
+                let (pi, pj) = (&paths[i].pts, &paths[j].pts);
+                for a in pi.windows(2) {
+                    for b in pj.windows(2) {
+                        let Some((t, u)) = seg_hit((a[0].0, a[0].1), (a[1].0, a[1].1), (b[0].0, b[0].1), (b[1].0, b[1].1)) else { continue };
+                        let li = a[0].2 + (a[1].2 - a[0].2) * t;
+                        let lj = b[0].2 + (b[1].2 - b[0].2) * u;
+                        let end = 500.0;
+                        if li < end || li > paths[i].len - end || lj < end || lj > paths[j].len - end {
+                            continue;
+                        }
+                        let w = paths[j].thick / s / 2.0 + 200.0;
+                        gaps[i].push((li - w, li + w));
+                    }
                 }
             }
         }
-        let (mx, my) = (px + ux * len / 2.0, py + uy * len / 2.0);
-        let (lx, ly) = (-uy, ux);
-        let auto_left = {
-            let dot = lx * (mx - mid.0) + ly * (my - mid.1);
+    }
+    for ((e, ls), (p, cuts)) in edges.iter().zip(labels).zip(paths.iter().zip(&gaps)) {
+        let mut gl = edge_glyph(&e.g, p.len);
+        if !cuts.is_empty() {
+            gl = deform::cut(&gl, cuts);
+        }
+        if p.half.abs() > 1e-6 {
+            gl = deform::arc(&gl, p.half, p.len, (p.len / 2.0, 250.0));
+        }
+        let gl = Rc::new(gl);
+        bd.add_glyph(&gl, p.place);
+        out.items.push((p.place, Draw::G(gl)));
+        let (lx, ly) = p.normal;
+        let auto_left = if p.half.abs() > 1e-6 {
+            p.half > 0.0
+        } else {
+            let dot = lx * (p.mid.0 - mid.0) + ly * (p.mid.1 - mid.1);
             if dot.abs() < 1.0 { true } else { dot > 0.0 }
         };
         for (b, side) in ls {
@@ -1892,8 +2057,8 @@ fn layout_diagram(rows: &[Vec<Node>], edges: &[Edge], gap: f64, st: St) -> LBox 
                 Side::Auto => auto_left,
             };
             let (nx, ny) = if left { (lx, ly) } else { (-lx, -ly) };
-            let reach = b.w / 2.0 * nx.abs() + (b.h + b.d) / 2.0 * ny.abs() + thick / 2.0 + 90.0 * s;
-            let (cx, cy) = (mx + nx * reach, my + ny * reach);
+            let reach = b.w / 2.0 * nx.abs() + (b.h + b.d) / 2.0 * ny.abs() + p.thick / 2.0 + 90.0 * s;
+            let (cx, cy) = (p.mid.0 + nx * reach, p.mid.1 + ny * reach);
             let (bx0, by0) = (cx - b.w / 2.0, cy - (b.h - b.d) / 2.0);
             bd.add(bx0, by0 - b.d);
             bd.add(bx0 + b.w, by0 + b.h);
@@ -2244,7 +2409,8 @@ mod tests {
         let (rows, edges) = diagram_of(&n);
         assert_eq!((rows.len(), rows[0].len()), (2, 2));
         let ends: Vec<_> = edges.iter().map(|e| (e.from, e.to)).collect();
-        assert_eq!(ends, vec![((0, 0), (0, 1)), ((0, 0), (1, 0)), ((0, 1), (1, 1)), ((1, 0), (1, 1)), ((0, 0), (1, 1))]);
+        let c = |r, k| End::Cell(r, k);
+        assert_eq!(ends, vec![(c(0, 0), c(0, 1)), (c(0, 0), c(1, 0)), (c(0, 1), c(1, 1)), (c(1, 0), c(1, 1)), (c(0, 0), c(1, 1))]);
         assert_eq!(edges[0].labels[0].1, Side::Auto);
         assert_eq!(edges[2].labels[0].1, Side::Right);
         assert!(edges[4].labels.is_empty());
@@ -2253,11 +2419,50 @@ mod tests {
     }
 
     #[test]
+    fn curved_arrows_and_two_cells() {
+        let (n, d) = run("diagram(A, B | f: A to.bend B, g: A to.bend.flipv B, alpha: f implies g)", true);
+        assert!(d.is_empty(), "{d:?}");
+        let (_, edges) = diagram_of(&n);
+        assert_eq!(edges[0].bend, 30.0);
+        assert_eq!(edges[1].bend, -30.0);
+        assert_eq!((edges[2].from, edges[2].to), (End::Arrow(0), End::Arrow(1)));
+        let (_, d) = run("diagram(A, B | A to^f B, A to_g B, f implies g)", true);
+        assert!(d.is_empty(), "{d:?}");
+        let (_, d) = run("diagram(A, B | f: A to B, f implies B)", true);
+        assert!(d.iter().any(|x| x.message.contains("arrow to an arrow")));
+        let (_, d) = run("diagram(A, B | f: A to B, f implies f)", true);
+        assert!(d.iter().any(|x| x.message.contains("two different arrows")));
+        let svg = render(&n, true, "x");
+        assert!(svg.contains("<path"));
+    }
+
+    #[test]
+    fn bend_outside_a_diagram_bends_the_glyph() {
+        let (n, d) = run("A to.bend B", true);
+        assert!(d.is_empty(), "{d:?}");
+        let Node::Row(v) = &n else { panic!() };
+        let g = single(&v[1]);
+        let glyph::Shape::Outline(_) = &g.items[0].shape else { panic!("not deformed") };
+    }
+
+    #[test]
+    fn crossing_arrows_get_a_gap() {
+        let count = |src: &str| {
+            let (n, _) = run(src, true);
+            render(&n, true, "x").matches('M').count()
+        };
+        let gap = count("diagram(A, B; C, D | A to B, A to D, B to C, C to D)");
+        let plain = count("diagram(A, B; C, D | A to B, A to D, C to D, B to C)");
+        assert!(gap > count("diagram(A, B; C, D | A to B, C to D)"));
+        assert!(gap >= plain);
+    }
+
+    #[test]
     fn diagram_names_cells_by_content_or_position() {
         let (n, d) = run("diagram(A, A; B, C | 1.1 to 1.2, f: A_1 to B)", true);
         assert_eq!(d.len(), 1, "{d:?}");
         assert!(d[0].message.contains("not a cell"));
-        assert_eq!(diagram_of(&n).1[0].to, (0, 1));
+        assert_eq!(diagram_of(&n).1[0].to, End::Cell(0, 1));
         let (_, d) = run("diagram(A, A | A to A)", true);
         assert!(d[0].message.contains("more than one cell"));
         assert!(d[0].hint.as_deref().unwrap_or("").contains("2.1"));

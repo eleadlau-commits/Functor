@@ -544,6 +544,385 @@ fn line(w: &mut Writer, a: P, b: P, axis: Axis, m: &Map) {
     w.pt('L', map_point(b, axis, m));
 }
 
+fn jac(f: &dyn Fn(P) -> P, p: P) -> [f64; 4] {
+    let e = 0.5;
+    let (ax, ay) = f((p.0 + e, p.1));
+    let (bx, by) = f((p.0 - e, p.1));
+    let (cx, cy) = f((p.0, p.1 + e));
+    let (dx, dy) = f((p.0, p.1 - e));
+    [(ax - bx) / (2.0 * e), (ay - by) / (2.0 * e), (cx - dx) / (2.0 * e), (cy - dy) / (2.0 * e)]
+}
+
+fn push_dir(f: &dyn Fn(P) -> P, at: P, d: P) -> P {
+    let j = jac(f, at);
+    let q = f(at);
+    (q.0 + j[0] * d.0 + j[2] * d.1, q.1 + j[1] * d.0 + j[3] * d.1)
+}
+
+fn emit_c(w: &mut Writer, c1: P, c2: P, p: P) {
+    w.pt('C', c1);
+    w.0.push(' ');
+    w.num(c2.0);
+    w.num(c2.1);
+    w.0.push(' ');
+    w.num(p.0);
+    w.num(p.1);
+}
+
+fn warp_piece(w: &mut Writer, q: [P; 4], f: &dyn Fn(P) -> P) {
+    let c1 = push_dir(f, q[0], (q[1].0 - q[0].0, q[1].1 - q[0].1));
+    let c2 = push_dir(f, q[3], (q[2].0 - q[3].0, q[2].1 - q[3].1));
+    emit_c(w, c1, c2, f(q[3]));
+}
+
+fn dist(a: P, b: P) -> f64 {
+    ((b.0 - a.0).powi(2) + (b.1 - a.1).powi(2)).sqrt()
+}
+
+fn warp_line(w: &mut Writer, a: P, b: P, f: &dyn Fn(P) -> P, step: f64) {
+    let n = (dist(a, b) / step).ceil().max(1.0) as usize;
+    for k in 0..n {
+        let p0 = lerp(a, b, k as f64 / n as f64);
+        let p1 = lerp(a, b, (k + 1) as f64 / n as f64);
+        warp_piece(w, [p0, lerp(p0, p1, 1.0 / 3.0), lerp(p0, p1, 2.0 / 3.0), p1], f);
+    }
+}
+
+fn warp_path(path: &[Seg], f: &dyn Fn(P) -> P, step: f64) -> String {
+    let mut w = Writer(String::new());
+    let mut cur = (0.0, 0.0);
+    let mut start = (0.0, 0.0);
+    for s in path {
+        match *s {
+            Seg::Move(p) => {
+                w.pt('M', f(p));
+                cur = p;
+                start = p;
+            }
+            Seg::Line(p) => {
+                warp_line(&mut w, cur, p, f, step);
+                cur = p;
+            }
+            Seg::Cubic(c1, c2, p) => {
+                let n = ((dist(cur, c1) + dist(c1, c2) + dist(c2, p)) / step).ceil().max(1.0) as usize;
+                let mut piece = [cur, c1, c2, p];
+                for k in 0..n {
+                    if k + 1 == n {
+                        warp_piece(&mut w, piece, f);
+                    } else {
+                        let (a, b) = split(piece[0], piece[1], piece[2], piece[3], 1.0 / (n - k) as f64);
+                        warp_piece(&mut w, a, f);
+                        piece = b;
+                    }
+                }
+                cur = p;
+            }
+            Seg::Close => {
+                if dist(cur, start) > 1e-9 {
+                    warp_line(&mut w, cur, start, f, step);
+                }
+                w.0.push('Z');
+                cur = start;
+            }
+        }
+    }
+    w.0
+}
+
+fn parsed_items(g: &Glyph) -> Vec<Option<Vec<Seg>>> {
+    g.items
+        .iter()
+        .map(|it| match &it.shape {
+            Shape::Font(p) => parse(p, it.tf, true),
+            Shape::Outline(p) => parse(p, it.tf, true),
+            Shape::Stroke(p) => parse(p, it.tf, false),
+        })
+        .collect()
+}
+
+pub fn warp(g: &Glyph, f: &dyn Fn(P) -> P, step: f64) -> Glyph {
+    let mut items = Vec::with_capacity(g.items.len());
+    for (it, segs) in g.items.iter().zip(parsed_items(g)) {
+        match segs {
+            Some(segs) => {
+                let path = warp_path(&segs, f, step);
+                let shape = match it.shape {
+                    Shape::Stroke(_) => Shape::Stroke(path),
+                    _ => Shape::Outline(Rc::from(path)),
+                };
+                items.push(Item { shape, tf: Affine::ID, bold: it.bold });
+            }
+            None => items.push(it.clone()),
+        }
+    }
+    Glyph { items, ..g.clone() }
+}
+
+fn long_axis(g: &Glyph) -> Axis {
+    let (x0, y0, x1, y1) = g.ink_box();
+    if x1 - x0 >= y1 - y0 {
+        Axis::X
+    } else {
+        Axis::Y
+    }
+}
+
+fn refit(mut out: Glyph, g: &Glyph, axis: Axis) -> Glyph {
+    let (a0, b0, a1, b1) = g.ink_box();
+    let (x0, y0, x1, y1) = out.ink_box();
+    if axis == Axis::X {
+        let dx = a0 - x0;
+        out.items = out.transformed(Affine::translate(dx, 0.0));
+        out.w = g.w + (x1 - x0) - (a1 - a0);
+        out.h = g.h.max(y1);
+        out.d = g.d.max(-y0);
+    } else {
+        let dx = (a0 + a1) / 2.0 - (x0 + x1) / 2.0;
+        out.items = out.transformed(Affine::translate(dx, 0.0));
+        out.h = g.h + (y1 - b1).max(0.0);
+        out.d = g.d + (b0 - y0).max(0.0);
+    }
+    out
+}
+
+pub fn arc_point(p: P, half: f64, len: f64, centre: P) -> P {
+    if half.abs() < 1e-6 {
+        return p;
+    }
+    let r = len / (2.0 * half);
+    let (u, v) = (p.0 - centre.0, p.1 - centre.1);
+    let t = u / r;
+    let rr = r + v;
+    (centre.0 + rr * t.sin(), centre.1 - r + rr * t.cos())
+}
+
+pub fn arc(g: &Glyph, half: f64, len: f64, centre: P) -> Glyph {
+    let step = (len / 32.0).max(15.0);
+    warp(g, &|p| arc_point(p, half, len, centre), step)
+}
+
+pub fn bend(g: &Glyph, degrees: f64) -> Glyph {
+    let (x0, y0, x1, y1) = g.ink_box();
+    let axis = long_axis(g);
+    let half = degrees.to_radians();
+    let out = if axis == Axis::X {
+        arc(g, half, x1 - x0, ((x0 + x1) / 2.0, (y0 + y1) / 2.0))
+    } else {
+        let len = y1 - y0;
+        let c = ((y0 + y1) / 2.0, (x0 + x1) / 2.0);
+        let step = (len / 32.0).max(15.0);
+        warp(g, &|p: P| {
+            let q = arc_point((p.1, p.0), -half, len, c);
+            (q.1, q.0)
+        }, step)
+    };
+    refit(out, g, axis)
+}
+
+pub fn slant(g: &Glyph, degrees: f64) -> Glyph {
+    let k = degrees.to_radians().tan();
+    let yc = (g.h - g.d) / 2.0;
+    let mut out = g.clone();
+    out.items = g.transformed(Affine([1.0, 0.0, k, 1.0, -k * yc, 0.0]));
+    out
+}
+
+pub fn taper(g: &Glyph, percent: f64) -> Glyph {
+    let (x0, y0, x1, y1) = g.ink_box();
+    let t = (percent / 100.0).clamp(0.05, 1.0);
+    let axis = long_axis(g);
+    let (xc, yc) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+    let out = if axis == Axis::X {
+        let len = (x1 - x0).max(1.0);
+        warp(g, &|p: P| (p.0, yc + (p.1 - yc) * (t + (1.0 - t) * (p.0 - x0) / len)), (len / 24.0).max(15.0))
+    } else {
+        let len = (y1 - y0).max(1.0);
+        warp(g, &|p: P| (xc + (p.0 - xc) * (t + (1.0 - t) * (p.1 - y0) / len), p.1), (len / 24.0).max(15.0))
+    };
+    out
+}
+
+#[derive(Clone, Copy)]
+enum Piece {
+    L(P, P),
+    C(P, P, P, P),
+}
+
+impl Piece {
+    fn start(&self) -> P {
+        match *self {
+            Piece::L(a, _) | Piece::C(a, _, _, _) => a,
+        }
+    }
+
+    fn end(&self) -> P {
+        match *self {
+            Piece::L(_, b) | Piece::C(_, _, _, b) => b,
+        }
+    }
+
+    fn mid_x(&self) -> f64 {
+        match *self {
+            Piece::L(a, b) => (a.0 + b.0) / 2.0,
+            Piece::C(a, b, c, d) => bez(a, b, c, d, 0.5).0,
+        }
+    }
+
+    fn cut_at(self, x: f64) -> Vec<Piece> {
+        match self {
+            Piece::L(a, b) => {
+                if (a.0 - x) * (b.0 - x) < 0.0 {
+                    let q = lerp(a, b, (x - a.0) / (b.0 - a.0));
+                    vec![Piece::L(a, (x, q.1)), Piece::L((x, q.1), b)]
+                } else {
+                    vec![self]
+                }
+            }
+            Piece::C(a, b, c, d) => {
+                let m = Map { knots: vec![x - 1.0, x, x + 1.0], moved: vec![x - 1.0, x, x + 1.0] };
+                let ts = crossings([a, b, c, d], Axis::X, &m);
+                let mut out = Vec::new();
+                let mut piece = [a, b, c, d];
+                let mut done = 0.0;
+                for t in ts {
+                    let (l, r) = split(piece[0], piece[1], piece[2], piece[3], (t - done) / (1.0 - done));
+                    out.push(Piece::C(l[0], l[1], l[2], (x, l[3].1)));
+                    piece = [(x, r[0].1), r[1], r[2], r[3]];
+                    done = t;
+                }
+                out.push(Piece::C(piece[0], piece[1], piece[2], piece[3]));
+                out
+            }
+        }
+    }
+}
+
+fn contours(path: &[Seg]) -> Vec<(Vec<Piece>, bool)> {
+    let mut out: Vec<(Vec<Piece>, bool)> = Vec::new();
+    let mut cur = (0.0, 0.0);
+    let mut start = (0.0, 0.0);
+    for s in path {
+        match *s {
+            Seg::Move(p) => {
+                out.push((Vec::new(), false));
+                cur = p;
+                start = p;
+            }
+            Seg::Line(p) => {
+                if let Some(c) = out.last_mut() {
+                    c.0.push(Piece::L(cur, p));
+                }
+                cur = p;
+            }
+            Seg::Cubic(a, b, p) => {
+                if let Some(c) = out.last_mut() {
+                    c.0.push(Piece::C(cur, a, b, p));
+                }
+                cur = p;
+            }
+            Seg::Close => {
+                if let Some(c) = out.last_mut() {
+                    if dist(cur, start) > 1e-9 {
+                        c.0.push(Piece::L(cur, start));
+                    }
+                    c.1 = true;
+                }
+                cur = start;
+            }
+        }
+    }
+    out
+}
+
+fn clip(pieces: &[Piece], lo: f64, hi: f64, closed: bool) -> Vec<Vec<Piece>> {
+    let mut parts: Vec<Piece> = pieces.to_vec();
+    for x in [lo, hi] {
+        if x.is_finite() {
+            parts = parts.into_iter().flat_map(|p| p.cut_at(x)).collect();
+        }
+    }
+    let keep: Vec<Piece> = parts.into_iter().filter(|p| { let m = p.mid_x(); m >= lo - 1e-6 && m <= hi + 1e-6 }).collect();
+    if keep.is_empty() {
+        return Vec::new();
+    }
+    if closed {
+        let mut ring = Vec::with_capacity(keep.len() * 2);
+        for (i, p) in keep.iter().enumerate() {
+            let next = keep[(i + 1) % keep.len()];
+            ring.push(*p);
+            if dist(p.end(), next.start()) > 1e-6 {
+                ring.push(Piece::L(p.end(), next.start()));
+            }
+        }
+        vec![ring]
+    } else {
+        let mut runs: Vec<Vec<Piece>> = Vec::new();
+        for p in keep {
+            match runs.last_mut() {
+                Some(r) if r.last().is_some_and(|q| dist(q.end(), p.start()) < 1e-6) => r.push(p),
+                _ => runs.push(vec![p]),
+            }
+        }
+        runs
+    }
+}
+
+fn write_pieces(w: &mut Writer, run: &[Piece], closed: bool) {
+    if let Some(first) = run.first() {
+        w.pt('M', first.start());
+    }
+    for p in run {
+        match *p {
+            Piece::L(_, b) => w.pt('L', b),
+            Piece::C(_, b, c, d) => emit_c(w, b, c, d),
+        }
+    }
+    if closed {
+        w.0.push('Z');
+    }
+}
+
+pub fn cut(g: &Glyph, gaps: &[(f64, f64)]) -> Glyph {
+    let mut gaps: Vec<(f64, f64)> = gaps.iter().copied().filter(|(a, b)| b > a).collect();
+    if gaps.is_empty() {
+        return g.clone();
+    }
+    gaps.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+    let mut slabs = Vec::new();
+    let mut lo = f64::NEG_INFINITY;
+    for (a, b) in &gaps {
+        if *a > lo {
+            slabs.push((lo, *a));
+        }
+        lo = lo.max(*b);
+    }
+    slabs.push((lo, f64::INFINITY));
+    let mut items = Vec::with_capacity(g.items.len());
+    for (it, segs) in g.items.iter().zip(parsed_items(g)) {
+        let Some(segs) = segs else {
+            items.push(it.clone());
+            continue;
+        };
+        let mut w = Writer(String::new());
+        for (pieces, closed) in contours(&segs) {
+            for &(a, b) in &slabs {
+                for run in clip(&pieces, a, b, closed) {
+                    write_pieces(&mut w, &run, closed);
+                }
+            }
+        }
+        if w.0.is_empty() {
+            continue;
+        }
+        let shape = match it.shape {
+            Shape::Stroke(_) => Shape::Stroke(w.0),
+            _ => Shape::Outline(Rc::from(w.0)),
+        };
+        items.push(Item { shape, tf: Affine::ID, bold: it.bold });
+    }
+    Glyph { items, ..g.clone() }
+}
+
 pub fn fingerprint(g: &Glyph) -> u64 {
     let mut h = DefaultHasher::new();
     for v in [g.w, g.h, g.d] {
@@ -743,6 +1122,53 @@ mod tests {
             panic!("no stroke")
         };
         assert!(!p.contains('Z'));
+    }
+
+    #[test]
+    fn bend_keeps_the_arrow_and_lifts_its_middle() {
+        let a = deform(&Glyph::from_font(0x2192, false).unwrap(), Axis::X, 800.0);
+        let b = bend(&a, 30.0);
+        let (ax0, ay0, ax1, ay1) = a.ink_box();
+        let (bx0, by0, bx1, by1) = b.ink_box();
+        assert!((ax0 - bx0).abs() < 1.0);
+        assert!(bx1 - bx0 < ax1 - ax0);
+        assert!(by0 < ay0 - 50.0);
+        let down = bend(&a, -30.0);
+        assert!((down.ink_box().3 - by1).abs() > 50.0 || (down.ink_box().1 - by0).abs() > 50.0);
+    }
+
+    #[test]
+    fn slant_leans_right() {
+        let x = Glyph::from_font(0x7C, false).unwrap();
+        let s = slant(&x, 12.0);
+        let (x0, _, x1, _) = x.ink_box();
+        let (s0, _, s1, _) = s.ink_box();
+        assert!(s1 - s0 > x1 - x0 + 50.0);
+        assert_eq!(s.w, x.w);
+    }
+
+    #[test]
+    fn taper_thins_the_start() {
+        let a = deform(&Glyph::from_font(0x2192, false).unwrap(), Axis::X, 800.0);
+        let t = taper(&a, 35.0);
+        let (x0, y0, x1, y1) = a.ink_box();
+        let (t0, u0, t1, u1) = t.ink_box();
+        assert!((x0 - t0).abs() < 1.0 && (x1 - t1).abs() < 1.0);
+        assert!((u1 - u0) <= (y1 - y0) + 1.0);
+    }
+
+    #[test]
+    fn cut_removes_ink_in_the_gap() {
+        let a = deform(&Glyph::from_font(0x2192, false).unwrap(), Axis::X, 1200.0);
+        let (x0, _, x1, _) = a.ink_box();
+        let m = (x0 + x1) / 2.0;
+        let c = cut(&a, &[(m - 100.0, m + 100.0)]);
+        let Shape::Outline(p) = &c.items[0].shape else { panic!("no outline") };
+        assert_eq!(p.matches('M').count(), 2);
+        let pts = glyph::path_points(p);
+        assert!(pts.iter().all(|(x, _)| *x <= m - 99.0 || *x >= m + 99.0));
+        let (c0, _, c1, _) = c.ink_box();
+        assert!((c0 - x0).abs() < 1.0 && (c1 - x1).abs() < 1.0);
     }
 
     #[test]

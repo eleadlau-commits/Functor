@@ -44,7 +44,7 @@ const FAMILY: &[(OpKind, &str, &str)] = &[
     (OpKind::Reflect, "reflect", "A mirror image or a half turn of the base."),
     (OpKind::Style, "style", "Another alphabet for a letter: bold, double-struck, fraktur, script, upright."),
     (OpKind::Magnify, "magnify", "A smaller or larger copy of the base."),
-    (OpKind::Deform, "deform", "A changed outline of the base. The straight parts grow and the ends and thin strokes keep their shape."),
+    (OpKind::Deform, "deform", "A changed outline of the base. The compiler moves each point of the outline, and the strokes keep their shape and width."),
     (OpKind::Fence, "fence", "Brackets around a group or a symbol. The brackets grow with the content."),
 ];
 
@@ -77,6 +77,9 @@ const OP_EXAMPLES: &[(&str, &[&str])] = &[
     ("small", &["T.up.small", "x.small"]),
     ("tall", &["integral.tall", "x.tall"]),
     ("wide", &["to.wide", "eq.wide"]),
+    ("bend", &["to.wide.bend", "to.wide.bend.flipv"]),
+    ("slant", &["A.slant", "x.slant"]),
+    ("taper", &["to.wide.taper", "mid.taper"]),
     ("paren", &["(a + b).paren", "(frac(1, 2)).paren"]),
     ("brack", &["(a, b).brack", "(M).brack.x2"]),
     ("brace", &["(x).brace", "(x).brace.left"]),
@@ -115,6 +118,8 @@ const OP_LATEX: &[(&str, &str)] = &[
     ("small", "no direct LaTeX command"),
     ("tall", "`\\bigl(` and the like, for a bigger glyph"),
     ("wide", "`\\longrightarrow`, `\\xrightarrow{}` without the label"),
+    ("bend", "tikz-cd `bend left` and `bend right` in a `diagram`"),
+    ("slant", "`\\textsl` and slanted fonts, for one symbol"),
     ("paren", "`\\left( x \\right)` becomes `(x).paren`, or just `(x)`"),
     ("brack", "`\\left[ x \\right]` becomes `(x).brack`, `\\llbracket x \\rrbracket` becomes `(x).brack.x2`"),
     ("brace", "`\\left\\{ x \\right\\}` becomes `(x).brace`, `\\left\\{ x \\right.` becomes `(x).brace.left`"),
@@ -135,6 +140,9 @@ const OP_RULES: &[(&str, &str)] = &[
     ("small", "Scales the base to four fifths of its size."),
     ("tall", "Makes the base half again as tall. Stems and straight parts grow, the ends keep their shape."),
     ("wide", "Makes the base wider. The shaft of an arrow grows, the head keeps its shape."),
+    ("bend", "Bends the long axis into an arc of 60 degrees, with the middle up. Add `flipv` after it to bend down. In a `diagram`, it makes a curved arrow."),
+    ("slant", "Leans the base 12 degrees to the right. The width stays the same."),
+    ("taper", "The start of the long axis goes to about one third of its size. On an arrow, the tail is thin and the head keeps its shape."),
     ("x2", "Uses the font glyph when the font has one, for example the double integral."),
 ];
 
