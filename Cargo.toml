@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/functor-core", "crates/functor-wasm", "crates/functor-cli"]
+members = ["crates/functor-symbols", "crates/functor-math", "crates/functor-paper", "crates/functor-wasm", "crates/functor-cli"]
 
 [workspace.package]
 version = "0.1.0"

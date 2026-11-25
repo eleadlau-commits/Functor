@@ -1,17 +1,13 @@
+pub use functor_math::{deform, diag, glyph, math, symbols};
 pub mod ast;
-pub mod deform;
-pub mod diag;
 pub mod doc;
-pub mod glyph;
 pub mod inline;
 pub mod json;
 pub mod linebreak;
-pub mod math;
 pub mod page;
 pub mod pdf;
 pub mod reference;
 pub mod render;
-pub mod symbols;
 pub mod text;
 
 use diag::{Diagnostic, Diagnostics, Severity};

@@ -33,13 +33,21 @@ dependencies = [
 name = "functor-cli"
 version = "0.1.0"
 dependencies = [
- "functor-core",
+ "functor-paper",
 ]
 
 [[package]]
-name = "functor-core"
+name = "functor-math"
 version = "0.1.0"
 dependencies = [
+ "functor-symbols",
+]
+
+[[package]]
+name = "functor-paper"
+version = "0.1.0"
+dependencies = [
+ "functor-math",
  "hypher",
  "miniz_oxide",
  "pdf-writer",
@@ -47,10 +55,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "functor-symbols"
+version = "0.1.0"
+
+[[package]]
 name = "functor-wasm"
 version = "0.1.0"
 dependencies = [
- "functor-core",
+ "functor-paper",
 ]
 
 [[package]]

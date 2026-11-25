@@ -43,20 +43,20 @@ pub extern "C" fn result_len() -> usize {
 #[no_mangle]
 pub unsafe extern "C" fn compile(ptr: *const u8, len: usize) -> usize {
     let src = input(ptr, len);
-    set_result(functor_core::compile(&src).to_json())
+    set_result(functor_paper::compile(&src).to_json())
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn compile_width(ptr: *const u8, len: usize, width_pt: f64) -> usize {
     let src = input(ptr, len);
     let w = if width_pt > 0.0 { Some(width_pt) } else { None };
-    set_result(functor_core::compile_width(&src, w).to_json())
+    set_result(functor_paper::compile_width(&src, w).to_json())
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn compile_pdf(ptr: *const u8, len: usize) -> usize {
     let src = input(ptr, len);
-    let out = functor_core::compile_pdf(&src);
+    let out = functor_paper::compile_pdf(&src);
     RESULT.with(|r| {
         let mut r = r.borrow_mut();
         *r = out.pdf;
@@ -67,21 +67,21 @@ pub unsafe extern "C" fn compile_pdf(ptr: *const u8, len: usize) -> usize {
 #[no_mangle]
 pub unsafe extern "C" fn glyph(ptr: *const u8, len: usize) -> usize {
     let recipe = input(ptr, len);
-    set_result(functor_core::glyph_svg(&recipe).unwrap_or_default())
+    set_result(functor_paper::glyph_svg(&recipe).unwrap_or_default())
 }
 
 #[no_mangle]
 pub extern "C" fn symbols() -> usize {
-    set_result(functor_core::symbols_json())
+    set_result(functor_paper::symbols_json())
 }
 
 #[no_mangle]
 pub extern "C" fn cache_export() -> usize {
-    let dirty = functor_core::glyph::take_dirty();
-    set_result(if dirty { functor_core::glyph::export_cache() } else { String::new() })
+    let dirty = functor_paper::glyph::take_dirty();
+    set_result(if dirty { functor_paper::glyph::export_cache() } else { String::new() })
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn cache_import(ptr: *const u8, len: usize) -> usize {
-    functor_core::glyph::import_cache(&input(ptr, len))
+    functor_paper::glyph::import_cache(&input(ptr, len))
 }

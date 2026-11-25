@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Instant;
 
-use functor_core::glyph;
+use functor_paper::glyph;
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -112,19 +112,19 @@ fn with_glyph_cache<T>(app: &AppHandle, f: impl FnOnce() -> T) -> T {
 #[tauri::command]
 fn compile(app: AppHandle, src: String, width: Option<f64>) -> String {
     let t = Instant::now();
-    let out = with_glyph_cache(&app, || functor_core::compile_width(&src, width));
+    let out = with_glyph_cache(&app, || functor_paper::compile_width(&src, width));
     let json = out.to_json();
     format!("{{\"nativeMs\":{},{}", t.elapsed().as_secs_f64() * 1000.0, &json[1..])
 }
 
 #[tauri::command]
 fn glyph(app: AppHandle, recipe: String) -> String {
-    with_glyph_cache(&app, || functor_core::glyph_svg(&recipe)).unwrap_or_default()
+    with_glyph_cache(&app, || functor_paper::glyph_svg(&recipe)).unwrap_or_default()
 }
 
 #[tauri::command]
 fn symbols() -> String {
-    functor_core::symbols_json()
+    functor_paper::symbols_json()
 }
 
 #[tauri::command]
@@ -182,7 +182,7 @@ async fn export_html(app: AppHandle, name: String, html: String) -> Result<Optio
 async fn export_pdf(app: AppHandle, name: String, src: String) -> Result<Option<String>, String> {
     let picked = app.dialog().file().add_filter("PDF", &["pdf"]).set_file_name(&name).blocking_save_file();
     let Some(path) = picked.and_then(|p| p.into_path().ok()) else { return Ok(None) };
-    let out = functor_core::compile_pdf(&src);
+    let out = functor_paper::compile_pdf(&src);
     std::fs::write(&path, out.pdf).map_err(|e| format!("Cannot write {}: {e}", path.display()))?;
     Ok(Some(path.to_string_lossy().into_owned()))
 }

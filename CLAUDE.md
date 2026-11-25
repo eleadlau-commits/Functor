@@ -1,6 +1,12 @@
 # Functor
 
-Functor is a math typesetting language. The compiler is in `crates/functor-core`.
+Functor is a math typesetting language. The compiler has three engines:
+
+- `crates/functor-symbols`: symbol names, recipes, deform, glyph builder.
+- `crates/functor-math`: formula layout. Uses only functor-symbols.
+- `crates/functor-paper`: documents, text, pages, HTML, PDF, reference.
+
+Dependencies go one way: symbols ← math ← paper. Do not import a higher crate from a lower one.
 
 ## Keep the reference current
 

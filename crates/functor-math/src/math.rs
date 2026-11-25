@@ -1863,7 +1863,7 @@ fn render_box(b: &LBox, display: bool, label: Option<&str>) -> String {
         f(total / 1000.0),
         f(-(d + pad) / 1000.0),
         match label {
-            Some(l) => format!("role=\"img\" aria-label=\"{}\"", crate::render::escape_attr(l)),
+            Some(l) => format!("role=\"img\" aria-label=\"{}\"", crate::escape::escape_attr(l)),
             None => "aria-hidden=\"true\"".into(),
         },
         body

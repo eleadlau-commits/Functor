@@ -84,6 +84,6 @@ for (const { key, text } of sources) {
   }
 }
 
-const out = join(here, '../crates/functor-core/data/glyphs.tsv');
+const out = join(here, '../crates/functor-symbols/data/glyphs.tsv');
 writeFileSync(out, lines.join('\n') + '\n');
 console.log(`wrote ${lines.length} glyphs to ${out}`);
