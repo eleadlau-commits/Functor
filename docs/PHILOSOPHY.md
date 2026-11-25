@@ -143,3 +143,34 @@ Where it is used:
 
 - Font outlines have no close command. The open end made a straight edge that did not follow the bands, so `⟩` was lopsided. Deform now closes each outline first.
 - The loop of a script L has near vertical sides, so the first version stretched the loop. A count of strokes in each band fixed it.
+
+## Diagrams and 2D structures
+
+A 2D structure is **positions + relations**. The grid gives the positions. The kind adds the relation.
+
+```mermaid
+flowchart LR
+  G["grid<br/>positions"] --> F["+ fence<br/>mat, vec, cases, binom"]
+  G --> A["+ align point<br/>chain in display math"]
+  G --> E["+ arrows<br/>diagram"]
+```
+
+- `diagram(A, B; C, D | f: A to B, g: A to C)`: the cells, a bar, then each arrow as a map. An arrow names its cells by content, or by position (`2.1`) when two cells have the same content.
+- The arrow is any relation glyph. It grows with `wide` (deform) when it has a long straight part (`to`, `=`, `implies`, `mapsto`), and it turns to the angle of the edge. A glyph with no straight part (`sim`) keeps its size, with a line on each side.
+- A script on a relation is a label: `A to^f B`. The arrow grows to fit the label. This also covers `=^"def"`.
+- Inline is a style rule, not syntax: `set mat(inline: small|full)`, the same for `vec` and `diagram`. Default `small`.
+- `plain_share` in `deform.rs` decides if a glyph can grow. It counts the bands that have only straight lines along the axis.
+
+| Layer | Score | What it does now | Gap |
+|:--|:-:|:--|:--|
+| Meaning | 4 | An arrow is a map `f: A to B`. Cells are named by content, not by direction letters. | No arrow kinds such as hook or epi yet (they come with the symbol names). |
+| Style | 3 | `set diagram(gap:, inline:)`, `set mat(inline:)`, `set vec(inline:)`. Labels go to the outer side by default. | No rule for the arrow head or the label side for all arrows. |
+| Construction | 4 | No new drawing code: a font arrow, `wide` deform, and a turn. | No curved arrows (needs a bend deform), no 2-cells. |
+| Layout | 3 | Gaps grow to fit labels. Edges stop at the cell box. | Crossing arrows and parallel arrows are not handled. |
+
+Total for diagrams: 14 of 20 (0 before). Matrices stay at 16 of 20.
+
+### Key hiccups
+
+- The first test for "can this glyph grow" also needed the fewest crossings, so `implies` (two bars) failed. The test now looks only at straight bands.
+- A bar `|` inside a table cell ends the cell, so the reference tables do not show `diagram` code. The examples are in code blocks.

@@ -31,6 +31,7 @@ and operations: theta.hat, x.bar, v.arrow, R.bb, L.script, A.bold, d.up,
 in.not, eq.not, integral.x2, integral.circle, plus.circle, (a + b).angle.
 Text in math: "if". Matrix: mat(a, b; c, d). Vector: vec(1, 2, 3).
 Cases: cases(x, x ge 0; -x, x lt 0). abs(x), norm(v), inner(u, v), binom(n, k).
+Labelled arrow: A to^f B. Diagram: diagram(A, B; C, D | f: A to B, g: A to C).
 Display math: $$ on its own line; each line is a row aligned at its first
 relation; label with {#eq:name} after the closing $$; refer with @eq:name.
 In a chat, put Functor in a fn code block, or a fnmath block for display math.
@@ -144,6 +145,15 @@ Examples: `R.bb`, `g.frak`, `L.script`, `d.up`, `v.bold`, `integral.x2.circle`, 
 | `grid(a, b; c, d)` | Grid with no fence |
 | `abs(x)`, `norm(v)`, `inner(u, v)`, `floor(x)`, `ceil(x)` | Bars, double bars, angle brackets, floor, ceiling |
 | `wrap(L.script, x + y)`, `wrap(T.frak, S.frak, a)` | Any symbol as a fence |
+| `A to^f B`, `A to_p B`, `x =^"def" y` | Label above or below a relation; the arrow grows to fit |
+
+**Diagrams.** A diagram is a grid with arrows: the cells, a bar, then each arrow as a map. Two cells with the same content: write the position, `2.1` (row 2, column 1). Any relation can be the arrow.
+
+```fn
+$$
+diagram(A, B; C, D | f: A to B, g: A to C, h: B to D, k: C to D)
+$$
+```
 
 **Aligned equations.** In display math, write one step on each line. Rows align at the first relation. A line that starts with a relation continues the left side.
 
@@ -158,8 +168,10 @@ $$ {#eq:square}
 
 | Rule | Options |
 |:--|:--|
-| `set vec(...)` | `style: arrow` or `bold`, `fence:`, `body: column` or `row`, `grow:` |
-| `set mat(...)`, `set binom(...)`, `set abs(...)`, `set norm(...)`, `set inner(...)`, `set floor(...)`, `set ceil(...)` | `fence:`, `grow:` |
+| `set vec(...)` | `style: arrow` or `bold`, `fence:`, `body: column` or `row`, `grow:`, `inline: small` or `full` |
+| `set mat(...)` | `fence:`, `grow:`, `inline: small` or `full` |
+| `set diagram(...)` | `gap: small`, `normal` or `large`, `inline: small` or `full` |
+| `set binom(...)`, `set abs(...)`, `set norm(...)`, `set inner(...)`, `set floor(...)`, `set ceil(...)` | `fence:`, `grow:` |
 | `set cases(...)` | `fence:`, `word: "if"`, `grow:` |
 | `set wrap(...)` | `grow: stretch` or `magnify` |
 | `set document(...)` | `style: quiet` or `classic`, `accent: #4a6a85` |
@@ -180,6 +192,8 @@ $$ {#eq:square}
 | `\left( x \right)` | `(x)` |
 | `\begin{pmatrix} a & b \\ c & d \end{pmatrix}` | `mat(a, b; c, d)` |
 | `\begin{cases} ... \end{cases}` | `cases(value, condition; ...)` |
+| `\xrightarrow{f}`, `\overset{\text{def}}{=}` | `to^f`, `=^"def"` |
+| tikz-cd | `diagram(...)`, see "Diagrams" above |
 | `\begin{align} a &= b \\ &= c \end{align}` | one step on each line in `$$` |
 | `\text{if}`, `\quad` | `"if"`, `quad` |
 | `\label{eq:a}`, `\eqref{eq:a}` | `$$ {#eq:a}` after the math, `@eq:a` |

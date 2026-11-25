@@ -45,6 +45,9 @@ $$
 |:--|:--|:--|
 | `set mat(fence: ...)` | a fence | `paren` |
 | `set mat(grow: ...)` | `stretch`, `magnify` | `stretch` |
+| `set mat(inline: ...)` | `small`, `full` | `small` |
+
+In running text a matrix is small by default, as $mat(a, b; c, d)$ here. See [Diagrams](diagrams.html) for diagrams, which are grids with arrows.
 
 A determinant is a matrix with bars: `set mat(fence: vbar)` for all matrices, or `(grid(a, b; c, d)).vbar` for one.
 
@@ -64,6 +67,7 @@ $vec(v) = vec(1, 2, 3)$
 | `set vec(fence: ...)` | a fence | `paren` |
 | `set vec(body: ...)` | `column`, `row` | `column` |
 | `set vec(grow: ...)` | `stretch`, `magnify` | `stretch` |
+| `set vec(inline: ...)` | `small`, `full` | `small` |
 
 # cases
 

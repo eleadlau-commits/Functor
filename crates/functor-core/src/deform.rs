@@ -262,7 +262,7 @@ impl Map {
     }
 }
 
-fn plan(segs: &[Vec<Seg>], axis: Axis, lo: f64, hi: f64, extra: f64) -> Map {
+fn profile(segs: &[Vec<Seg>], axis: Axis, lo: f64, hi: f64) -> Profile {
     let bw = ((hi - lo) / BINS as f64).max(1e-6);
     let mut pr = Profile {
         lo,
@@ -300,9 +300,42 @@ fn plan(segs: &[Vec<Seg>], axis: Axis, lo: f64, hi: f64, extra: f64) -> Map {
             }
         }
     }
-    let flat: Vec<f64> = (0..BINS)
-        .map(|i| pr.across[i] / (pr.along[i] + 0.15 * bw))
-        .collect();
+    pr
+}
+
+fn flatness(pr: &Profile) -> Vec<f64> {
+    (0..BINS)
+        .map(|i| pr.across[i] / (pr.along[i] + 0.15 * pr.bw))
+        .collect()
+}
+
+fn segments(g: &Glyph) -> Vec<Vec<Seg>> {
+    g.items
+        .iter()
+        .filter_map(|it| match &it.shape {
+            Shape::Font(p) => parse(p, it.tf, true),
+            Shape::Outline(p) => parse(p, it.tf, true),
+            Shape::Stroke(p) => parse(p, it.tf, false),
+        })
+        .collect()
+}
+
+pub fn plain_share(g: &Glyph, axis: Axis) -> f64 {
+    let (x0, y0, x1, y1) = g.ink_box();
+    let (lo, hi) = if axis == Axis::Y { (y0, y1) } else { (x0, x1) };
+    if hi - lo < 1.0 {
+        return 0.0;
+    }
+    let pr = profile(&segments(g), axis, lo, hi);
+    let flat = flatness(&pr);
+    let plain = (0..BINS).filter(|&i| pr.cross[i] > 0 && flat[i] < 0.05).count();
+    plain as f64 / BINS as f64
+}
+
+fn plan(segs: &[Vec<Seg>], axis: Axis, lo: f64, hi: f64, extra: f64) -> Map {
+    let pr = profile(segs, axis, lo, hi);
+    let bw = pr.bw;
+    let flat = flatness(&pr);
     let mut guard = flat.clone();
     for i in 0..BINS {
         let a = if i > 0 { flat[i - 1] } else { flat[i] };
@@ -634,6 +667,16 @@ mod tests {
     fn ink_h(g: &Glyph) -> f64 {
         let (_, y0, _, y1) = g.ink_box();
         y1 - y0
+    }
+
+    #[test]
+    fn plain_share_finds_glyphs_that_can_grow() {
+        for cp in [0x2192u32, 0x21A6, 0x3D, 0x21D2, 0x2261] {
+            assert!(plain_share(&Glyph::from_font(cp, false).unwrap(), Axis::X) >= 0.3, "{cp:x}");
+        }
+        for cp in [0x223Cu32, 0x2248, 0x78] {
+            assert!(plain_share(&Glyph::from_font(cp, false).unwrap(), Axis::X) < 0.3, "{cp:x}");
+        }
     }
 
     #[test]

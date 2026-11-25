@@ -1,0 +1,79 @@
+---
+functor: 1
+title: Diagrams and labelled arrows
+---
+
+set heading(numbering: none)
+
+A diagram is a grid with arrows. A matrix is a grid with a fence. Both use the same cells: a comma ends a cell and a semicolon ends a row.
+
+| Structure | Positions | Relations |
+|:--|:--|:--|
+| `mat`, `vec`, `cases`, `binom` | a grid | a fence |
+| a chain in display math | rows | the align point |
+| `diagram` | a grid | arrows between cells |
+
+# Labelled arrows
+
+A script on a relation is a label. `^` puts the label above, and `_` puts it below. The arrow grows with `wide` to fit the label.
+
+| Write | Result |
+|:--|:-:|
+| `A to^f B` | $A to^f B$ |
+| `A to_p B` | $A to_p B$ |
+| `x =^"def" y` | $x =^"def" y$ |
+| `0 to A to^f B to^g C to 0` | $0 to A to^f B to^g C to 0$ |
+
+This works on any relation. A relation with a long straight part, such as `to`, `=`, `implies` or `mapsto`, grows. A relation with no straight part, such as `sim`, keeps its size and stays in the middle.
+
+# diagram
+
+Write the cells, then `|`, then the arrows. Write each arrow as a map: `f: A to B`.
+
+```fn
+$$
+diagram(
+  A, B;
+  C, D
+| f: A to B, g: A to C, h: B to D, k: C to D)
+$$
+```
+
+It gives:
+
+$$
+diagram(A, B; C, D | f: A to B, g: A to C, h: B to D, k: C to D)
+$$
+
+- An arrow names its cells by their content. If two cells have the same content, write the position: `2.1` is row 2, column 1.
+- The arrow is any relation: `to`, `mapsto`, `implies`, `=`, `sim`, or a `sym` that you build. On a diagonal or a vertical edge, the same glyph turns to the angle.
+- `f: A to B` puts the label f on the outer side of the diagram. `A to^f B` puts it on the left of the arrow direction, and `A to_f B` on the right.
+- A cell can be empty: `diagram(A, ; B, C | A to C)`.
+- Do not write a bar `|` in a cell. Use `abs(x)`.
+
+```fn
+$$
+diagram(X times Y, Y; X, Z | p_2: X times Y to Y, p_1: X times Y to X, g: Y to Z, f: X to Z, X times Y to Z)
+$$
+```
+
+$$
+diagram(X times Y, Y; X, Z | p_2: X times Y to Y, p_1: X times Y to X, g: Y to Z, f: X to Z, X times Y to Z)
+$$
+
+| Rule | Values | Default |
+|:--|:--|:--|
+| `set diagram(gap: ...)` | `small`, `normal`, `large` | `normal` |
+| `set diagram(inline: ...)` | `small`, `full` | `small` |
+
+The gap between two cells also grows to fit a long label.
+
+# Inline structures
+
+Inline is a context, so it is a style rule and not new syntax. In running text, `mat`, `vec` (with components in a column) and `diagram` are small by default, so the lines stay evenly spaced. `set mat(inline: full)` keeps them full size.
+
+The matrix $mat(a, b; c, d)$ is small in text. A one-row sequence such as $0 to A to^f B to 0$ needs no diagram.
+
+# Not in Functor 1
+
+Curved arrows, arrows that cross other arrows, and arrows between arrows (2-cells) come in a later phase. A curved arrow needs a bend deform.

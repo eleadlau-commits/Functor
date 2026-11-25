@@ -136,7 +136,7 @@ pub fn space(name: &str) -> Option<f64> {
     SPACES.iter().find(|(n, _)| *n == name).map(|(_, w)| *w)
 }
 
-pub const CALLS: &[&str] = &["frac", "sqrt", "vec", "text", "join", "grid", "mat", "cases", "binom", "abs", "norm", "inner", "floor", "ceil", "wrap"];
+pub const CALLS: &[&str] = &["frac", "sqrt", "vec", "text", "join", "grid", "mat", "cases", "binom", "abs", "norm", "inner", "floor", "ceil", "wrap", "diagram"];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OpKind {
@@ -231,6 +231,10 @@ pub const KIND_DEFAULTS: &[(&str, &str, &str)] = &[
     ("vec", "fence", "paren"),
     ("vec", "body", "column"),
     ("mat", "fence", "paren"),
+    ("mat", "inline", "small"),
+    ("vec", "inline", "small"),
+    ("diagram", "inline", "small"),
+    ("diagram", "gap", "normal"),
     ("cases", "fence", "brace.left"),
     ("cases", "word", ""),
     ("binom", "fence", "paren"),
@@ -243,8 +247,8 @@ pub const KIND_DEFAULTS: &[(&str, &str, &str)] = &[
 ];
 
 pub const SET_OPTIONS: &[(&str, &[&str])] = &[
-    ("vec", &["style", "fence", "body", "grow"]),
-    ("mat", &["fence", "grow"]),
+    ("vec", &["style", "fence", "body", "grow", "inline"]),
+    ("mat", &["fence", "grow", "inline"]),
     ("cases", &["fence", "word", "grow"]),
     ("binom", &["fence", "grow"]),
     ("abs", &["fence", "grow"]),
@@ -253,6 +257,7 @@ pub const SET_OPTIONS: &[(&str, &[&str])] = &[
     ("floor", &["fence", "grow"]),
     ("ceil", &["fence", "grow"]),
     ("wrap", &["grow"]),
+    ("diagram", &["gap", "inline"]),
     ("document", &["style", "accent"]),
     ("heading", &["numbering"]),
     ("page", &["size", "margin"]),
