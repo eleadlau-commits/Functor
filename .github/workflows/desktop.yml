@@ -4,6 +4,7 @@ on:
   pull_request:
     paths: ['desktop/**', 'web/**', 'crates/functor-symbols/**', 'crates/functor-math/**', 'crates/functor-paper/**', '.github/workflows/desktop.yml']
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   build:
