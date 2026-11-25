@@ -250,6 +250,7 @@ pub const SET_OPTIONS: &[(&str, &[&str])] = &[
     ("floor", &["fence", "grow"]),
     ("ceil", &["fence", "grow"]),
     ("wrap", &["grow"]),
+    ("document", &["style", "accent"]),
     ("heading", &["numbering"]),
     ("page", &["size", "margin"]),
     ("text", &["size", "font"]),

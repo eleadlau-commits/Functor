@@ -58,6 +58,7 @@ pub(crate) struct R<'a> {
     pub(crate) base: Style,
     pub(crate) indent: f64,
     pub(crate) in_figure: bool,
+    pub(crate) quiet: bool,
 }
 
 pub fn length_pt(s: &str) -> Option<f64> {
@@ -111,14 +112,17 @@ pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -
         base: Style::default(),
         indent: 0.0,
         in_figure: false,
+        quiet: s.style != "classic",
     };
     r.out.push_str(&format!(
-        "<article class=\"fn-doc\" data-page=\"{}\" style=\"--fn-page-width:{}pt;--fn-margin:{};--fn-text-size:{}{}\">",
+        "<article class=\"fn-doc fn-style-{}\" data-page=\"{}\" style=\"--fn-page-width:{}pt;--fn-margin:{};--fn-text-size:{}{}{}\">",
+        escape_attr(&s.style),
         escape_attr(&s.page),
         page,
         escape_attr(&s.margin),
         escape_attr(&s.text_size),
-        s.font.as_ref().map(|f| format!(";--fn-font:{}", escape_attr(f))).unwrap_or_default()
+        s.font.as_ref().map(|f| format!(";--fn-font:{}", escape_attr(f))).unwrap_or_default(),
+        s.accent.as_ref().map(|a| format!(";--fn-accent:{}", escape_attr(a))).unwrap_or_default()
     ));
     let m = &doc.meta;
     if m.title.is_some() || !m.authors.is_empty() || m.date.is_some() {
@@ -239,20 +243,35 @@ impl R<'_> {
             self.out.push_str("</figcaption></figure>");
             return;
         }
-        self.out.push_str(&format!("<section class=\"fn-env fn-{}\"{id}>", escape_attr(&e.kind)));
+        let headed = self.quiet && !matches!(e.kind.as_str(), "proof" | "quote" | "note");
+        self.out.push_str(&format!("<section class=\"fn-env fn-{}{}\"{id}>", escape_attr(&e.kind), if headed { " fn-headed" } else { "" }));
         let mut name = capital(&e.kind);
         if let Some(n) = e.number {
             name.push_str(&format!(" {n}"));
         }
         let saved = (self.base, self.indent);
-        let italic_body = matches!(e.kind.as_str(), "theorem" | "lemma" | "corollary" | "proposition");
+        let italic_body = !self.quiet && matches!(e.kind.as_str(), "theorem" | "lemma" | "corollary" | "proposition");
         if italic_body {
             self.base.italic = true;
         }
         match e.kind.as_str() {
             "quote" => self.indent += 2.0 * QUOTE_INDENT,
             "note" => self.indent += NOTE_INDENT,
+            _ if headed => self.indent += NOTE_INDENT,
             _ => {}
+        }
+        if headed {
+            self.out.push_str(&format!("<div class=\"fn-env-head\"><span class=\"fn-env-name\">{}</span>", escape(&name)));
+            if let Some(t) = &e.title {
+                self.out.push_str(&format!(" <span class=\"fn-env-title\">({})</span>", escape(t)));
+            }
+            self.out.push_str("</div>");
+            for b in &e.body {
+                self.block(b);
+            }
+            (self.base, self.indent) = saved;
+            self.out.push_str("</section>");
+            return;
         }
         let name_style = if e.kind == "proof" { Style { italic: true, ..Style::default() } } else { Style { bold: true, ..Style::default() } };
         let name_wrap = Wrap { open: "<span class=\"fn-env-name\">".into(), close: "</span>" };

@@ -92,6 +92,7 @@ pub fn layout(doc: &Doc, diags: &mut Diagnostics) -> Layout {
         base: Style::default(),
         indent: 0.0,
         in_figure: false,
+        quiet: s.style != "classic",
     };
     let mut p = P { r, v: Vec::new(), size, measure, indent: 0.0, base: Style::default() };
     p.title(doc);
@@ -491,7 +492,7 @@ impl P<'_> {
             name.push_str(&format!("\u{A0}{n}"));
         }
         let saved = (self.base, self.indent, self.measure);
-        if matches!(e.kind.as_str(), "theorem" | "lemma" | "corollary" | "proposition") {
+        if !self.r.quiet && matches!(e.kind.as_str(), "theorem" | "lemma" | "corollary" | "proposition") {
             self.base.italic = true;
         }
         match e.kind.as_str() {
