@@ -59,6 +59,9 @@ pub(crate) struct R<'a> {
     pub(crate) indent: f64,
     pub(crate) in_figure: bool,
     pub(crate) quiet: bool,
+    pub(crate) pdf: bool,
+    pub(crate) notes: usize,
+    pub(crate) note_src: Vec<(usize, Vec<Inline>)>,
 }
 
 pub fn length_pt(s: &str) -> Option<f64> {
@@ -95,10 +98,12 @@ pub fn render(doc: &Doc, diags: &mut Diagnostics) -> String {
 pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -> String {
     let s = &doc.settings;
     let page = page_width_pt(&s.page);
+    let with_notes = has_notes(&doc.blocks);
+    let col = if with_notes && s.style != "classic" { NOTE_COLUMN_PT } else { 0.0 };
     let measure = match (s.font.as_ref(), length_pt(&s.margin), length_pt(&s.text_size)) {
         (None, Some(m), Some(t)) if t > 0.0 => match width_pt {
             Some(w) if w > 0.0 => Some(w / t),
-            _ if page > 2.0 * m => Some((page - 2.0 * m) / t),
+            _ if page > 2.0 * m + col => Some((page - 2.0 * m - col) / t),
             _ => None,
         },
         _ => None,
@@ -113,10 +118,14 @@ pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -
         indent: 0.0,
         in_figure: false,
         quiet: s.style != "classic",
+        pdf: false,
+        notes: 0,
+        note_src: Vec::new(),
     };
     r.out.push_str(&format!(
-        "<article class=\"fn-doc fn-style-{}\" data-page=\"{}\" style=\"--fn-page-width:{}pt;--fn-margin:{};--fn-text-size:{}{}{}\">",
+        "<article class=\"fn-doc fn-style-{}{}\" data-page=\"{}\" style=\"--fn-page-width:{}pt;--fn-margin:{};--fn-text-size:{}{}{}\">",
         escape_attr(&s.style),
+        if with_notes { " fn-has-notes" } else { "" },
         escape_attr(&s.page),
         page,
         escape_attr(&s.margin),
@@ -398,6 +407,17 @@ impl R<'_> {
                     b.text(&format!("[{}]", keys.join("; ")));
                     b.pop();
                 }
+                Inline::Note(v) => {
+                    self.notes += 1;
+                    let n = self.notes;
+                    b.mark(&n.to_string());
+                    if self.pdf {
+                        self.note_src.push((n, v.clone()));
+                    } else {
+                        let html = self.note_html(n, v, false);
+                        b.side(html);
+                    }
+                }
             }
         }
     }
@@ -436,7 +456,26 @@ impl R<'_> {
                 let keys: Vec<String> = keys.iter().map(|k| escape(k)).collect();
                 self.out.push_str(&format!("<cite class=\"fn-cite\">[{}]</cite>", keys.join("; ")));
             }
+            Inline::Note(v) => {
+                self.notes += 1;
+                let n = self.notes;
+                self.out.push_str(&format!("<sup class=\"fn-mark\">{n}</sup>"));
+                let html = self.note_html(n, v, true);
+                self.out.push_str(&html);
+            }
         }
+    }
+
+    fn note_html(&mut self, n: usize, v: &[Inline], inline: bool) -> String {
+        let saved = std::mem::take(&mut self.out);
+        self.out.push_str(&format!(
+            "<span class=\"fn-side{}\" role=\"note\"><span class=\"fn-side-n\">{n}</span> ",
+            if inline { " fn-side-inline" } else { "" }
+        ));
+        let flat: Vec<Inline> = v.iter().map(|i| if let Inline::Note(x) = i { Inline::Emph(x.clone()) } else { i.clone() }).collect();
+        self.inlines(&flat);
+        self.out.push_str("</span>");
+        std::mem::replace(&mut self.out, saved)
     }
 
     fn ref_parts(&mut self, label: &str, line: usize, col: usize) -> (String, String, &'static str) {
@@ -478,11 +517,33 @@ pub(crate) fn capital(s: &str) -> String {
     }
 }
 
+pub const NOTE_COLUMN_PT: f64 = 136.0;
+
+pub(crate) fn has_notes(blocks: &[Block]) -> bool {
+    fn inl(v: &[Inline]) -> bool {
+        v.iter().any(|i| match i {
+            Inline::Note(_) => true,
+            Inline::Strong(v) | Inline::Emph(v) => inl(v),
+            Inline::Link { text, .. } => inl(text),
+            _ => false,
+        })
+    }
+    blocks.iter().any(|b| match b {
+        Block::Para(c) => inl(c),
+        Block::Heading { content, .. } => inl(content),
+        Block::List { items, .. } => items.iter().any(|i| inl(i)),
+        Block::Table { header, rows, .. } => header.iter().any(|c| inl(c)) || rows.iter().flatten().any(|c| inl(c)),
+        Block::Env(e) => has_notes(&e.body) || e.caption.as_deref().is_some_and(inl),
+        _ => false,
+    })
+}
+
 fn engine_ok(v: &[Inline], base: Style) -> bool {
     v.iter().all(|i| match i {
         Inline::Text(t) => text::covered(t, base),
         Inline::Strong(v) | Inline::Emph(v) => engine_ok(v, base),
         Inline::Link { text, .. } => engine_ok(text, base),
+        Inline::Note(v) => engine_ok(v, base),
         Inline::Code(t) => text::covered(t, Style { mono: true, ..Style::default() }),
         Inline::Image { .. } => false,
         _ => true,

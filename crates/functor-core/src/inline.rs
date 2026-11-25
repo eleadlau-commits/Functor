@@ -58,7 +58,7 @@ struct Parser<'a, 'b, 'c> {
     ctx: &'b mut Ctx<'c>,
 }
 
-const ESCAPABLE: &str = "\\$*_`{}[]@#!|~\"'-";
+const ESCAPABLE: &str = "\\$*_`{}[]@#!|~\"'-^";
 
 impl Parser<'_, '_, '_> {
     fn rest(&self) -> &str {
@@ -108,6 +108,7 @@ impl Parser<'_, '_, '_> {
                 '$' => self.math(),
                 '`' => self.code(),
                 '*' | '_' => self.emphasis(c),
+                '^' if self.rest().starts_with("^[") => self.note(),
                 '[' => self.bracket(),
                 '!' if self.rest().starts_with("![") => self.image(),
                 '@' => self.reference(),
@@ -266,6 +267,45 @@ impl Parser<'_, '_, '_> {
         let text = parse_inline(&inner_span, self.ctx);
         self.i = url_end + 1;
         Some(Inline::Link { text, url })
+    }
+
+    fn note(&mut self) -> Option<Inline> {
+        let start = self.i;
+        let bytes = self.s.as_bytes();
+        let mut depth = 0usize;
+        let mut math = false;
+        let mut k = start + 2;
+        let mut close = None;
+        while k < bytes.len() {
+            match bytes[k] {
+                b'\\' => k += 1,
+                b'$' => math = !math,
+                b'[' if !math => depth += 1,
+                b']' if !math => {
+                    if depth == 0 {
+                        close = Some(k);
+                        break;
+                    }
+                    depth -= 1;
+                }
+                _ => {}
+            }
+            k += 1;
+        }
+        let Some(close) = close else {
+            self.error(start, "This note has no closing `]`.", Some("Write a note as `^[text]`.".into()));
+            self.i = self.s.len();
+            return Some(Inline::Text(String::new()));
+        };
+        let (l, c) = self.span.pos(start + 2);
+        let mut inner_span = Span::new();
+        inner_span.push_line(&self.s[start + 2..close], l, c);
+        let body = parse_inline(&inner_span, self.ctx);
+        if body.iter().any(|i| matches!(i, Inline::Note(_))) {
+            self.warning(start, "A note inside a note shows as plain text.", Some("Put the second note after the first one.".into()));
+        }
+        self.i = close + 1;
+        Some(Inline::Note(body))
     }
 
     fn image(&mut self) -> Option<Inline> {

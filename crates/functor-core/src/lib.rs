@@ -148,6 +148,24 @@ mod tests {
     }
 
     #[test]
+    fn margin_notes() {
+        let src = "---\nfunctor: 1\n---\n\nText with a note.^[A note with $x^2$ and [a link](https://example.org).] More text.^[Second.]\n";
+        let quiet = compile(src);
+        assert!(quiet.diagnostics.is_empty(), "{:?}", quiet.diagnostics);
+        assert!(quiet.html.contains("fn-has-notes"));
+        assert_eq!(quiet.html.matches("class=\"fn-mark\"").count(), 2);
+        assert_eq!(quiet.html.matches("class=\"fn-side\"").count(), 2);
+        assert!(quiet.html.contains("<span class=\"fn-side-n\">2</span>"));
+        let classic = compile(&src.replace("---\n\nText", "---\n\nset document(style: classic)\n\nText"));
+        assert!(classic.html.contains("fn-style-classic fn-has-notes"));
+        let open = compile("---\nfunctor: 1\n---\n\nA note ^[never closed.\n");
+        assert_eq!(open.errors(), 1, "{:?}", open.diagnostics);
+        let plain = compile("---\nfunctor: 1\n---\n\nNo notes, and \\^[ is plain.\n");
+        assert!(!plain.html.contains("fn-has-notes") && plain.html.contains("^["));
+        assert!(compile_pdf(src).diagnostics.is_empty());
+    }
+
+    #[test]
     fn symbols_list_is_json() {
         let s = symbols_json();
         assert!(s.contains("\"circle\"") && s.contains("\"theorem\""));
