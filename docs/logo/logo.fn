@@ -6,9 +6,9 @@ title: The Functor logo
 The mark is one recipe, and the wordmark is one line of Functor math. The colour is `#7091AC`.
 
 $$
-F.bb.dot.box
+(F.bb_(neg neg neg T.up.small)).arrow.square
 $$
 
 $$
-F.bb.dot.box neg u.up.tilde_(neg u.up.tilde.turn) neg c.frak neg neg T.up neg join(o.up, r.up)
+F.bb.square neg u.up.tilde_(neg u.up.tilde.turn) neg c.frak neg neg T.up neg join(o.up, r.up.arrow)
 $$

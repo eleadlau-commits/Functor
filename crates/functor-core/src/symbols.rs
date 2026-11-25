@@ -146,6 +146,7 @@ pub enum OpKind {
     Repeat,
     Reflect,
     Style,
+    Magnify,
 }
 
 pub struct OpDef {
@@ -171,6 +172,7 @@ pub const OPS: &[OpDef] = &[
     op("under", OpKind::Decorate, 0xAF, "decorate below: a related object"),
     op("circle", OpKind::Enclose, 0, "enclose: a closed or restricted version"),
     op("box", OpKind::Enclose, 0, "enclose: a restricted or boxed version"),
+    op("square", OpKind::Enclose, 0, "enclose: a boxed version with equal sides"),
     op("not", OpKind::Strike, 0, "strike: negation"),
     op("cross", OpKind::Strike, 0, "strike: a fixed variant"),
     op("x2", OpKind::Repeat, 2, "repeat: second order"),
@@ -184,6 +186,7 @@ pub const OPS: &[OpDef] = &[
     op("frak", OpKind::Style, 0, "style: an ideal, an algebra or a structure"),
     op("script", OpKind::Style, 0, "style: a family, a category or a transform"),
     op("up", OpKind::Style, 0, "style: a constant, a unit or a name"),
+    op("small", OpKind::Magnify, 80, "magnify: a smaller version, about four fifths"),
 ];
 
 pub const LATER_OPS: &[(&str, &str)] = &[

@@ -173,8 +173,12 @@ impl Glyph {
                 (circle_path(0.0, 0.0, r), r, r)
             }
             _ => {
-                let hw = (x1 - x0) / 2.0 + pad;
-                let hh = (y1 - y0) / 2.0 + pad;
+                let mut hw = (x1 - x0) / 2.0 + pad;
+                let mut hh = (y1 - y0) / 2.0 + pad;
+                if shape == "square" {
+                    hw = hw.max(hh);
+                    hh = hw;
+                }
                 (format!("M{} {}L{} {}L{} {}L{} {}Z", -hw, -hh, hw, -hh, hw, hh, -hw, hh), hw, hh)
             }
         };
@@ -243,6 +247,10 @@ impl Glyph {
             items,
             italic: other.italic,
         }
+    }
+
+    pub fn magnified(&self, s: f64) -> Glyph {
+        Glyph { w: self.w * s, h: self.h * s, d: self.d * s, items: self.transformed(Affine::scale(s, s)), italic: self.italic }
     }
 
     pub fn emboldened(&self) -> Glyph {

@@ -46,7 +46,7 @@ xychart-beta
 |:--|:-:|:--|:--|
 | Meaning layer | 4 | `object vec:` declares meaning. Each operation has one written meaning, and the editor shows it. | `vec` is the only kind. Own kinds come in phase 1. |
 | Style layer | 3 | `set vec(style: arrow\|bold)` changes all vectors from one rule. | `bold`, `bb`, `frak`, `script` and `up` are still operations in the recipe, so style and construction mix there. |
-| Construction layer | 3 | 24 operations in 6 families: decorate, enclose, strike, repeat, reflect, style. `join(a, b)` makes one glyph from two symbols. | `deform`, `fuse` and `stretch` are not there yet. The compiler refuses them with a clear message. |
+| Construction layer | 3 | 26 operations in 7 families: decorate, enclose, strike, repeat, reflect, style, magnify. Operations work on a single symbol or on a group. `join(a, b)` makes one glyph from two symbols. | `deform`, `fuse` and `stretch` are not there yet. The compiler refuses them with a clear message. |
 | Glyph layer | 3 | Font glyph first (∮, ∉, ∃, ∀, ħ). Other recipes are built and cached. | Built strokes have one fixed weight. They do not follow the weight of the font, and enclosures are tight on large operators. |
 | Guidelines, not rules | 5 | More than three operations gives a warning. Unknown words give a warning with a hint. | None. |
 | Speed | 5 | Worst new glyph 0.42 ms (gate 5 ms). Sample document 0.63 ms (gate 100 ms). | None. |

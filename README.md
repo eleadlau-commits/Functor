@@ -94,7 +94,7 @@ Math uses names, not backslashes: `alpha`, `sum`, `integral`, `in`, `to`, `infty
 
 ## Symbol operations
 
-A recipe is a base and up to three operations: `base.op1.op2.op3`. More than three gives a warning, because the symbol becomes hard to read.
+A recipe is a base and up to three operations: `base.op1.op2.op3`. Operations also work on a group: `(F_T).box` boxes F with its index. More than three gives a warning, because the symbol becomes hard to read.
 
 | Operation | Layer | Meaning |
 |:--|:--|:--|
@@ -109,6 +109,7 @@ A recipe is a base and up to three operations: `base.op1.op2.op3`. More than thr
 | `under` | decorate | a related object |
 | `circle` | enclose | a closed or restricted version |
 | `box` | enclose | a restricted or boxed version |
+| `square` | enclose | a boxed version with equal sides |
 | `not` | strike | negation |
 | `cross` | strike | a fixed variant |
 | `x2` | repeat | second order |
@@ -122,18 +123,19 @@ A recipe is a base and up to three operations: `base.op1.op2.op3`. More than thr
 | `frak` | style | an ideal, an algebra or a structure |
 | `script` | style | a family, a category or a transform |
 | `up` | style | a constant, a unit or a name |
+| `small` | magnify | a smaller version, about four fifths |
 
 When the font has the result, the compiler uses the font glyph. `integral.circle` gives ∮, `in.not` gives ∉ and `E.flip` gives ∃. When the font does not have it, the compiler builds the glyph and keeps it in a cache.
 
 ## Logo
 
-The logo is written in Functor. The mark is the recipe `F.bb.dot.box`. The wordmark is one line of math:
+The logo is written in Functor. The mark is the recipe `(F.bb_(neg neg neg T.up.small)).arrow.square`. The wordmark is one line of math:
 
 ```text
-F.bb.dot.box neg u.up.tilde_(neg u.up.tilde.turn) neg c.frak neg neg T.up neg join(o.up, r.up)
+F.bb.square neg u.up.tilde_(neg u.up.tilde.turn) neg c.frak neg neg T.up neg join(o.up, r.up.arrow)
 ```
 
-The n is the u turned half a circle, so n is the dual of u. The colour is `#7091AC`. Run `scripts/build-logo.sh` to build the SVG files in `docs/logo/` again.
+The n is the u turned half a circle, so n is the dual of u. The square in the wordmark is empty, and the T of the wordmark sits in the square of the mark. The colour is `#7091AC`. Run `scripts/build-logo.sh` to build the SVG files in `docs/logo/` again.
 
 ## How it works
 

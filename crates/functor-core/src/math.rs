@@ -246,6 +246,12 @@ impl Parser<'_, '_, '_> {
                     self.err(start, format!("This `{c}` is not closed."), Some(format!("Add `{close}` where the group ends.")));
                     None
                 };
+                if c == '(' && close_glyph.is_some() {
+                    let ops = self.ops();
+                    if !ops.is_empty() {
+                        return self.group_ops(Node::Row(body), &ops, start);
+                    }
+                }
                 Some(Node::Fenced { open: Some(font_glyph_rc(c as u32)), close: close_glyph, body: Box::new(Node::Row(body)) })
             }
             '"' => {
@@ -374,6 +380,29 @@ impl Parser<'_, '_, '_> {
         Node::Glyph { g, class: Class::Ord, limits: Limits::Never, italic: false, large: false }
     }
 
+    fn group_ops(&mut self, body: Node, ops: &[(String, usize)], start: usize) -> Option<Node> {
+        if ops.len() > MAX_OPS {
+            self.warn(start, format!("This group has {} operations. Symbols with more than {MAX_OPS} are hard to read.", ops.len()), Some("Use fewer operations, or define a `sym` with a clear name.".into()));
+        }
+        let b = layout(&body, St { scale: 1.0, display: self.ctx.display, level: 0 });
+        let mut items = Vec::new();
+        for (a, draw) in &b.items {
+            match draw {
+                Draw::G(g) => items.extend(g.transformed(*a)),
+                Draw::Rule(rw, rh) => {
+                    let (x, y) = a.apply(0.0, rh / 2.0);
+                    items.push(glyph::Item { shape: glyph::Shape::Stroke(format!("M{x} {y}L{} {y}", x + rw)), tf: Affine::ID, bold: false });
+                }
+            }
+        }
+        let base = Rc::new(Glyph { w: b.w, h: b.h, d: b.d, items, italic: false });
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        std::hash::Hash::hash(&format!("{:?}", base.items), &mut h);
+        let recipe = format!("group:{:x}{}", std::hash::Hasher::finish(&h), join_ops(ops));
+        let g = self.apply_ops(base, ops, &recipe, false, None)?;
+        Some(Node::Glyph { g, class: Class::Ord, limits: Limits::Never, italic: false, large: false })
+    }
+
     fn kind_call(&mut self, kind: &str, start: usize) -> Option<Node> {
         self.bump();
         self.skip_ws();
@@ -470,7 +499,7 @@ impl Parser<'_, '_, '_> {
         for (o, at) in ops {
             if symbols::op_def(o).is_none() {
                 if let Some((_, when)) = symbols::LATER_OPS.iter().find(|(n, _)| n == o) {
-                    self.err(*at, format!("Operation `{o}` comes in {when}."), Some("Phase 0 has decorate, enclose, strike, repeat, reflect and style.".into()));
+                    self.err(*at, format!("Operation `{o}` comes in {when}."), Some("Functor 1 has decorate, enclose, strike, repeat, reflect, style and magnify.".into()));
                 } else {
                     let hint = did_you_mean(o, symbols::OPS.iter().map(|d| d.name)).map(|s| format!("Did you mean `{s}`?"));
                     self.err(*at, format!("Unknown operation `{o}`."), hint.or(Some("See the list of operations in the reference.".into())));
@@ -518,6 +547,7 @@ impl Parser<'_, '_, '_> {
                     OpKind::Strike => g.strike(o),
                     OpKind::Repeat => g.repeat(def.mark as usize),
                     OpKind::Reflect => g.reflect(o),
+                    OpKind::Magnify => g.magnified(def.mark as f64 / 100.0),
                     OpKind::Style => {
                         let swap = if i == 0 { letter.and_then(|c| symbols::styled_letter(o, c)) } else { None };
                         match (swap.and_then(|cp| Glyph::from_font(cp, large)), o.as_str()) {
@@ -1013,6 +1043,37 @@ mod tests {
 
     #[test]
     fn logo_wordmark_builds() {
-        assert!(glyph_preview("F.bb.dot.box neg u.up.tilde_(neg u.up.tilde.turn) neg c.frak neg neg T.up neg join(o.up, r.up)", &MathEnv::new()).is_some());
+        let env = MathEnv::new();
+        assert!(glyph_preview("(F.bb_(neg neg neg T.up.small)).arrow.square", &env).is_some());
+        assert!(glyph_preview("F.bb.square neg u.up.tilde_(neg u.up.tilde.turn) neg c.frak neg neg T.up neg join(o.up, r.up.arrow)", &env).is_some());
+    }
+
+    #[test]
+    fn group_takes_operations() {
+        let (n, d) = run("(x_T).box", false);
+        assert!(d.is_empty(), "{d:?}");
+        let g = single(&n);
+        assert_eq!(g.items.len(), 3);
+        let (n, _) = run("(x_T)", false);
+        assert!(matches!(n, Node::Row(ref v) if matches!(v[0], Node::Fenced { .. })));
+    }
+
+    #[test]
+    fn square_has_equal_sides() {
+        let (n, d) = run("(x_T).square", false);
+        assert!(d.is_empty(), "{d:?}");
+        let g = single(&n);
+        let glyph::Shape::Stroke(p) = &g.items.last().unwrap().shape else { panic!("no stroke") };
+        let pts = glyph::path_points(p);
+        let (w, h) = ((pts[1].0 - pts[0].0).abs(), (pts[2].1 - pts[1].1).abs());
+        assert!((w - h).abs() < 1e-6, "{w} {h}");
+    }
+
+    #[test]
+    fn small_scales_by_four_fifths() {
+        let (n, d) = run("T.up.small", false);
+        assert!(d.is_empty(), "{d:?}");
+        let t = Glyph::from_font(0x54, false).unwrap();
+        assert!((single(&n).w - t.w * 0.8).abs() < 1e-6);
     }
 }
