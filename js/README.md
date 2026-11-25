@@ -48,3 +48,7 @@ MIT licence. The Latin Modern fonts use the GUST Font License.
 ## Build
 
 From the repository root: `node scripts/build-functor-js.mjs`. The result is in `js/dist`. Test: `node scripts/functor-js-smoke.mjs`. The demo page is `js/demo/index.html`.
+
+## Release
+
+Run the **functor.js** workflow with `publish`. It stages the package on npm. Then approve the staged version on npmjs.com, or run `npm stage approve <id>`, with two-factor authentication.
