@@ -110,19 +110,31 @@ fn every_symbol_and_recipe_has_ink() {
 
 #[test]
 fn collision_check_sees_touching_parts() {
-    let hit = check::collisions("---\nfunctor: 1\n---\n\n$$\n(V)\n$$\n");
-    assert!(
-        hit.iter().any(|c| c.what == "fence body/close"),
-        "{:?}",
-        hit.iter().map(|c| &c.what).collect::<Vec<_>>()
-    );
-    let clean =
-        check::collisions("---\nfunctor: 1\n---\n\n$$\nfrac(a + b, c) = sum_(i = 1)^n x_i\n$$\n");
-    assert!(
-        clean.is_empty(),
-        "{:?}",
-        clean.iter().map(|c| &c.what).collect::<Vec<_>>()
-    );
+    use functor_paper::glyph::Affine;
+    use functor_stress::ink::{rasterize, Mark};
+    let a = rasterize(&[Mark::Rule(Affine::ID, 200.0, 40.0)]);
+    let b = rasterize(&[Mark::Rule(Affine::translate(100.0, 0.0), 200.0, 40.0)]);
+    let c = rasterize(&[Mark::Rule(Affine::translate(400.0, 0.0), 200.0, 40.0)]);
+    assert!(a.intersection(&b).count() > 10);
+    assert_eq!(a.intersection(&c).count(), 0);
+}
+
+#[test]
+fn italic_letters_and_roots_do_not_touch() {
+    for m in [
+        "frac(a + b, c) = sum_(i = 1)^n x_i",
+        "(V) (Y) (f) (N aleph) V 3",
+        "T^d Y^e f(x) P_n^2 integral^d f",
+        "W'_(x.tall) f'^2",
+        "sqrt(w.circle.cross) sqrt(x)",
+        "(p) wrap(P, t)",
+    ] {
+        for (open, close) in [("$$\n", "\n$$"), ("$", "$")] {
+            let src = format!("---\nfunctor: 1\n---\n\n{open}{m}{close}\n");
+            let hit = check::collisions(&src);
+            assert!(hit.is_empty(), "{m}: {:?}", hit.iter().map(|c| (&c.what, c.overlap)).collect::<Vec<_>>());
+        }
+    }
 }
 
 #[test]

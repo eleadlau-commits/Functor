@@ -103,9 +103,9 @@ Blocks are `::: kind` and `:::`. The kinds are theorem, lemma, corollary, propos
 | Write | Result |
 |:--|:--|
 | `x y`, `2 x`, `a b c` | Product |
-| `x_1`, `x^2`, `x_(i j)^(n + 1)`, `f'`, `f''` | Scripts and primes |
+| `x_1`, `x^2`, `x_(i j)^(n + 1)`, `f'`, `f''`, `f'^2` | Scripts and primes |
 | `frac(a, b)`, `sqrt(x)`, `binom(n, k)` | Fraction, root, binomial |
-| `(a + b)`, `[a, b)`, `{x}` | Brackets that grow with the content |
+| `(a + b)`, `[a, b)`, `(a, b]`, `{x}` | Brackets that grow with the content; half-open intervals work |
 | `"if"`, `"tr" A` | Upright text in math. It gets a space each side. |
 | `sum_(k = 1)^n`, `lim_(n to infty)`, `integral_0^1 f dd x` | Limits |
 | `sum_(p "prime"; p le n)` | `;` = one condition per line (LaTeX `\substack`) |

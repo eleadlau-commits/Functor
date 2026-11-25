@@ -54,12 +54,23 @@ pub fn page_mode(mode: Option<Mode>, index: u64) -> Mode {
 }
 
 pub fn known() -> HashSet<String> {
+    known_limits().into_keys().collect()
+}
+
+pub fn known_limits() -> std::collections::HashMap<String, Option<u64>> {
     KNOWN
         .lines()
         .map(str::trim)
         .filter(|l| !l.is_empty() && !l.starts_with('#'))
-        .map(str::to_string)
+        .map(|l| match l.rsplit_once(" <= ") {
+            Some((sig, n)) if n.trim().parse::<u64>().is_ok() => (sig.trim().to_string(), n.trim().parse().ok()),
+            _ => (l.to_string(), None),
+        })
         .collect()
+}
+
+pub fn over_limit(limit: Option<u64>, count: usize, pages: u64) -> bool {
+    limit.is_some_and(|n| count as u64 > (n * pages).div_ceil(10_000).max(1))
 }
 
 pub fn install_panic_hook() {
@@ -437,11 +448,18 @@ pub fn run(o: &RunOpts) -> Summary {
     records.sort_by_key(|r| r.index);
     let secs = start.elapsed().as_secs_f64();
     let slowest = times.iter().max_by_key(|t| t.1).copied();
-    let known = known();
-    let mut new_sigs: Vec<String> = records
+    let limits = known_limits();
+    let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+    for r in &records {
+        *counts.entry(r.f.sig.clone()).or_default() += 1;
+    }
+    let mut new_sigs: Vec<String> = counts
         .iter()
-        .map(|r| r.f.sig.clone())
-        .filter(|s| !known.contains(s))
+        .filter(|(s, c)| match limits.get(*s) {
+            None => true,
+            Some(l) => over_limit(*l, **c, o.pages),
+        })
+        .map(|(s, _)| s.clone())
         .collect();
     new_sigs.sort();
     new_sigs.dedup();
@@ -550,7 +568,13 @@ pub fn report(o: &RunOpts, s: &Summary) -> String {
             sig.replace('|', "\\|"),
             recs.len(),
             first.index,
-            if is_known { "yes" } else { "**new**" },
+            if s.new_sigs.contains(sig) && is_known {
+                "**over limit**"
+            } else if is_known {
+                "yes"
+            } else {
+                "**new**"
+            },
             case
         ));
     }

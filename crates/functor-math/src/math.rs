@@ -7,6 +7,8 @@ use crate::glyph::{self, Affine, Glyph};
 use crate::symbols::{self, Class, Limits, OpKind};
 
 pub const MAX_OPS: usize = 3;
+pub const HARD_OPS: usize = 8;
+pub const MAX_DEPTH: usize = 48;
 
 #[derive(Clone, Debug, Default)]
 pub struct MathEnv {
@@ -118,7 +120,7 @@ pub fn parse(src: &str, ctx: &mut Ctx) -> Node {
 }
 
 fn parse_at(src: &str, base: usize, ctx: &mut Ctx) -> Node {
-    let mut p = Parser { s: src, i: 0, base, ctx };
+    let mut p = Parser { s: src, i: 0, base, ctx, depth: 0, too_deep: false };
     let row = p.row(&[]);
     if p.i < p.s.len() {
         let at = p.i;
@@ -177,6 +179,8 @@ struct Parser<'a, 'b, 'c> {
     i: usize,
     base: usize,
     ctx: &'b mut Ctx<'c>,
+    depth: usize,
+    too_deep: bool,
 }
 
 impl Parser<'_, '_, '_> {
@@ -197,6 +201,9 @@ impl Parser<'_, '_, '_> {
     }
 
     fn err(&mut self, at: usize, msg: impl Into<String>, hint: Option<String>) {
+        if self.too_deep {
+            return;
+        }
         let (l, c) = (self.ctx.pos)(self.base + at);
         self.ctx.diags.error(l, c, msg, hint);
     }
@@ -207,7 +214,23 @@ impl Parser<'_, '_, '_> {
     }
 
     fn row(&mut self, stops: &[char]) -> Vec<Node> {
-        let mut out = Vec::new();
+        let out = Vec::new();
+        if self.depth >= MAX_DEPTH {
+            let at = self.i;
+            if !self.too_deep {
+                self.err(at, format!("This formula has more than {MAX_DEPTH} groups inside each other."), Some("Use `sym` or split the formula.".into()));
+            }
+            self.too_deep = true;
+            self.i = self.s.len();
+            return out;
+        }
+        self.depth += 1;
+        let out = self.row_inner(stops, out);
+        self.depth -= 1;
+        out
+    }
+
+    fn row_inner(&mut self, stops: &[char], mut out: Vec<Node>) -> Vec<Node> {
         loop {
             self.skip_ws();
             match self.peek() {
@@ -294,9 +317,13 @@ impl Parser<'_, '_, '_> {
                         self.err(at, format!("`{c}` needs a script after it."), Some(format!("For example `x{c}2` or `x{c}(n + 1)`.")));
                         break;
                     };
+                    if c == '^' && matches!(sup, Some(Node::Prime(_))) {
+                        sup = Some(Node::Row(vec![sup.take().unwrap(), arg]));
+                        continue;
+                    }
                     let slot = if c == '_' { &mut sub } else { &mut sup };
                     if slot.is_some() {
-                        self.err(at, format!("This term has two `{c}` scripts."), Some("Put both parts in one group, for example `x_(i j)`.".into()));
+                        self.err(at, format!("This term has two `{c}` scripts."), Some(format!("Put both parts in one group, for example `x{c}(i j)`.")));
                     }
                     *slot = Some(arg);
                 }
@@ -366,15 +393,21 @@ impl Parser<'_, '_, '_> {
                     '[' => ']',
                     _ => '}',
                 };
-                let body = self.row(&[close]);
-                let close_glyph = if self.peek() == Some(close) {
+                let half = match c {
+                    '(' => ']',
+                    '[' => ')',
+                    _ => '}',
+                };
+                let body = self.row(&[close, half]);
+                let closed_by = self.peek().filter(|k| *k == close || *k == half);
+                let close_glyph = if let Some(k) = closed_by {
                     self.bump();
-                    Some(font_glyph_rc(close as u32))
+                    Some(font_glyph_rc(k as u32))
                 } else {
                     self.err(start, format!("This `{c}` is not closed."), Some(format!("Add `{close}` where the group ends.")));
                     None
                 };
-                if c == '(' && close_glyph.is_some() {
+                if c == '(' && closed_by == Some(')') {
                     let ops = self.ops();
                     if !ops.is_empty() {
                         return self.node_ops(Node::Row(body), &ops, start);
@@ -952,6 +985,10 @@ impl Parser<'_, '_, '_> {
     }
 
     fn group_ops(&mut self, body: Node, ops: &[(String, usize)], start: usize) -> Option<Node> {
+        if ops.len() > HARD_OPS {
+            self.err(start, format!("This group has {} operations. The most is {HARD_OPS}.", ops.len()), Some("Define a `sym` with a clear name.".into()));
+            return Some(body);
+        }
         if ops.len() > MAX_OPS {
             self.warn(start, format!("This group has {} operations. Symbols with more than {MAX_OPS} are hard to read.", ops.len()), Some("Use fewer operations, or define a `sym` with a clear name.".into()));
         }
@@ -1014,6 +1051,10 @@ impl Parser<'_, '_, '_> {
         if let Some(k) = ops.iter().position(|(o, _)| is_fence(o)) {
             let n = self.resolve_base(word, &ops[..k], start);
             return self.node_ops(n, &ops[k..], start).unwrap_or(Node::Row(vec![]));
+        }
+        if ops.len() > HARD_OPS {
+            self.err(start, format!("`{word}` has {} operations. The most is {HARD_OPS}.", ops.len()), Some("Define a `sym` with a clear name.".into()));
+            return self.resolve_base(word, &[], start);
         }
         if ops.len() > MAX_OPS {
             self.warn(
@@ -1250,6 +1291,64 @@ fn single_glyph(n: &Node) -> Option<Rc<Glyph>> {
     }
 }
 
+thread_local! {
+    static FONT_RIGHT: std::cell::RefCell<HashMap<usize, (f64, f64, f64, f64)>> = std::cell::RefCell::new(HashMap::new());
+}
+
+fn italic_correction(g: &Glyph) -> f64 {
+    if g.items.is_empty() {
+        return 0.0;
+    }
+    let mut right = f64::NEG_INFINITY;
+    for it in &g.items {
+        let b = match &it.shape {
+            glyph::Shape::Font(p) => FONT_RIGHT.with(|c| {
+                *c.borrow_mut().entry(p.as_ptr() as usize).or_insert_with(|| {
+                    let one = Glyph { w: 0.0, h: 0.0, d: 0.0, items: vec![glyph::Item { shape: glyph::Shape::Font(p), tf: Affine::ID, bold: false }], italic: false };
+                    one.ink_box()
+                })
+            }),
+            _ => {
+                let one = Glyph { w: 0.0, h: 0.0, d: 0.0, items: vec![glyph::Item { shape: it.shape.clone(), tf: Affine::ID, bold: false }], italic: false };
+                one.ink_box()
+            }
+        };
+        for (x, y) in [(b.0, b.1), (b.2, b.1), (b.0, b.3), (b.2, b.3)] {
+            right = right.max(it.tf.apply(x, y).0);
+        }
+    }
+    if right.is_finite() {
+        (right - g.w).max(0.0)
+    } else {
+        0.0
+    }
+}
+
+fn ink_bottom(b: &LBox) -> f64 {
+    ink_extent(b).1
+}
+
+fn ink_extent(b: &LBox) -> (f64, f64, f64, f64) {
+    let mut e = (f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY);
+    for (a, d) in &b.items {
+        let corners = match d {
+            Draw::G(g) => {
+                if g.items.is_empty() {
+                    continue;
+                }
+                let (x0, y0, x1, y1) = g.ink_box();
+                [(x0, y0), (x1, y0), (x0, y1), (x1, y1)]
+            }
+            Draw::Rule(w, h) => [(0.0, 0.0), (*w, 0.0), (0.0, *h), (*w, *h)],
+        };
+        for (x, y) in corners {
+            let (px, py) = a.apply(x, y);
+            e = (e.0.min(px), e.1.min(py), e.2.max(px), e.3.max(py));
+        }
+    }
+    e
+}
+
 fn italic_atom(cp: u32) -> Node {
     let mut g = Glyph::from_font(cp, false).unwrap_or_else(|| Glyph::empty(400.0));
     g.italic = true;
@@ -1468,7 +1567,7 @@ fn layout(node: &Node, st: St) -> LBox {
     let s = st.scale;
     match node {
         Node::Glyph { g, .. } => LBox {
-            w: g.w * s,
+            w: (g.w + italic_correction(g)) * s,
             h: g.h * s,
             d: g.d * s,
             items: vec![(Affine::scale(s, s), Draw::G(g.clone()))],
@@ -1533,17 +1632,27 @@ fn layout(node: &Node, st: St) -> LBox {
             out.h = b.h;
             out.d = b.d;
             let bw = b.w;
+            let ic = match base.as_ref() {
+                Node::Glyph { g, .. } => italic_correction(g) * s,
+                _ => 0.0,
+            };
             let ink_right = match base.as_ref() {
                 Node::Glyph { g, .. } if large => g.ink_box().2 * s,
                 _ => bw,
             };
-            let sup_dx = if large { (ink_right - bw).max(0.0) + 50.0 * s } else if italic { 60.0 * s } else { 20.0 * s };
-            let sub_dx = if large { -0.28 * bw } else { 10.0 * s };
+            let sup_dx = if large { (ink_right - bw).max(0.0) + 90.0 * s } else if italic { 40.0 * s } else { 20.0 * s };
+            let sub_dx = if large { -0.28 * (bw - ic) - ic } else { 10.0 * s - ic };
             out.place(b, 0.0, 0.0);
             out.w = bw;
             let mut sup_x = bw + sup_dx;
+            if let (Some(p), Some(q)) = (&prime_b, &sub_b) {
+                let bottom = ink_bottom(p);
+                if bottom.is_finite() && q.h - v > bottom - 60.0 * s {
+                    v = q.h - bottom + 60.0 * s;
+                }
+            }
             if let Some(x) = prime_b {
-                let px = bw + if italic { 40.0 * s } else { 10.0 * s };
+                let px = bw + if italic { 20.0 * s } else { 10.0 * s };
                 out.h = out.h.max(x.h);
                 out.w = out.w.max(px + x.w);
                 sup_x = px + x.w + 20.0 * s;
@@ -1598,8 +1707,11 @@ fn layout(node: &Node, st: St) -> LBox {
             let b = layout(inner, st);
             let rad = font_glyph_rc(0x221A);
             let t = 40.0 * s;
-            let top = b.h + 110.0 * s;
-            let bottom = b.d + 60.0 * s;
+            let (il, ib, ir, it) = ink_extent(&b);
+            let shift = if il.is_finite() { (-il).max(0.0) } else { 0.0 };
+            let inner_w = if ir.is_finite() { b.w.max(ir) + shift } else { b.w };
+            let top = b.h.max(if it.is_finite() { it } else { 0.0 }) + 110.0 * s;
+            let bottom = b.d.max(if ib.is_finite() { -ib } else { 0.0 }) + 60.0 * s;
             let need = top + bottom;
             let have = (rad.h + rad.d) * s;
             let sy = (need / have).max(1.0);
@@ -1608,9 +1720,9 @@ fn layout(node: &Node, st: St) -> LBox {
             let mut out = LBox::empty();
             let rw = rad.w * s;
             out.items.push((Affine::scale(s, s).then(Affine::translate(0.0, ty)), Draw::G(rad.clone())));
-            out.items.push((Affine::translate(rw - 10.0 * s, top - t), Draw::Rule(b.w + 60.0 * s, t)));
-            let bw = b.w;
-            out.place(b, rw + 30.0 * s, 0.0);
+            out.items.push((Affine::translate(rw - 10.0 * s, top - t), Draw::Rule(inner_w + 60.0 * s, t)));
+            let bw = inner_w;
+            out.place(b, rw + 30.0 * s + shift, 0.0);
             out.w = rw + bw + 70.0 * s;
             out.h = top;
             out.d = bottom.max(-(ty - rad.d * s));
@@ -1718,7 +1830,7 @@ fn layout(node: &Node, st: St) -> LBox {
                 let ty = if sy > 1.0 { axis - (g.h - g.d) / 2.0 * s * m } else { 0.0 };
                 let x = out.w;
                 out.items.push((Affine::scale(s * m, s * m).then(Affine::translate(x, ty)), Draw::G(g.clone())));
-                out.w += g.w * s * m;
+                out.w += (g.w + italic_correction(&g)) * s * m;
                 out.h = out.h.max(ty + g.h * s * m);
                 out.d = out.d.max(-(ty - g.d * s * m));
             };

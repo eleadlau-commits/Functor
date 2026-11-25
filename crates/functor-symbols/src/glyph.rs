@@ -6,6 +6,7 @@ use std::sync::OnceLock;
 const DATA: &str = include_str!("../data/glyphs.tsv");
 
 pub const STROKE: f64 = 40.0;
+pub const MAX_ITEMS: usize = 4096;
 pub const JOIN_OVERLAP: f64 = 45.0;
 pub const AXIS: f64 = 250.0;
 
@@ -237,6 +238,9 @@ impl Glyph {
     }
 
     pub fn repeat(&self, n: usize) -> Glyph {
+        if self.items.len().saturating_mul(n) > MAX_ITEMS {
+            return self.clone();
+        }
         let (x0, _, x1, _) = self.ink_box();
         let step = ((x1 - x0) * 0.62).max(self.w * 0.45);
         let mut items = Vec::new();

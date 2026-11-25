@@ -109,7 +109,6 @@ fn main() {
             let html = functor_paper::compile(&src);
             let pdf = functor_paper::compile_pdf(&src);
             let _ = std::fs::write(out.join("sheet.fn"), &src);
-            let _ = std::fs::write(out.join("sheet.html"), &html.html);
             let _ = std::fs::write(out.join("sheet.pdf"), &pdf.pdf);
             println!(
                 "{} formulas, {} errors, written to {}",
