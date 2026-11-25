@@ -82,9 +82,9 @@ fn load(app: &AppHandle, files: &Files, path: &Path) -> Result<Doc, String> {
 }
 
 #[tauri::command]
-fn compile(src: String) -> String {
+fn compile(src: String, width: Option<f64>) -> String {
     let t = Instant::now();
-    let out = functor_core::compile(&src);
+    let out = functor_core::compile_width(&src, width);
     let json = out.to_json();
     format!("{{\"nativeMs\":{},{}", t.elapsed().as_secs_f64() * 1000.0, &json[1..])
 }

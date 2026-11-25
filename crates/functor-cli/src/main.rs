@@ -31,27 +31,12 @@ fn read(path: &str) -> Result<String, String> {
     std::fs::read_to_string(path).map_err(|e| format!("Cannot read {path}: {e}"))
 }
 
-const FONTS: [(&str, u32, &[u8]); 4] = [
-    (
-        "normal",
-        400,
-        include_bytes!("../../../web/src/fonts/functor-lm-regular.woff2"),
-    ),
-    (
-        "italic",
-        400,
-        include_bytes!("../../../web/src/fonts/functor-lm-italic.woff2"),
-    ),
-    (
-        "normal",
-        700,
-        include_bytes!("../../../web/src/fonts/functor-lm-bold.woff2"),
-    ),
-    (
-        "italic",
-        700,
-        include_bytes!("../../../web/src/fonts/functor-lm-bolditalic.woff2"),
-    ),
+const FONTS: [(&str, &str, u32, &[u8]); 5] = [
+    ("Functor LM", "normal", 400, include_bytes!("../../../web/src/fonts/functor-lm-regular.woff2")),
+    ("Functor LM", "italic", 400, include_bytes!("../../../web/src/fonts/functor-lm-italic.woff2")),
+    ("Functor LM", "normal", 700, include_bytes!("../../../web/src/fonts/functor-lm-bold.woff2")),
+    ("Functor LM", "italic", 700, include_bytes!("../../../web/src/fonts/functor-lm-bolditalic.woff2")),
+    ("Functor LM Mono", "normal", 400, include_bytes!("../../../web/src/fonts/functor-lm-mono.woff2")),
 ];
 
 fn base64(data: &[u8]) -> String {
@@ -75,9 +60,9 @@ fn base64(data: &[u8]) -> String {
 fn font_faces() -> String {
     FONTS
         .iter()
-        .map(|(style, weight, data)| {
+        .map(|(family, style, weight, data)| {
             format!(
-                "@font-face{{font-family:\"Functor LM\";font-style:{style};font-weight:{weight};src:url(data:font/woff2;base64,{}) format(\"woff2\")}}",
+                "@font-face{{font-family:\"{family}\";font-style:{style};font-weight:{weight};font-display:block;src:url(data:font/woff2;base64,{}) format(\"woff2\")}}",
                 base64(data)
             )
         })
@@ -221,6 +206,6 @@ mod tests {
     fn page_embeds_fonts_and_language() {
         let html = page("<p>x</p>", "t");
         assert!(html.starts_with("<!doctype html><html lang=\"en\">"));
-        assert_eq!(html.matches("font/woff2;base64,").count(), 4);
+        assert_eq!(html.matches("font/woff2;base64,").count(), 5);
     }
 }

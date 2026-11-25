@@ -4,9 +4,11 @@ pub mod doc;
 pub mod glyph;
 pub mod inline;
 pub mod json;
+pub mod linebreak;
 pub mod math;
 pub mod render;
 pub mod symbols;
+pub mod text;
 
 use diag::{Diagnostic, Diagnostics, Severity};
 use glyph::CacheStats;
@@ -42,10 +44,14 @@ impl Output {
 }
 
 pub fn compile(src: &str) -> Output {
+    compile_width(src, None)
+}
+
+pub fn compile_width(src: &str, width_pt: Option<f64>) -> Output {
     glyph::take_stats();
     let mut diags = Diagnostics::default();
     let d = doc::parse(src, &mut diags);
-    let html = render::render(&d, &mut diags);
+    let html = render::render_width(&d, &mut diags, width_pt);
     Output { html, diagnostics: diags.finish(), stats: glyph::take_stats() }
 }
 
@@ -84,9 +90,9 @@ mod tests {
     fn compiles_sample_without_diagnostics() {
         let out = compile(SAMPLE);
         assert!(out.diagnostics.is_empty(), "{:?}", out.diagnostics);
-        assert!(out.html.contains("Theorem 1"));
+        assert!(out.html.contains("Theorem\u{A0}1"));
         assert!(out.html.contains("(1)"));
-        assert!(out.html.contains("Section 1"));
+        assert!(out.html.contains("Section\u{A0}1"));
         assert!(out.to_json().starts_with("{\"html\""));
     }
 

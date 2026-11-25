@@ -127,13 +127,14 @@ button.link { border: 0; background: none; color: var(--muted); padding: 2px 4px
 .divider { cursor: col-resize; background: var(--line); }
 .divider:hover { background: var(--accent); }
 .right { min-width: 0; min-height: 0; overflow: auto; padding: 24px; }
-.preview .fn-doc { box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 8px 24px rgba(0, 0, 0, .06); min-height: 100%; padding: 2.2cm 2cm; }
+.preview .fn-doc { box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 8px 24px rgba(0, 0, 0, .06); min-height: 100%; width: auto; max-width: var(--fn-page-width, 210mm); }
+.preview { container-type: inline-size; }
+@container (max-width: 700px) { .preview .fn-doc { padding: 1.2em; } }
 @media (max-width: 760px) {
   .bar { flex-wrap: wrap; }
   .panes { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
   .divider { display: none; }
   .right { padding: 12px; }
-  .preview .fn-doc { padding: 1.2em; }
 }
 @media print {
   body { display: block; background: #fff; }
