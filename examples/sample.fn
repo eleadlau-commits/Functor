@@ -14,7 +14,7 @@ let n = 3
 
 # Symbols are built, not memorised {#sec:symbols}
 
-A symbol has a base and a few short operations. The base $sum$ with the operation `circle` gives $sum.circle$. The base $in$ with `not` gives $in.not$. The compiler uses the font glyph when one exists, and it builds the glyph when none exists.
+A symbol has a base and a few short operations. The base $sum$ with the operation `circle` gives $sum.circle$. The base $in$ with `not` gives $in.not$. The compiler uses the font glyph when one exists, and it builds the glyph when none exists.^[A built glyph takes well under a millisecond once. After that it comes from the cache.]
 
 | Recipe | Result | Layer |
 |:--|:-:|:--|
@@ -29,7 +29,7 @@ A symbol has a base and a few short operations. The base $sum$ with the operatio
 
 # Vectors and objects {#sec:vectors}
 
-The line `object vec: F, v, u` makes $F$, $v$ and $u$ vectors. Their look comes from one style rule, so $F = m a$ shows $F$ with an arrow. Change `set vec(style: bold)` once, and every vector changes.
+The line `object vec: F, v, u` makes $F$, $v$ and $u$ vectors. Their look comes from one style rule, so $F = m a$ shows $F$ with an arrow. Change `set vec(style: bold)` once, and every vector changes.^[Meaning is in the source, and style is in one rule. A margin note is the same: `^[...]` says "note", and the document style says where it goes.]
 
 $$
 F = frac(d, d t) (m v)

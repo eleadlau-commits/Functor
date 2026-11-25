@@ -5,12 +5,15 @@ use crate::diag::Diagnostics;
 use crate::doc::Doc;
 use crate::linebreak::INF;
 use crate::math::{self, LBox};
-use crate::render::{capital, length_pt, math_pos, page_width_pt, R};
+use crate::render::{capital, has_notes, length_pt, math_pos, page_width_pt, NOTE_COLUMN_PT, R};
 use crate::text::{self, Builder, PItem, PLine, Style, Wrap};
 
 pub const INK: [f32; 3] = [0.106, 0.106, 0.122];
 pub const ACCENT: [f32; 3] = [0.290, 0.416, 0.522];
 pub const MUTED: [f32; 3] = [0.357, 0.357, 0.4];
+const MARK_RISE: f64 = 0.36;
+const NOTE_SIZE: f64 = 0.8;
+const NOTE_GAP: f64 = 18.0;
 pub const RULE: [f32; 3] = [0.851, 0.851, 0.878];
 pub const CODE_BG: [f32; 3] = [0.961, 0.961, 0.973];
 
@@ -74,6 +77,7 @@ struct P<'a> {
     measure: f64,
     indent: f64,
     base: Style,
+    side: Vec<(usize, Vec<Draw>)>,
 }
 
 pub fn layout(doc: &Doc, diags: &mut Diagnostics) -> Layout {
@@ -82,7 +86,9 @@ pub fn layout(doc: &Doc, diags: &mut Diagnostics) -> Layout {
     let height = page_height_pt(&s.page);
     let margin = length_pt(&s.margin).unwrap_or(72.0);
     let size = length_pt(&s.text_size).unwrap_or(11.0);
-    let measure = (width - 2.0 * margin).max(72.0);
+    let quiet = s.style != "classic";
+    let col = if quiet && has_notes(&doc.blocks) { NOTE_COLUMN_PT } else { 0.0 };
+    let measure = (width - 2.0 * margin - col).max(72.0);
     let r = R {
         env: &doc.env,
         labels: &doc.labels,
@@ -92,9 +98,12 @@ pub fn layout(doc: &Doc, diags: &mut Diagnostics) -> Layout {
         base: Style::default(),
         indent: 0.0,
         in_figure: false,
-        quiet: s.style != "classic",
+        quiet,
+        pdf: true,
+        notes: 0,
+        note_src: Vec::new(),
     };
-    let mut p = P { r, v: Vec::new(), size, measure, indent: 0.0, base: Style::default() };
+    let mut p = P { r, v: Vec::new(), size, measure, indent: 0.0, base: Style::default(), side: Vec::new() };
     p.title(doc);
     for b in &doc.blocks {
         p.block(b);
@@ -150,6 +159,17 @@ impl P<'_> {
                         color: if *link { ACCENT } else { color },
                     });
                 }
+                PItem::Mark { x, s } => {
+                    draws.push(Draw::Text {
+                        x: x0 + x * size,
+                        y: MARK_RISE * size,
+                        s: s.clone(),
+                        style: Style::default(),
+                        size: size * text::MARK_SCALE,
+                        scale: 1.0,
+                        color: if self.r.quiet { ACCENT } else { color },
+                    });
+                }
                 PItem::Math { x, lbox, link } => {
                     h = h.max(lbox.h * size / 1000.0);
                     d = d.max(lbox.d * size / 1000.0);
@@ -163,8 +183,12 @@ impl P<'_> {
     fn lines(&mut self, lines: Vec<PLine>, size: f64, x0: f64, color: [f32; 3], extra: Option<Draw>) {
         let n = lines.len();
         let last = n.saturating_sub(1);
+        let mut side = std::mem::take(&mut self.side);
         for (i, line) in lines.iter().enumerate() {
             let (h, d, mut draws) = self.line_box(line, size, x0, color);
+            for (_, ds) in side.iter_mut().filter(|(at, _)| *at == i) {
+                draws.append(ds);
+            }
             if i == last {
                 if let Some(e) = &extra {
                     draws.push(e.clone());
@@ -215,10 +239,41 @@ impl P<'_> {
         let m = (self.measure - self.indent) / self.size;
         let lines = b.place(m, true, true);
         let x0 = self.indent;
+        let notes = std::mem::take(&mut self.r.note_src);
+        let fs = NOTE_SIZE * self.size;
+        let mut after = Vec::new();
+        for (n, v) in &notes {
+            let key = n.to_string();
+            if self.r.quiet {
+                let at = lines.iter().position(|l| l.items.iter().any(|it| matches!(it, PItem::Mark { s, .. } if *s == key))).unwrap_or(0);
+                let nl = self.note_lines(*n, v, (NOTE_COLUMN_PT - NOTE_GAP) / fs);
+                let mut ds = Vec::new();
+                for (j, l) in nl.iter().enumerate() {
+                    let (_, _, d) = self.line_box(l, fs, self.measure + NOTE_GAP, MUTED);
+                    ds.extend(d.into_iter().map(|x| x.shifted(0.0, -(j as f64) * LEADING * fs)));
+                }
+                self.side.push((at, ds));
+            } else {
+                after.push(self.note_lines(*n, v, (self.measure - self.indent) / fs));
+            }
+        }
         self.par_skip();
         let extra = extra.map(|e| e.shifted(self.measure, 0.0));
         self.lines(lines, self.size, x0, INK, extra);
+        for nl in after {
+            self.glue(0.2 * self.size, 0.0, 0.0);
+            self.lines(nl, fs, x0, MUTED, None);
+        }
         self.par_skip();
+    }
+
+    fn note_lines(&mut self, n: usize, v: &[Inline], measure: f64) -> Vec<PLine> {
+        let mut b = Builder::new(Style::default());
+        b.text(&format!("{n}"));
+        b.text(" ");
+        let flat: Vec<Inline> = v.iter().map(|i| if let Inline::Note(x) = i { Inline::Emph(x.clone()) } else { i.clone() }).collect();
+        self.r.build(&mut b, &flat);
+        b.place(measure, false, false)
     }
 
     fn centered_text(&mut self, t: &str, style: Style, size: f64, color: [f32; 3]) {
