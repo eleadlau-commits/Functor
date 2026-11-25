@@ -1,4 +1,4 @@
-pub use functor_math::{deform, diag, glyph, math, symbols};
+pub use functor_math::{deform, diag, glyph, lint, math, symbols, trace};
 pub mod ast;
 pub mod doc;
 pub mod inline;
@@ -12,11 +12,13 @@ pub mod text;
 
 use diag::{Diagnostic, Diagnostics, Severity};
 use glyph::CacheStats;
+use trace::Trace;
 
 pub struct Output {
     pub html: String,
     pub diagnostics: Vec<Diagnostic>,
     pub stats: CacheStats,
+    pub traces: Vec<Trace>,
 }
 
 impl Output {
@@ -39,8 +41,36 @@ impl Output {
             .num("hits", self.stats.hits)
             .num("fromFont", self.stats.from_font)
             .end();
-        json::Obj::new().str("html", &self.html).raw("diagnostics", diags).raw("stats", stats).end()
+        let traces = json::array(self.traces.iter().map(trace_json));
+        json::Obj::new().str("html", &self.html).raw("diagnostics", diags).raw("stats", stats).raw("traces", traces).end()
     }
+}
+
+pub fn trace_json(t: &Trace) -> String {
+    let strs = |v: &[String]| json::array(v.iter().map(|s| json::string(s)));
+    let ops = json::array(t.ops.iter().map(|o| json::Obj::new().str("name", o).str("meaning", trace::op_meaning(o)).end()));
+    json::Obj::new()
+        .num("line", t.line)
+        .num("col", t.col)
+        .num("endLine", t.end_line)
+        .num("endCol", t.end_col)
+        .str("source", &t.source)
+        .str("form", t.form.as_str())
+        .str("meaning", &t.meaning)
+        .raw("style", strs(&t.style))
+        .raw("hand", strs(&t.hand))
+        .str("recipe", &t.recipe)
+        .raw("ops", ops)
+        .str("glyph", &t.glyph.text())
+        .end()
+}
+
+fn traced<T>(env: &math::MathEnv, diags: &mut Diagnostics, f: impl FnOnce(&mut Diagnostics) -> T) -> (T, Vec<Trace>) {
+    trace::start();
+    let out = f(diags);
+    let traces = trace::finish();
+    lint::lint(&traces, env, diags);
+    (out, traces)
 }
 
 pub fn compile(src: &str) -> Output {
@@ -51,8 +81,8 @@ pub fn compile_width(src: &str, width_pt: Option<f64>) -> Output {
     glyph::take_stats();
     let mut diags = Diagnostics::default();
     let d = doc::parse(src, &mut diags);
-    let html = render::render_width(&d, &mut diags, width_pt);
-    Output { html, diagnostics: diags.finish(), stats: glyph::take_stats() }
+    let (html, traces) = traced(&d.env, &mut diags, |diags| render::render_width(&d, diags, width_pt));
+    Output { html, diagnostics: diags.finish(), stats: glyph::take_stats(), traces }
 }
 
 pub struct PdfOutput {
@@ -64,7 +94,7 @@ pub struct PdfOutput {
 pub fn compile_pdf(src: &str) -> PdfOutput {
     let mut diags = Diagnostics::default();
     let d = doc::parse(src, &mut diags);
-    let layout = page::layout(&d, &mut diags);
+    let (layout, _) = traced(&d.env, &mut diags, |diags| page::layout(&d, diags));
     let pages = layout.pages.len();
     PdfOutput { pdf: pdf::write(&layout), diagnostics: diags.finish(), pages }
 }
@@ -172,6 +202,44 @@ mod tests {
         let plain = compile("---\nfunctor: 1\n---\n\nNo notes, and \\^[ is plain.\n");
         assert!(!plain.html.contains("fn-has-notes") && plain.html.contains("^["));
         assert!(compile_pdf(src).diagnostics.is_empty());
+    }
+
+    #[test]
+    fn trace_shows_four_layers() {
+        let out = compile("---\nfunctor: 1\n---\n\nobject vec: v\nsym csum = sum.circle\n\n$v + norm(v) + csum + theta.hat$\n");
+        assert!(out.diagnostics.is_empty(), "{:?}", out.diagnostics);
+        let at = |src: &str| out.traces.iter().find(|t| t.source == src).unwrap_or_else(|| panic!("no trace for {src}: {:?}", out.traces));
+        let v = at("v");
+        assert_eq!((v.line, v.col, v.form), (8, 2, trace::Form::Object));
+        assert_eq!(v.recipe, "v.arrow");
+        assert!(v.style[0].contains("set vec(style: arrow)"));
+        let n = at("norm(v)");
+        assert_eq!((n.form, n.recipe.as_str()), (trace::Form::Kind, "fence: vbar.x2"));
+        let c = at("csum");
+        assert_eq!((c.form, c.recipe.as_str()), (trace::Form::Sym, "sum.circle"));
+        let h = at("theta.hat");
+        assert_eq!(h.ops[0], "hat");
+        assert_eq!(h.glyph, trace::Source::Built);
+        assert!(out.to_json().contains("\"traces\":[{"));
+    }
+
+    #[test]
+    fn notation_check() {
+        let src = "---\nfunctor: 1\n---\n\nobject vec: v\nsym csum = sum.circle\n\n$norm(v) + (w).vbar.x2 + abs(x) + (y).vbar + v.bold + v.arrow + u.arrow + u.bold + csum + sum.circle$\n";
+        let out = compile(src);
+        let hints: Vec<&str> = out.diagnostics.iter().filter_map(|d| d.hint.as_deref()).collect();
+        for want in ["Write `norm(w)`.", "Write `abs(y)`.", "Remove `.bold`, or change the rule for all vectors: `set vec(style: bold)`.", "Remove `.arrow`.", "Write `csum`."] {
+            assert!(hints.contains(&want), "missing {want}: {:?}", out.diagnostics);
+        }
+        assert!(out.diagnostics.iter().any(|d| d.message.starts_with("`u` has two vector looks")));
+        assert!(out.diagnostics.iter().all(|d| d.severity == Severity::Warning));
+        assert_eq!(out.diagnostics.len(), 6, "{:?}", out.diagnostics);
+        let off = compile(&src.replace("sym csum", "set lint(notation: off)\nsym csum"));
+        assert!(off.diagnostics.is_empty(), "{:?}", off.diagnostics);
+        let two = compile("---\nfunctor: 1\n---\n\nset abs(fence: vbar.x2)\n\n$abs(x) + norm(v)$\n");
+        assert!(two.diagnostics.iter().any(|d| d.message.contains("different meanings")), "{:?}", two.diagnostics);
+        let bad = compile("---\nfunctor: 1\n---\n\nset lint(notation: maybe)\n");
+        assert_eq!(bad.errors(), 1);
     }
 
     #[test]

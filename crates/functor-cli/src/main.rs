@@ -9,6 +9,7 @@ use functor_paper::{compile, compile_pdf, glyph, glyph_svg};
 const USAGE: &str = "functor compile <file.fn> [-o out.html]
 functor pdf <file.fn> [-o out.pdf]
 functor check <file.fn>
+functor trace <file.fn> [line[:col]]
 functor glyph <recipe>
 functor bench [file.fn]
 functor ref gen [docs/reference]
@@ -239,6 +240,35 @@ fn run_cmd(args: &[String]) -> Result<bool, String> {
                 }
                 None => Err(format!("The recipe `{recipe}` does not build. Run `functor check` on a file that uses it to see why.")),
             }
+        }
+        "trace" => {
+            let path = args.get(1).ok_or(USAGE)?;
+            let out = compile(&read(path)?);
+            let at: Option<(usize, Option<usize>)> = match args.get(2) {
+                Some(a) => {
+                    let (l, c) = a.split_once(':').map_or((a.as_str(), None), |(l, c)| (l, Some(c)));
+                    Some((l.parse().map_err(|_| USAGE)?, c.map(|c| c.parse().map_err(|_| USAGE)).transpose()?))
+                }
+                None => None,
+            };
+            for t in out.traces.iter().filter(|t| match at {
+                None => true,
+                Some((l, None)) => t.line == l,
+                Some((l, Some(c))) => t.line == l && t.col <= c && (t.end_line > l || c < t.end_col),
+            }) {
+                println!("{}:{}  {}", t.line, t.col, t.source);
+                println!("  meaning       {}", t.meaning);
+                for s in &t.style {
+                    println!("  style         {s}");
+                }
+                println!("  construction  {}", t.recipe);
+                for o in &t.ops {
+                    println!("                .{o}  {}", functor_paper::trace::op_meaning(o));
+                }
+                println!("  glyph         {}", t.glyph.text());
+            }
+            print_diags(path, &out.diagnostics);
+            Ok(out.errors() == 0)
         }
         "bench" => bench(args.get(1).map(String::as_str)),
         "ref" => reference(&args[1..]),

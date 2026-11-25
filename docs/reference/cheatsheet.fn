@@ -37,6 +37,9 @@ Display math: $$ on its own line; each line is a row aligned at its first
 relation; label with {#eq:name} after the closing $$; refer with @eq:name.
 In a chat, put Functor in a fn code block, or a fnmath block for display math.
 Check with: functor check file.fn
+Prefer meaning forms: norm(v), not (v).vbar.x2; object vec: v, not v.arrow
+by hand. The notation check warns when two forms give one look. To see the
+four layers of one symbol: functor trace file.fn line:col.
 ```
 
 # A whole file
@@ -196,6 +199,7 @@ $$ {#eq:square}
 | `set heading(...)` | `numbering: none` |
 | `set page(...)` | `size: a4`, `a5` or `letter`, `margin: 2.5cm` |
 | `set text(...)` | `size: 11pt`, `font: "Name"` |
+| `set lint(...)` | `notation: off` turns off the notation check |
 
 # From LaTeX, the most common
 

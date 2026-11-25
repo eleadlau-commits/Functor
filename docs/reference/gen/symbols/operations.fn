@@ -5,6 +5,8 @@ title: Operations
 
 set heading(numbering: none)
 
+set lint(notation: off)
+
 Functor has 44 operations in 9 families. Write an operation after a dot: `theta.hat`. Each operation has a meaning. The meaning is a guideline, not a rule.
 
 # decorate

@@ -28,6 +28,8 @@ Each problem has a line, a column, a message and a hint. Errors stop the output 
 | "`bb` works only on a single capital letter." | Use one capital letter: `R.bb`. |
 | "`frak` works only on a single letter, as the first operation." | Put the style operation first: `g.frak.hat`. |
 | "`x` has 4 operations." (warning) | Use at most three, or define a `sym`. |
+| "`(v).vbar.x2` looks the same as `norm(v)`..." (warning) | Write the meaning form. See [Notation check and trace](help/notation.html). |
+| "`v` is a vector, and the style rule draws vectors with `.arrow`..." (warning) | Remove the hand style, or change the `set vec` rule. |
 | "Operation `deform` is not in Functor 1." (also `stretch`, `curve`, `italic`) | Write one of the five deform operations: `integral.tall`, `to.wide`, `to.bend`, `x.slant`, `to.taper`. |
 | "An arrow goes from a cell to a cell, or from an arrow to an arrow." | A 2-cell names two arrows: `alpha: f implies g`. |
 | "A 2-cell needs two different arrows." | Name two arrows, and write both before the 2-cell. |

@@ -146,3 +146,20 @@ button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 18%, 
   .right { overflow: visible; padding: 0; }
   .preview .fn-doc { box-shadow: none; padding: 0; }
 }
+.inspector { border-top: 1px solid var(--line); padding: 8px 12px 10px; font-size: 12.5px; max-height: 40%; overflow: auto; }
+.insp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.insp-glyph { min-width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: #fff; color: #1b1b1f; border-radius: 4px; border: 1px solid var(--line); }
+.insp-glyph:empty { display: none; }
+.insp-glyph svg { font-size: 28px; }
+.insp-source { font: 13px "JetBrains Mono", Menlo, Consolas, monospace; font-weight: 600; }
+.insp-form { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; padding: 1px 8px; }
+.insp-form.insp-object, .insp-form.insp-sym, .insp-form.insp-kind { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.insp-form.insp-hand { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+.insp-layers { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; counter-reset: layer; }
+.insp-layers li { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 7%, transparent); min-width: 0; overflow-wrap: anywhere; }
+.insp-layers li + li::before { content: "→"; position: absolute; left: -6px; top: 4px; transform: translateX(-50%); color: var(--muted); }
+.insp-name { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
+.insp-op { color: var(--muted); font-size: 12px; }
+.inspector code { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 12px; }
+@media (max-width: 1100px) { .insp-layers { grid-template-columns: repeat(2, minmax(0, 1fr)); } .insp-layers li + li::before { content: none; } }
+@media print { .inspector { display: none !important; } }
