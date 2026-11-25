@@ -81,6 +81,7 @@ impl Affine {
 pub enum Shape {
     Font(&'static str),
     Stroke(String),
+    Outline(Rc<str>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -143,6 +144,7 @@ impl Glyph {
             let pts = match &it.shape {
                 Shape::Font(p) => path_points(p),
                 Shape::Stroke(p) => path_points(p),
+                Shape::Outline(p) => path_points(p),
             };
             for (x, y) in pts {
                 let (x, y) = it.tf.apply(x, y);
@@ -280,8 +282,13 @@ impl Glyph {
         for it in &self.items {
             let m = it.tf.then(tf).0;
             let matrix = format!("matrix({} {} {} {} {} {})", r(m[0]), r(m[1]), r(m[2]), r(m[3]), r(m[4]), r(m[5]));
-            match &it.shape {
-                Shape::Font(p) => {
+            let fill = match &it.shape {
+                Shape::Font(p) => Some(*p),
+                Shape::Outline(p) => Some(&**p),
+                Shape::Stroke(_) => None,
+            };
+            match (&it.shape, fill) {
+                (_, Some(p)) => {
                     if it.bold {
                         out.push_str(&format!(
                             "<path transform=\"{matrix}\" d=\"{p}\" stroke=\"currentColor\" stroke-width=\"30\" stroke-linejoin=\"round\"/>"
@@ -290,9 +297,10 @@ impl Glyph {
                         out.push_str(&format!("<path transform=\"{matrix}\" d=\"{p}\"/>"));
                     }
                 }
-                Shape::Stroke(p) => out.push_str(&format!(
+                (Shape::Stroke(p), _) => out.push_str(&format!(
                     "<path transform=\"{matrix}\" d=\"{p}\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"{STROKE}\" stroke-linecap=\"round\"/>"
                 )),
+                _ => {}
             }
         }
     }

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::diag::{did_you_mean, Diagnostics};
+use crate::deform;
 use crate::glyph::{self, Affine, Glyph};
 use crate::symbols::{self, Class, Limits, OpKind};
 
@@ -758,7 +759,7 @@ impl Parser<'_, '_, '_> {
         for (o, at) in ops {
             if symbols::op_def(o).is_none() {
                 if let Some((_, when)) = symbols::LATER_OPS.iter().find(|(n, _)| n == o) {
-                    self.err(*at, format!("Operation `{o}` comes in {when}."), Some("Functor 1 has decorate, enclose, strike, repeat, reflect, style, magnify and fence.".into()));
+                    self.err(*at, format!("Operation `{o}` is not in Functor 1."), Some(when.to_string()));
                 } else {
                     let hint = did_you_mean(o, symbols::OPS.iter().map(|d| d.name)).map(|s| format!("Did you mean `{s}`?"));
                     self.err(*at, format!("Unknown operation `{o}`."), hint.or(Some("See the list of operations in the reference.".into())));
@@ -807,6 +808,11 @@ impl Parser<'_, '_, '_> {
                     OpKind::Repeat => g.repeat(def.mark as usize),
                     OpKind::Reflect => g.reflect(o),
                     OpKind::Magnify => g.magnified(def.mark as f64 / 100.0),
+                    OpKind::Deform => {
+                        let axis = if o == "wide" { deform::Axis::X } else { deform::Axis::Y };
+                        let size = if axis == deform::Axis::Y { g.h + g.d } else { g.w };
+                        deform::deform(&g, axis, size * (def.mark as f64 / 100.0 - 1.0))
+                    }
                     OpKind::Fence => g,
                     OpKind::Style => {
                         let swap = if i == 0 { letter.and_then(|c| symbols::styled_letter(o, c)) } else { None };
@@ -1077,7 +1083,11 @@ fn layout(node: &Node, st: St) -> LBox {
             out.h = b.h;
             out.d = b.d;
             let bw = b.w;
-            let sup_dx = if italic { 60.0 * s } else { 20.0 * s };
+            let ink_right = match base.as_ref() {
+                Node::Glyph { g, .. } if large => g.ink_box().2 * s,
+                _ => bw,
+            };
+            let sup_dx = if large { (ink_right - bw).max(0.0) + 50.0 * s } else if italic { 60.0 * s } else { 20.0 * s };
             let sub_dx = if large { -0.28 * bw } else { 10.0 * s };
             out.place(b, 0.0, 0.0);
             out.w = bw;
@@ -1124,16 +1134,17 @@ fn layout(node: &Node, st: St) -> LBox {
             let need = top + bottom;
             let have = (rad.h + rad.d) * s;
             let sy = (need / have).max(1.0);
-            let ty = top - rad.h * s * sy;
+            let rad = deform::grown(&rad, deform::Axis::Y, sy);
+            let ty = top - rad.h * s;
             let mut out = LBox::empty();
             let rw = rad.w * s;
-            out.items.push((Affine::scale(s, s * sy).then(Affine::translate(0.0, ty)), Draw::G(rad.clone())));
+            out.items.push((Affine::scale(s, s).then(Affine::translate(0.0, ty)), Draw::G(rad.clone())));
             out.items.push((Affine::translate(rw - 10.0 * s, top - t), Draw::Rule(b.w + 60.0 * s, t)));
             let bw = b.w;
             out.place(b, rw + 30.0 * s, 0.0);
             out.w = rw + bw + 70.0 * s;
             out.h = top;
-            out.d = bottom.max(-(ty - rad.d * s * sy));
+            out.d = bottom.max(-(ty - rad.d * s));
             out
         }
         Node::Grid { rows, aligns, col_gap, row_gap, display } => {
@@ -1188,13 +1199,20 @@ fn layout(node: &Node, st: St) -> LBox {
                 let content = bh.max(axis) + bd.max(0.0);
                 let sy = if content > gh * 1.05 { (2.0 * (bh - axis).max(bd + axis) + 120.0 * s) / gh } else { 1.0 };
                 let sy = sy.max(1.0);
-                let sx = if magnify { sy } else { 1.0 };
-                let ty = if sy > 1.0 { axis - (g.h - g.d) / 2.0 * s * sy } else { 0.0 };
+                let (m, g) = if sy <= 1.0 {
+                    (1.0, g.clone())
+                } else if magnify {
+                    (sy, g.clone())
+                } else {
+                    let (m, rest) = deform::fence_split(sy);
+                    (m, deform::grown(g, deform::Axis::Y, rest))
+                };
+                let ty = if sy > 1.0 { axis - (g.h - g.d) / 2.0 * s * m } else { 0.0 };
                 let x = out.w;
-                out.items.push((Affine::scale(s * sx, s * sy).then(Affine::translate(x, ty)), Draw::G(g.clone())));
-                out.w += g.w * s * sx;
-                out.h = out.h.max(ty + g.h * s * sy);
-                out.d = out.d.max(-(ty - g.d * s * sy));
+                out.items.push((Affine::scale(s * m, s * m).then(Affine::translate(x, ty)), Draw::G(g.clone())));
+                out.w += g.w * s * m;
+                out.h = out.h.max(ty + g.h * s * m);
+                out.d = out.d.max(-(ty - g.d * s * m));
             };
             if let Some(g) = open {
                 delim(g, &mut out);
@@ -1605,6 +1623,41 @@ mod tests {
             layout(&n, St { scale: 1.0, display: true, level: 0 }).w
         };
         assert!(width("magnify") > width("stretch") + 100.0);
+    }
+
+    fn parse_display(src: &str, diags: &mut Diagnostics) -> Node {
+        let env = MathEnv::new();
+        let pos = |o: usize| (1, o + 1);
+        let mut ctx = Ctx { env: &env, diags, pos: &pos, display: true };
+        parse(src, &mut ctx)
+    }
+
+    #[test]
+    fn integral_upper_limit_clears_the_sign() {
+        let mut diags = Diagnostics::default();
+        let n = parse_display("integral^1", &mut diags);
+        let b = layout(&n, St { scale: 1.0, display: true, level: 0 });
+        let sign = Glyph::from_font(0x222B, true).unwrap();
+        let right = sign.ink_box().2;
+        let (a, _) = b.items.last().unwrap();
+        assert!(a.0[4] >= right + 20.0, "limit at {} sign ends at {right}", a.0[4]);
+    }
+
+    #[test]
+    fn tall_adds_half_the_height() {
+        let mut diags = Diagnostics::default();
+        let n = parse_display("x.tall", &mut diags);
+        let Some(g) = single_glyph(&n) else { panic!("no glyph") };
+        let x = Glyph::from_font(0x1D465, false).unwrap();
+        assert!(((g.h + g.d) - 1.5 * (x.h + x.d)).abs() < 2.0);
+        assert_eq!(diags.items.len(), 0);
+    }
+
+    #[test]
+    fn deform_word_points_to_tall_and_wide() {
+        let mut diags = Diagnostics::default();
+        parse_display("x.deform", &mut diags);
+        assert!(diags.items.iter().any(|d| d.hint.as_deref().is_some_and(|h| h.contains("tall"))));
     }
 
     #[test]

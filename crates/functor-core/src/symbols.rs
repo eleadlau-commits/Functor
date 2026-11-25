@@ -148,6 +148,7 @@ pub enum OpKind {
     Style,
     Magnify,
     Fence,
+    Deform,
 }
 
 pub struct OpDef {
@@ -188,6 +189,8 @@ pub const OPS: &[OpDef] = &[
     op("script", OpKind::Style, 0, "style: a family, a category or a transform"),
     op("up", OpKind::Style, 0, "style: a constant, a unit or a name"),
     op("small", OpKind::Magnify, 80, "magnify: a smaller version, about four fifths"),
+    op("tall", OpKind::Deform, 150, "deform: a taller version; the straight parts grow and the ends keep their shape"),
+    op("wide", OpKind::Deform, 160, "deform: a wider version, such as a long arrow; the ends keep their shape"),
     op("paren", OpKind::Fence, 0, "fence: round brackets, a group or a tuple"),
     op("brack", OpKind::Fence, 0, "fence: square brackets, a group or a matrix"),
     op("brace", OpKind::Fence, 0, "fence: curly brackets, a set"),
@@ -257,9 +260,9 @@ pub const SET_OPTIONS: &[(&str, &[&str])] = &[
 ];
 
 pub const LATER_OPS: &[(&str, &str)] = &[
-    ("deform", "phase 1"),
-    ("fuse", "phase 1"),
-    ("stretch", "phase 1"),
+    ("deform", "Deform has two operations: `tall` and `wide`. For example `paren.tall` or `to.wide`."),
+    ("stretch", "Write `tall` or `wide`. They stretch the straight parts and keep the ends."),
+    ("fuse", "`fuse` comes in a later phase. Use `join(a, b)` for now."),
 ];
 
 pub const COMPOSITES: &[(&str, &str, u32)] = &[
