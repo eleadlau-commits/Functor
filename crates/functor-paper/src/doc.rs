@@ -11,7 +11,7 @@ pub const ENV_KINDS: &[&str] = &[
     "theorem", "lemma", "corollary", "proposition", "definition", "example", "remark", "proof", "note", "figure", "quote",
 ];
 
-pub const DOC_STYLES: &[&str] = &["quiet", "classic"];
+pub const DOC_STYLES: &[&str] = &["quiet", "classic", "lecture", "compact", "board"];
 
 const NUMBERED: &[&str] = &["theorem", "lemma", "corollary", "proposition", "definition", "example", "remark"];
 
@@ -341,6 +341,13 @@ impl DocParser<'_> {
                         self.diags.error(n, arg_col, format!("`{letter}` has no other common form."), Some("`alt` works on epsilon, theta, kappa, phi, rho and pi.".into()));
                     } else {
                         self.env.kinds.insert(format!("greek.{letter}"), v);
+                    }
+                }
+                ("dd", "style") => {
+                    if v == "italic" || v == "up" {
+                        self.env.kinds.insert("dd.style".into(), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a style of `dd`."), Some("Use `italic` or `up`.".into()));
                     }
                 }
                 ("cases", "word") => {

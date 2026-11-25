@@ -283,6 +283,11 @@ fn functions_page() -> String {
     for (n, w) in symbols::SPACES {
         s.push_str(&format!("| `{n}` | {:.3} em | $a {n} b$ |\n", w / 1000.0));
     }
+    s.push_str("\n# Differentials\n\n| Name | Example | Result |\n|:--|:--|:-:|\n");
+    for d in symbols::DIFFERENTIALS {
+        s.push_str(&format!("| `{d}` | `f(x) {d} x` | $f(x) {d} x$ |\n"));
+    }
+    s.push_str("\n`dd` is the letter d with a thin space before it. There is no space at the start of a group, so `frac(dd y, dd x)` is correct. `set dd(style: up)` makes it upright.\n");
     s
 }
 
@@ -464,7 +469,7 @@ mod tests {
         for k in ENV_KINDS {
             assert!(cs.contains(k), "cheat sheet misses block `{k}`");
         }
-        let names = symbols::NAMES.iter().map(|n| n.name).chain(symbols::GREEK.iter().copied()).chain(symbols::FUNCTIONS.iter().map(|(f, _)| *f)).chain(symbols::SPACES.iter().map(|(n, _)| *n));
+        let names = symbols::NAMES.iter().map(|n| n.name).chain(symbols::GREEK.iter().copied()).chain(symbols::FUNCTIONS.iter().map(|(f, _)| *f)).chain(symbols::SPACES.iter().map(|(n, _)| *n)).chain(symbols::DIFFERENTIALS.iter().copied());
         for n in names {
             assert!(cs.contains(&format!("`{n}`")), "cheat sheet misses the name `{n}`");
         }

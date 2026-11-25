@@ -22,7 +22,7 @@ Put meaning in the source and style in one rule. This is the most important guid
 object vec: F, v
 set vec(style: arrow)
 
-$F = m frac(d v, d t)$
+$F = m frac(dd v, dd t)$
 ```
 
 Change `arrow` to `bold`, and every vector in the document changes. You do not edit each formula. `vec(x)` marks one symbol as a vector without a declaration.
