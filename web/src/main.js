@@ -175,6 +175,8 @@ function setupDesktop() {
   $('open').addEventListener('click', () => files.open().then((d) => d && useDoc(d)).catch(showError));
   $('save').addEventListener('click', (e) => saveNative(e.shiftKey).catch(showError));
   $('html').addEventListener('click', () => standalone().then((html) => files.exportHtml(fileName().replace(/\.fn$/, '.html'), html)).catch(showError));
+  $('pdf').title = 'Export a PDF set by Functor';
+  $('pdf').addEventListener('click', () => files.exportPdf(fileName().replace(/\.fn$/, '.pdf'), view.state.doc.toString()).catch(showError));
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();
@@ -204,6 +206,13 @@ function setupWeb() {
   });
   $('save').addEventListener('click', () => download(fileName(), view.state.doc.toString(), 'text/plain'));
   $('html').addEventListener('click', () => standalone().then((html) => download(fileName().replace(/\.fn$/, '.html'), html, 'text/html')).catch(showError));
+  $('pdf').addEventListener('click', () => {
+    try {
+      download(fileName().replace(/\.fn$/, '.pdf'), fn.pdf(view.state.doc.toString()), 'application/pdf');
+    } catch (e) {
+      showError(e);
+    }
+  });
   $('new').addEventListener('click', () => store.set(KEY_NAME, nameEl.value));
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 's') {

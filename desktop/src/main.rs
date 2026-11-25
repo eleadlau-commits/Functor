@@ -151,6 +151,15 @@ async fn export_html(app: AppHandle, name: String, html: String) -> Result<Optio
 }
 
 #[tauri::command]
+async fn export_pdf(app: AppHandle, name: String, src: String) -> Result<Option<String>, String> {
+    let picked = app.dialog().file().add_filter("PDF", &["pdf"]).set_file_name(&name).blocking_save_file();
+    let Some(path) = picked.and_then(|p| p.into_path().ok()) else { return Ok(None) };
+    let out = functor_core::compile_pdf(&src);
+    std::fs::write(&path, out.pdf).map_err(|e| format!("Cannot write {}: {e}", path.display()))?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
+#[tauri::command]
 fn close_file(app: AppHandle, files: State<Files>) {
     *files.watcher.lock().unwrap() = None;
     if let Some(store) = last_file_store(&app) {
@@ -171,6 +180,7 @@ fn main() {
             save_file,
             save_as,
             export_html,
+            export_pdf,
             close_file
         ])
         .run(tauri::generate_context!())

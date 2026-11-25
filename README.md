@@ -23,7 +23,7 @@ The website has an editor at the left and a live preview at the right. It runs t
 - Type in the editor. The preview changes at each key.
 - Errors show in the editor and in the problem list. Click a problem to go to its line.
 - Type `.` after a symbol in math to see the operations. Each one shows its meaning and a preview of the glyph.
-- **Save .fn** downloads your file. **Open** loads a file. **HTML** downloads the compiled page. **PDF** opens the print dialog.
+- **Save .fn** downloads your file. **Open** loads a file. **HTML** downloads the compiled page. **PDF** downloads a PDF that Functor sets itself. **Print** opens the print dialog.
 - The website keeps your last file in this browser.
 
 Run it on your computer:
@@ -67,6 +67,7 @@ npm run dev
 ```sh
 cargo run -p functor-cli -- compile examples/sample.fn
 cargo run -p functor-cli -- check examples/sample.fn
+cargo run -p functor-cli -- pdf examples/sample.fn
 cargo run -p functor-cli -- glyph sum.circle > sum-circle.svg
 cargo run --release -p functor-cli -- bench examples/sample.fn
 ```
@@ -119,6 +120,8 @@ Use @eq:work.
 | Setting | `set page(size: a4)`, `set text(size: 11pt)`, `set heading(numbering: none)` | Document settings |
 
 Functor sets each paragraph itself, as TeX does. It shapes words with the font (kerning and ligatures), finds hyphenation points with TeX patterns, and picks the line breaks for the whole paragraph with the Knuth-Plass method. Inline math can break after `=`, `<` or `+`. The preview breaks lines again when its width changes. HTML exports and the CLI use the text width of the page (`set page(size, margin)`).
+
+`functor pdf` and the PDF button set whole pages, as TeX does. A page builder puts lines, headings, display math, tables and lists on pages. It avoids a single line of a paragraph at the top or bottom of a page, and it never leaves a heading at the bottom of a page. The PDF embeds the Latin Modern fonts, so text can be selected and searched. Math is drawn with the same glyph recipes as the preview.
 
 Math uses names, not backslashes: `alpha`, `sum`, `integral`, `in`, `to`, `infty`. Groups use round brackets: `x_(i + 1)`, `frac(a, b)`, `sqrt(x)`. Spaces separate symbols: `d x` is two symbols. `thin`, `med`, `thick` and `quad` add space, and `neg` takes back one twelfth of an em. `join(a, b)` sets two symbols so that they touch and become one glyph, for example `join(o.up, r.up)`.
 
