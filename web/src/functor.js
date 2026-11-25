@@ -9,11 +9,11 @@ export async function loadFunctor(url) {
 
   const read = (len) => dec.decode(new Uint8Array(w.memory.buffer, w.result_ptr(), len));
 
-  const call = (fn, text) => {
+  const call = (fn, text, ...extra) => {
     const data = enc.encode(text);
     const ptr = w.alloc(data.length);
     new Uint8Array(w.memory.buffer, ptr, data.length).set(data);
-    const len = fn(ptr, data.length);
+    const len = fn(ptr, data.length, ...extra);
     w.dealloc(ptr, data.length);
     return read(len);
   };
@@ -21,9 +21,9 @@ export async function loadFunctor(url) {
   const glyphCache = new Map();
 
   return {
-    compile(src) {
+    compile(src, widthPt) {
       const t = performance.now();
-      const out = JSON.parse(call(w.compile, src));
+      const out = JSON.parse(call(w.compile_width, src, widthPt || 0));
       out.ms = performance.now() - t;
       return out;
     },
@@ -47,9 +47,9 @@ export async function loadNative() {
   return {
     native: true,
     setTitle: (title) => getCurrentWindow().setTitle(title),
-    async compile(src) {
+    async compile(src, widthPt) {
       const t = performance.now();
-      const out = JSON.parse(await invoke('compile', { src }));
+      const out = JSON.parse(await invoke('compile', { src, width: widthPt || null }));
       out.ms = performance.now() - t;
       return out;
     },

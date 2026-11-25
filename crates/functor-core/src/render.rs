@@ -4,6 +4,7 @@ use crate::ast::{Align, Block, Env, Inline, Target};
 use crate::diag::{did_you_mean, Diagnostics};
 use crate::doc::Doc;
 use crate::math::{self, MathEnv};
+use crate::text::{self, Builder, Style, Wrap};
 
 pub fn escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -53,15 +54,71 @@ struct R<'a> {
     labels: &'a HashMap<String, Target>,
     diags: &'a mut Diagnostics,
     out: String,
+    measure: Option<f64>,
+    base: Style,
+    indent: f64,
+    in_figure: bool,
+    quiet: bool,
 }
 
+pub fn length_pt(s: &str) -> Option<f64> {
+    let s = s.trim();
+    let split = s.find(|c: char| c.is_ascii_alphabetic())?;
+    let (n, unit) = s.split_at(split);
+    let n: f64 = n.trim().parse().ok()?;
+    let k = match unit {
+        "pt" => 1.0,
+        "mm" => 72.0 / 25.4,
+        "cm" => 72.0 / 2.54,
+        "in" => 72.0,
+        _ => return None,
+    };
+    Some(n * k)
+}
+
+pub fn page_width_pt(page: &str) -> f64 {
+    match page {
+        "a5" => 419.53,
+        "letter" => 612.0,
+        _ => 595.28,
+    }
+}
+
+const LIST_INDENT: f64 = 2.5;
+const QUOTE_INDENT: f64 = 2.0;
+const NOTE_INDENT: f64 = 1.2;
+
 pub fn render(doc: &Doc, diags: &mut Diagnostics) -> String {
-    let mut r = R { env: &doc.env, labels: &doc.labels, diags, out: String::new() };
+    render_width(doc, diags, None)
+}
+
+pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -> String {
     let s = &doc.settings;
+    let page = page_width_pt(&s.page);
+    let measure = match (s.font.as_ref(), length_pt(&s.margin), length_pt(&s.text_size)) {
+        (None, Some(m), Some(t)) if t > 0.0 => match width_pt {
+            Some(w) if w > 0.0 => Some(w / t),
+            _ if page > 2.0 * m => Some((page - 2.0 * m) / t),
+            _ => None,
+        },
+        _ => None,
+    };
+    let mut r = R {
+        env: &doc.env,
+        labels: &doc.labels,
+        diags,
+        out: String::new(),
+        measure,
+        base: Style::default(),
+        indent: 0.0,
+        in_figure: false,
+        quiet: s.style != "classic",
+    };
     r.out.push_str(&format!(
-        "<article class=\"fn-doc fn-style-{}\" data-page=\"{}\" style=\"--fn-margin:{};--fn-text-size:{}{}{}\">",
+        "<article class=\"fn-doc fn-style-{}\" data-page=\"{}\" style=\"--fn-page-width:{}pt;--fn-margin:{};--fn-text-size:{}{}{}\">",
         escape_attr(&s.style),
         escape_attr(&s.page),
+        page,
         escape_attr(&s.margin),
         escape_attr(&s.text_size),
         s.font.as_ref().map(|f| format!(";--fn-font:{}", escape_attr(f))).unwrap_or_default(),
@@ -102,9 +159,11 @@ impl R<'_> {
                 self.out.push_str(&format!("</h{lv}>"));
             }
             Block::Para(c) => {
-                self.out.push_str("<p>");
-                self.inlines(c);
-                self.out.push_str("</p>");
+                if !self.para(c, &[]) {
+                    self.out.push_str("<p>");
+                    self.inlines(c);
+                    self.out.push_str("</p>");
+                }
             }
             Block::Math { src, line, col, label, number } => {
                 let id = label.as_deref().map(|l| format!(" id=\"{}\"", label_id(l))).unwrap_or_default();
@@ -118,11 +177,15 @@ impl R<'_> {
             Block::List { ordered, items } => {
                 let tag = if *ordered { "ol" } else { "ul" };
                 self.out.push_str(&format!("<{tag}>"));
+                self.indent += LIST_INDENT;
                 for it in items {
                     self.out.push_str("<li>");
-                    self.inlines(it);
+                    if !self.para(it, &[]) {
+                        self.inlines(it);
+                    }
                     self.out.push_str("</li>");
                 }
+                self.indent -= LIST_INDENT;
                 self.out.push_str(&format!("</{tag}>"));
             }
             Block::Table { align, header, rows } => {
@@ -167,9 +230,11 @@ impl R<'_> {
         if e.kind == "figure" {
             let width = e.width.as_deref().map(|w| format!(" style=\"max-width:{}\"", escape_attr(w))).unwrap_or_default();
             self.out.push_str(&format!("<figure class=\"fn-figure\"{id}{width}>"));
+            let was = std::mem::replace(&mut self.in_figure, true);
             for b in &e.body {
                 self.block(b);
             }
+            self.in_figure = was;
             self.out.push_str("<figcaption>");
             self.out.push_str(&format!("<span class=\"fn-env-name\">Figure {}.</span> ", e.number.unwrap_or(0)));
             if let Some(c) = &e.caption {
@@ -178,21 +243,69 @@ impl R<'_> {
             self.out.push_str("</figcaption></figure>");
             return;
         }
-        self.out.push_str(&format!("<section class=\"fn-env fn-{}\"{id}>", escape_attr(&e.kind)));
+        let headed = self.quiet && !matches!(e.kind.as_str(), "proof" | "quote" | "note");
+        self.out.push_str(&format!("<section class=\"fn-env fn-{}{}\"{id}>", escape_attr(&e.kind), if headed { " fn-headed" } else { "" }));
         let mut name = capital(&e.kind);
         if let Some(n) = e.number {
             name.push_str(&format!(" {n}"));
         }
-        self.out.push_str(&format!("<span class=\"fn-env-name\">{name}</span>"));
-        if let Some(t) = &e.title {
-            self.out.push_str(&format!(" <span class=\"fn-env-title\">({})</span>", escape(t)));
+        let saved = (self.base, self.indent);
+        let italic_body = !self.quiet && matches!(e.kind.as_str(), "theorem" | "lemma" | "corollary" | "proposition");
+        if italic_body {
+            self.base.italic = true;
         }
-        self.out.push_str("<span class=\"fn-env-sep\">.</span> ");
-        for b in &e.body {
+        match e.kind.as_str() {
+            "quote" => self.indent += 2.0 * QUOTE_INDENT,
+            "note" => self.indent += NOTE_INDENT,
+            _ if headed => self.indent += NOTE_INDENT,
+            _ => {}
+        }
+        if headed {
+            self.out.push_str(&format!("<div class=\"fn-env-head\"><span class=\"fn-env-name\">{}</span>", escape(&name)));
+            if let Some(t) = &e.title {
+                self.out.push_str(&format!(" <span class=\"fn-env-title\">({})</span>", escape(t)));
+            }
+            self.out.push_str("</div>");
+            for b in &e.body {
+                self.block(b);
+            }
+            (self.base, self.indent) = saved;
+            self.out.push_str("</section>");
+            return;
+        }
+        let name_style = if e.kind == "proof" { Style { italic: true, ..Style::default() } } else { Style { bold: true, ..Style::default() } };
+        let name_wrap = Wrap { open: "<span class=\"fn-env-name\">".into(), close: "</span>" };
+        let mut prefix = vec![(name.replace(' ', "\u{A0}"), name_style, name_wrap.clone())];
+        if let Some(t) = &e.title {
+            prefix.push((format!(" ({t})"), Style { bold: false, ..self.base }, Wrap { open: "<span class=\"fn-env-title\">".into(), close: "</span>" }));
+        }
+        prefix.push((".".into(), name_style, name_wrap));
+        let mut body = e.body.iter();
+        let first_done = match e.body.first() {
+            Some(Block::Para(c)) => self.para(c, &prefix),
+            _ => false,
+        };
+        if first_done {
+            body.next();
+        } else {
+            self.out.push_str(&format!("<span class=\"fn-env-name\">{name}</span>"));
+            if let Some(t) = &e.title {
+                self.out.push_str(&format!(" <span class=\"fn-env-title\">({})</span>", escape(t)));
+            }
+            self.out.push_str("<span class=\"fn-env-sep\">.</span> ");
+        }
+        for b in body {
             self.block(b);
         }
+        (self.base, self.indent) = saved;
         if e.kind == "proof" {
-            self.out.push_str("<span class=\"fn-qed\">\u{220E}</span>");
+            let qed = "<span class=\"fn-qed\">\u{220E}</span>";
+            if self.out.ends_with("</span></p>") {
+                let at = self.out.len() - "</span></p>".len();
+                self.out.insert_str(at, qed);
+            } else {
+                self.out.push_str(qed);
+            }
         }
         self.out.push_str("</section>");
     }
@@ -205,6 +318,88 @@ impl R<'_> {
         };
         let label = src.split_whitespace().collect::<Vec<_>>().join(" ");
         self.out.push_str(&math::render(&node, display, &label));
+    }
+
+    fn para(&mut self, c: &[Inline], prefix: &[(String, Style, Wrap)]) -> bool {
+        let Some(measure) = self.measure else { return false };
+        if self.in_figure || !engine_ok(c, self.base) {
+            return false;
+        }
+        let base = self.base;
+        let mut b = Builder::new(base);
+        for (t, st, w) in prefix {
+            b.push(*st, Some(w.clone()));
+            b.text(t);
+            b.pop();
+        }
+        if !prefix.is_empty() {
+            b.text(" ");
+        }
+        self.build(&mut b, c);
+        if b.is_empty() {
+            return false;
+        }
+        self.out.push_str(&b.finish(measure - self.indent, base, true, true));
+        true
+    }
+
+    fn build(&mut self, b: &mut Builder, v: &[Inline]) {
+        for i in v {
+            match i {
+                Inline::Text(t) => b.text(t),
+                Inline::Strong(v) => {
+                    let st = Style { bold: true, ..b.style() };
+                    b.push(st, Some(Wrap { open: "<strong>".into(), close: "</strong>" }));
+                    self.build(b, v);
+                    b.pop();
+                }
+                Inline::Emph(v) => {
+                    let cur = b.style();
+                    let st = Style { italic: !cur.italic, ..cur };
+                    let open = if st.italic { "<em>" } else { "<em class=\"fn-up\">" };
+                    b.push(st, Some(Wrap { open: open.into(), close: "</em>" }));
+                    self.build(b, v);
+                    b.pop();
+                }
+                Inline::Code(t) => {
+                    let st = Style { mono: true, italic: false, bold: false };
+                    b.push(st, Some(Wrap { open: "<code>".into(), close: "</code>" }));
+                    b.unbreakable(t);
+                    b.pop();
+                }
+                Inline::Math { src, line, col } => {
+                    let pos = math_pos(src, *line, *col);
+                    let node = {
+                        let mut ctx = math::Ctx { env: self.env, diags: self.diags, pos: &pos, display: false };
+                        math::parse(src, &mut ctx)
+                    };
+                    let label = src.split_whitespace().collect::<Vec<_>>().join(" ");
+                    for p in math::inline_pieces(&node, &label) {
+                        b.raw_box(p.w, p.svg);
+                        if let Some((w, st, sh, pen)) = p.gap {
+                            b.math_gap(w, st, sh, pen);
+                        }
+                    }
+                }
+                Inline::Link { text, url } => {
+                    b.push(b.style(), Some(Wrap { open: format!("<a href=\"{}\">", safe_url(url)), close: "</a>" }));
+                    self.build(b, text);
+                    b.pop();
+                }
+                Inline::Image { .. } => {}
+                Inline::Ref { label, line, col } => {
+                    let (text, open, close) = self.ref_parts(label, *line, *col);
+                    b.push(b.style(), Some(Wrap { open, close }));
+                    b.text(&text.replace(' ', "\u{A0}"));
+                    b.pop();
+                }
+                Inline::Cite(keys) => {
+                    b.push(b.style(), Some(Wrap { open: "<cite class=\"fn-cite\">".into(), close: "</cite>" }));
+                    b.text(&format!("[{}]", keys.join("; ")));
+                    b.pop();
+                }
+            }
+        }
     }
 
     fn inlines(&mut self, v: &[Inline]) {
@@ -244,7 +439,7 @@ impl R<'_> {
         }
     }
 
-    fn reference(&mut self, label: &str, line: usize, col: usize) {
+    fn ref_parts(&mut self, label: &str, line: usize, col: usize) -> (String, String, &'static str) {
         match self.labels.get(label) {
             Some(t) => {
                 let text = match t {
@@ -254,7 +449,7 @@ impl R<'_> {
                     Target::Env { kind, number } => format!("{} {number}", capital(kind)),
                     Target::Equation(n) => format!("({n})"),
                 };
-                self.out.push_str(&format!("<a class=\"fn-ref\" href=\"#{}\">{}</a>", label_id(label), escape(&text)));
+                (text, format!("<a class=\"fn-ref\" href=\"#{}\">", label_id(label)), "</a>")
             }
             None => {
                 let hint = match did_you_mean(label, self.labels.keys().map(String::as_str)) {
@@ -262,9 +457,16 @@ impl R<'_> {
                     None => format!("Add `{{#{label}}}` to a heading, an equation or a block. To write a plain `@`, use `\\@`."),
                 };
                 self.diags.error(line, col, format!("The label `{label}` does not exist."), Some(hint));
-                self.out.push_str(&format!("<span class=\"fn-ref fn-missing\">@{}</span>", escape(label)));
+                (format!("@{label}"), "<span class=\"fn-ref fn-missing\">".into(), "</span>")
             }
         }
+    }
+
+    fn reference(&mut self, label: &str, line: usize, col: usize) {
+        let (text, open, close) = self.ref_parts(label, line, col);
+        self.out.push_str(&open);
+        self.out.push_str(&escape(&text));
+        self.out.push_str(close);
     }
 }
 
@@ -274,4 +476,15 @@ fn capital(s: &str) -> String {
         Some(f) => f.to_uppercase().chain(c).collect(),
         None => String::new(),
     }
+}
+
+fn engine_ok(v: &[Inline], base: Style) -> bool {
+    v.iter().all(|i| match i {
+        Inline::Text(t) => text::covered(t, base),
+        Inline::Strong(v) | Inline::Emph(v) => engine_ok(v, base),
+        Inline::Link { text, .. } => engine_ok(text, base),
+        Inline::Code(t) => text::covered(t, Style { mono: true, ..Style::default() }),
+        Inline::Image { .. } => false,
+        _ => true,
+    })
 }

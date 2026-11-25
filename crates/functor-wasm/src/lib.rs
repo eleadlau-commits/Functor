@@ -47,6 +47,13 @@ pub unsafe extern "C" fn compile(ptr: *const u8, len: usize) -> usize {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn compile_width(ptr: *const u8, len: usize, width_pt: f64) -> usize {
+    let src = input(ptr, len);
+    let w = if width_pt > 0.0 { Some(width_pt) } else { None };
+    set_result(functor_core::compile_width(&src, w).to_json())
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn glyph(ptr: *const u8, len: usize) -> usize {
     let recipe = input(ptr, len);
     set_result(functor_core::glyph_svg(&recipe).unwrap_or_default())
