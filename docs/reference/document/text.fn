@@ -7,6 +7,8 @@ set heading(numbering: none)
 
 A paragraph is lines of text with an empty line before and after it. Functor sets each paragraph itself: it shapes words with the font, hyphenates them with TeX patterns, and picks the line breaks for the whole paragraph.
 
+In the `compact` style, a paragraph that comes directly after another paragraph starts with an indent of 1.2 em, and there is no space between the two. A paragraph after a heading, an equation, a list, a table or a theorem has no indent. The other styles put a space between paragraphs and use no indent.
+
 # Inline marks
 
 | Write | Result |
