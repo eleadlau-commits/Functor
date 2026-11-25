@@ -1,0 +1,45 @@
+name: functor.js
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish js/dist to npm (needs the NPM_TOKEN secret)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: node scripts/build-functor-js.mjs
+      - run: npm ci && npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
+        working-directory: web
+      - run: node scripts/functor-js-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: functor-js
+          path: js/dist
+      - if: github.event_name == 'workflow_dispatch' && inputs.publish
+        run: npm publish --provenance --access public
+        working-directory: js/dist
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

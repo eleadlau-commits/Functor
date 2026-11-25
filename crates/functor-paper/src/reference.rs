@@ -33,6 +33,7 @@ pub const HAND_PAGES: &[(&str, &str, &str)] = &[
     ("structures/diagrams", "Diagrams and labelled arrows", "Structures"),
     ("help/errors", "Common errors", "Help"),
     ("help/notation", "Notation check and trace", "Help"),
+    ("help/web", "Math on web pages", "Help"),
 ];
 
 pub const GEN_DIR: &str = "gen";
