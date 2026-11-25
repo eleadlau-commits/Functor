@@ -246,6 +246,12 @@ impl Parser<'_, '_, '_> {
                     self.err(start, format!("This `{c}` is not closed."), Some(format!("Add `{close}` where the group ends.")));
                     None
                 };
+                if c == '(' && close_glyph.is_some() {
+                    let ops = self.ops();
+                    if !ops.is_empty() {
+                        return self.group_ops(Node::Row(body), &ops, start);
+                    }
+                }
                 Some(Node::Fenced { open: Some(font_glyph_rc(c as u32)), close: close_glyph, body: Box::new(Node::Row(body)) })
             }
             '"' => {
@@ -330,15 +336,22 @@ impl Parser<'_, '_, '_> {
             }
         }
         let want = match name {
-            "frac" => 2,
+            "frac" | "join" => 2,
             _ => 1,
         };
         if args.len() != want {
             self.err(
                 start,
                 format!("`{name}` takes {want} argument{}, but it has {}.", if want == 1 { "" } else { "s" }, args.len()),
-                Some(if name == "frac" { "Write `frac(top, bottom)`.".into() } else { format!("Write `{name}(x)`.") }),
+                Some(match name {
+                    "frac" => "Write `frac(top, bottom)`.".into(),
+                    "join" => "Write `join(a, b)`.".into(),
+                    _ => format!("Write `{name}(x)`."),
+                }),
             );
+        }
+        if name == "join" {
+            return Some(self.join(args, start));
         }
         let mut it = args.into_iter();
         let a = it.next().unwrap_or(Node::Row(vec![]));
@@ -347,6 +360,47 @@ impl Parser<'_, '_, '_> {
             "sqrt" => Node::Sqrt(Box::new(a)),
             _ => a,
         })
+    }
+
+    fn join(&mut self, args: Vec<Node>, start: usize) -> Node {
+        let mut glyphs = Vec::new();
+        for a in &args {
+            match single_glyph(a) {
+                Some(g) => glyphs.push(g),
+                None => {
+                    self.err(start, "`join` takes two single symbols.", Some("Write `join(o, r)`. Build each side first, for example `join(circ, r.up)`.".into()));
+                    return Node::Row(args);
+                }
+            }
+        }
+        if glyphs.len() != 2 {
+            return Node::Row(args);
+        }
+        let g = Rc::new(glyphs[0].join(&glyphs[1]));
+        Node::Glyph { g, class: Class::Ord, limits: Limits::Never, italic: false, large: false }
+    }
+
+    fn group_ops(&mut self, body: Node, ops: &[(String, usize)], start: usize) -> Option<Node> {
+        if ops.len() > MAX_OPS {
+            self.warn(start, format!("This group has {} operations. Symbols with more than {MAX_OPS} are hard to read.", ops.len()), Some("Use fewer operations, or define a `sym` with a clear name.".into()));
+        }
+        let b = layout(&body, St { scale: 1.0, display: self.ctx.display, level: 0 });
+        let mut items = Vec::new();
+        for (a, draw) in &b.items {
+            match draw {
+                Draw::G(g) => items.extend(g.transformed(*a)),
+                Draw::Rule(rw, rh) => {
+                    let (x, y) = a.apply(0.0, rh / 2.0);
+                    items.push(glyph::Item { shape: glyph::Shape::Stroke(format!("M{x} {y}L{} {y}", x + rw)), tf: Affine::ID, bold: false });
+                }
+            }
+        }
+        let base = Rc::new(Glyph { w: b.w, h: b.h, d: b.d, items, italic: false });
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        std::hash::Hash::hash(&format!("{:?}", base.items), &mut h);
+        let recipe = format!("group:{:x}{}", std::hash::Hasher::finish(&h), join_ops(ops));
+        let g = self.apply_ops(base, ops, &recipe, false, None)?;
+        Some(Node::Glyph { g, class: Class::Ord, limits: Limits::Never, italic: false, large: false })
     }
 
     fn kind_call(&mut self, kind: &str, start: usize) -> Option<Node> {
@@ -445,7 +499,7 @@ impl Parser<'_, '_, '_> {
         for (o, at) in ops {
             if symbols::op_def(o).is_none() {
                 if let Some((_, when)) = symbols::LATER_OPS.iter().find(|(n, _)| n == o) {
-                    self.err(*at, format!("Operation `{o}` comes in {when}."), Some("Phase 0 has decorate, enclose, strike, repeat, reflect and style.".into()));
+                    self.err(*at, format!("Operation `{o}` comes in {when}."), Some("Functor 1 has decorate, enclose, strike, repeat, reflect, style and magnify.".into()));
                 } else {
                     let hint = did_you_mean(o, symbols::OPS.iter().map(|d| d.name)).map(|s| format!("Did you mean `{s}`?"));
                     self.err(*at, format!("Unknown operation `{o}`."), hint.or(Some("See the list of operations in the reference.".into())));
@@ -493,20 +547,21 @@ impl Parser<'_, '_, '_> {
                     OpKind::Strike => g.strike(o),
                     OpKind::Repeat => g.repeat(def.mark as usize),
                     OpKind::Reflect => g.reflect(o),
+                    OpKind::Magnify => g.magnified(def.mark as f64 / 100.0),
                     OpKind::Style => {
-                        let swap = if i == 0 {
-                            letter.and_then(|c| if o == "bold" { symbols::bold_letter(c) } else { symbols::double_struck(c) })
-                        } else {
-                            None
-                        };
+                        let swap = if i == 0 { letter.and_then(|c| symbols::styled_letter(o, c)) } else { None };
                         match (swap.and_then(|cp| Glyph::from_font(cp, large)), o.as_str()) {
                             (Some(mut x), _) => {
                                 x.italic = o == "bold";
                                 x
                             }
                             (None, "bold") => g.emboldened(),
-                            (None, _) => {
+                            (None, "bb") => {
                                 errors.push((*at, "`bb` works only on a single capital letter.".into()));
+                                g
+                            }
+                            (None, _) => {
+                                errors.push((*at, format!("`{o}` works only on a single letter, as the first operation.")));
                                 g
                             }
                         }
@@ -538,6 +593,14 @@ fn font_glyph_rc(cp: u32) -> Rc<Glyph> {
 
 fn font_atom(cp: u32, class: Class) -> Node {
     Node::Glyph { g: font_glyph_rc(cp), class, limits: Limits::Never, italic: false, large: false }
+}
+
+fn single_glyph(n: &Node) -> Option<Rc<Glyph>> {
+    match n {
+        Node::Glyph { g, .. } => Some(g.clone()),
+        Node::Row(v) if v.len() == 1 => single_glyph(&v[0]),
+        _ => None,
+    }
 }
 
 fn italic_atom(cp: u32) -> Node {
@@ -928,5 +991,89 @@ mod tests {
         let (n, _) = run("sum.circle_k a_k", true);
         let svg = render(&n, true, "x");
         assert!(svg.starts_with("<svg") && svg.contains("<path"));
+    }
+
+    fn single(n: &Node) -> Rc<Glyph> {
+        single_glyph(n).expect("one glyph")
+    }
+
+    #[test]
+    fn style_swaps_to_font_letters() {
+        for (src, cp) in [("C.frak", 0x212D), ("c.frak", 0x1D520), ("o.script", 0x2134), ("L.script", 0x2112), ("u.up", 0x75)] {
+            let (n, d) = run(src, false);
+            assert!(d.is_empty(), "{src}: {d:?}");
+            let want = Glyph::from_font(cp, false).unwrap();
+            assert_eq!(single(&n).items, want.items, "{src}");
+        }
+    }
+
+    #[test]
+    fn style_on_a_word_is_an_error() {
+        let (_, d) = run("sum.frak", false);
+        assert_eq!(d.len(), 1);
+        assert!(d[0].message.contains("`frak` works only on a single letter"));
+    }
+
+    #[test]
+    fn join_makes_one_touching_glyph() {
+        let (n, d) = run("join(o.up, r.up)", false);
+        assert!(d.is_empty(), "{d:?}");
+        let g = single(&n);
+        let (o, r) = (Glyph::from_font(0x6F, false).unwrap(), Glyph::from_font(0x72, false).unwrap());
+        assert_eq!(g.items.len(), o.items.len() + r.items.len());
+        let (_, _, ox1, _) = o.ink_box();
+        let (gx0, _, gx1, _) = g.ink_box();
+        let (rx0, _, rx1, _) = r.ink_box();
+        assert!(gx1 - gx0 < (ox1 - gx0) + (rx1 - rx0), "the two inks overlap");
+    }
+
+    #[test]
+    fn join_needs_two_single_symbols() {
+        let (_, d) = run("join(x)", false);
+        assert!(d[0].message.contains("takes 2 arguments"));
+        let (_, d) = run("join(x + y, z)", false);
+        assert!(d[0].message.contains("two single symbols"));
+    }
+
+    #[test]
+    fn neg_pulls_symbols_closer() {
+        let width = |src: &str| layout(&run(src, false).0, St { scale: 1.0, display: false, level: 0 }).w;
+        assert!((width("x neg y") - (width("x y") - 83.0)).abs() < 1e-6);
+    }
+
+    #[test]
+    fn logo_wordmark_builds() {
+        let env = MathEnv::new();
+        assert!(glyph_preview("(F.bb_(neg neg neg T.up.small)).arrow.square", &env).is_some());
+        assert!(glyph_preview("F.bb.square neg u.up.tilde_(neg u.up.tilde.turn) neg c.frak neg neg T.up neg join(o.up, r.up.arrow)", &env).is_some());
+    }
+
+    #[test]
+    fn group_takes_operations() {
+        let (n, d) = run("(x_T).box", false);
+        assert!(d.is_empty(), "{d:?}");
+        let g = single(&n);
+        assert_eq!(g.items.len(), 3);
+        let (n, _) = run("(x_T)", false);
+        assert!(matches!(n, Node::Row(ref v) if matches!(v[0], Node::Fenced { .. })));
+    }
+
+    #[test]
+    fn square_has_equal_sides() {
+        let (n, d) = run("(x_T).square", false);
+        assert!(d.is_empty(), "{d:?}");
+        let g = single(&n);
+        let glyph::Shape::Stroke(p) = &g.items.last().unwrap().shape else { panic!("no stroke") };
+        let pts = glyph::path_points(p);
+        let (w, h) = ((pts[1].0 - pts[0].0).abs(), (pts[2].1 - pts[1].1).abs());
+        assert!((w - h).abs() < 1e-6, "{w} {h}");
+    }
+
+    #[test]
+    fn small_scales_by_four_fifths() {
+        let (n, d) = run("T.up.small", false);
+        assert!(d.is_empty(), "{d:?}");
+        let t = Glyph::from_font(0x54, false).unwrap();
+        assert!((single(&n).w - t.w * 0.8).abs() < 1e-6);
     }
 }
