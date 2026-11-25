@@ -58,7 +58,7 @@ struct Parser<'a, 'b, 'c> {
     ctx: &'b mut Ctx<'c>,
 }
 
-const ESCAPABLE: &str = "\\$*_`{}[]@#!|";
+const ESCAPABLE: &str = "\\$*_`{}[]@#!|~\"'-";
 
 impl Parser<'_, '_, '_> {
     fn rest(&self) -> &str {
@@ -112,6 +112,14 @@ impl Parser<'_, '_, '_> {
                 '!' if self.rest().starts_with("![") => self.image(),
                 '@' => self.reference(),
                 '{' => self.variable(),
+                '"' | '\'' | '-' | '~' => {
+                    if let Some((ch, len)) = self.punctuation(c) {
+                        self.i += len;
+                        text.push(ch);
+                        continue;
+                    }
+                    None
+                }
                 _ => None,
             };
             match node {
@@ -131,6 +139,18 @@ impl Parser<'_, '_, '_> {
             out.push(Inline::Text(text));
         }
         out
+    }
+
+    fn punctuation(&self, c: char) -> Option<(char, usize)> {
+        let opens = self.prev_char().is_none_or(|p| p.is_whitespace() || "([{\u{2014}\u{2013}/\u{A0}".contains(p));
+        match c {
+            '"' => Some((if opens { '\u{201C}' } else { '\u{201D}' }, 1)),
+            '\'' => Some((if opens { '\u{2018}' } else { '\u{2019}' }, 1)),
+            '~' => Some(('\u{A0}', 1)),
+            '-' if self.rest().starts_with("---") => Some(('\u{2014}', 3)),
+            '-' if self.rest().starts_with("--") => Some(('\u{2013}', 2)),
+            _ => None,
+        }
     }
 
     fn find_unescaped(&self, from: usize, pat: char) -> Option<usize> {
@@ -347,6 +367,24 @@ mod tests {
         assert!(out.contains(&Inline::Cite(vec!["k1".into(), "k2".into()])));
         assert!(out.iter().any(|i| matches!(i, Inline::Ref { label, .. } if label == "fig:plot")));
         assert!(out.contains(&Inline::Text("20".into())));
+    }
+
+    #[test]
+    fn smart_punctuation() {
+        let (out, d) = parse("\"Quote\" and 'single', don't, pages 3--5 --- see Theorem~2. Not `a--b`, \\\"raw\\\" a\\-\\-b");
+        assert!(d.items.is_empty(), "{:?}", d.items);
+        let text: String = out
+            .iter()
+            .map(|i| match i {
+                Inline::Text(t) => t.clone(),
+                Inline::Code(c) => format!("[{c}]"),
+                _ => String::new(),
+            })
+            .collect();
+        assert_eq!(
+            text,
+            "\u{201C}Quote\u{201D} and \u{2018}single\u{2019}, don\u{2019}t, pages 3\u{2013}5 \u{2014} see Theorem\u{A0}2. Not [a--b], \"raw\" a--b"
+        );
     }
 
     #[test]

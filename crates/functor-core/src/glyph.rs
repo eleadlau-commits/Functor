@@ -101,7 +101,9 @@ pub struct Glyph {
 
 impl Glyph {
     pub fn from_font(cp: u32, large: bool) -> Option<Glyph> {
-        let g = font_glyph(cp, large)?;
+        let Some(g) = font_glyph(cp, large) else {
+            return Glyph::built_fallback(cp);
+        };
         Some(Glyph {
             w: g.w,
             h: g.h,
@@ -109,6 +111,22 @@ impl Glyph {
             items: vec![Item { shape: Shape::Font(g.path), tf: Affine::ID, bold: false }],
             italic: false,
         })
+    }
+
+    fn built_fallback(cp: u32) -> Option<Glyph> {
+        match cp {
+            0x2026 => {
+                let dot = Glyph::from_font(0x2E, false)?;
+                let gap = 1000.0 * 3.0 / 18.0;
+                let step = dot.w + gap;
+                let mut items = Vec::new();
+                for i in 0..3 {
+                    items.extend(dot.transformed(Affine::translate(step * i as f64, 0.0)));
+                }
+                Some(Glyph { w: dot.w * 3.0 + gap * 2.0, h: dot.h, d: dot.d, items, italic: false })
+            }
+            _ => None,
+        }
     }
 
     pub fn empty(w: f64) -> Glyph {

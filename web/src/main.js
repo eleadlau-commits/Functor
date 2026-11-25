@@ -9,6 +9,11 @@ import sample from '../../examples/sample.fn?raw';
 import docCss from './doc.css?raw';
 import './app.css';
 import './doc.css';
+import './fonts.css';
+import lmRegular from './fonts/functor-lm-regular.woff2?url';
+import lmItalic from './fonts/functor-lm-italic.woff2?url';
+import lmBold from './fonts/functor-lm-bold.woff2?url';
+import lmBoldItalic from './fonts/functor-lm-bolditalic.woff2?url';
 
 const KEY_SRC = 'functor.source';
 const KEY_NAME = 'functor.name';
@@ -141,7 +146,7 @@ function setupDesktop() {
   });
   $('open').addEventListener('click', () => files.open().then((d) => d && useDoc(d)).catch(showError));
   $('save').addEventListener('click', (e) => saveNative(e.shiftKey).catch(showError));
-  $('html').addEventListener('click', () => files.exportHtml(fileName().replace(/\.fn$/, '.html'), standalone()).catch(showError));
+  $('html').addEventListener('click', () => standalone().then((html) => files.exportHtml(fileName().replace(/\.fn$/, '.html'), html)).catch(showError));
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();
@@ -170,7 +175,7 @@ function setupWeb() {
     e.target.value = '';
   });
   $('save').addEventListener('click', () => download(fileName(), view.state.doc.toString(), 'text/plain'));
-  $('html').addEventListener('click', () => download(fileName().replace(/\.fn$/, '.html'), standalone(), 'text/html'));
+  $('html').addEventListener('click', () => standalone().then((html) => download(fileName().replace(/\.fn$/, '.html'), html, 'text/html')).catch(showError));
   $('new').addEventListener('click', () => store.set(KEY_NAME, nameEl.value));
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -194,9 +199,26 @@ function fileName() {
   return n.endsWith('.fn') ? n : n + '.fn';
 }
 
-function standalone() {
+async function dataUrl(url) {
+  const blob = await (await fetch(url)).blob();
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+async function fontFaces() {
+  const faces = [['normal', 400, lmRegular], ['italic', 400, lmItalic], ['normal', 700, lmBold], ['italic', 700, lmBoldItalic]];
+  const css = await Promise.all(faces.map(async ([style, weight, url]) => `@font-face{font-family:"Functor LM";font-style:${style};font-weight:${weight};src:url(${await dataUrl(url)}) format("woff2")}`));
+  return css.join('');
+}
+
+async function standalone() {
+  const fonts = await fontFaces().catch(() => '');
   const title = fileName().replace(/\.fn$/, '');
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${title.replace(/[<&]/g, '')}</title><style>${docCss}</style></head><body>${last ? last.html : ''}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title.replace(/[<&]/g, '')}</title><style>${fonts}${docCss}</style></head><body>${last ? last.html : ''}</body></html>`;
 }
 
 function setupDivider() {
