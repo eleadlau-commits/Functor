@@ -11,7 +11,7 @@ pub const ENV_KINDS: &[&str] = &[
     "theorem", "lemma", "corollary", "proposition", "definition", "example", "remark", "proof", "note", "figure", "quote",
 ];
 
-pub const DOC_STYLES: &[&str] = &["quiet", "classic"];
+pub const DOC_STYLES: &[&str] = &["quiet", "classic", "lecture", "compact", "board"];
 
 const NUMBERED: &[&str] = &["theorem", "lemma", "corollary", "proposition", "definition", "example", "remark"];
 

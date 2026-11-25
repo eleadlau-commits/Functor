@@ -41,7 +41,7 @@ Functor changes some signs to the correct typographic sign.
 Functor builds each glyph.^[A built glyph takes less than one millisecond, for example $nabla.circle$.] The cache keeps it.
 ```
 
-In the `quiet` style the note sits in the right margin, next to its line, and folds into the text on narrow screens. In the `classic` style it follows the paragraph.
+In the `quiet` style the note sits in the right margin, next to its line. In the `lecture` style it sits in the left margin. On narrow screens the note folds into the text. When two notes are near, the second note moves down, so notes do not overlap. In the `classic`, `compact` and `board` styles the note follows the paragraph. A note in a heading, a list item or a table works the same way.
 
 # Plain signs
 
