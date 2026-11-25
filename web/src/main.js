@@ -14,6 +14,7 @@ import lmRegular from './fonts/functor-lm-regular.woff2?url';
 import lmItalic from './fonts/functor-lm-italic.woff2?url';
 import lmBold from './fonts/functor-lm-bold.woff2?url';
 import lmBoldItalic from './fonts/functor-lm-bolditalic.woff2?url';
+import lmMono from './fonts/functor-lm-mono.woff2?url';
 
 const KEY_SRC = 'functor.source';
 const KEY_NAME = 'functor.name';
@@ -41,12 +42,39 @@ let seq = 0;
 let current = null;
 let savedText = null;
 
+let widthPt = 0;
+let lastSrc = null;
+let resizeTimer = 0;
+
+function contentWidthPt() {
+  const doc = previewEl.querySelector('.fn-doc');
+  if (!doc) return 0;
+  const cs = getComputedStyle(doc);
+  const px = doc.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  return Math.round(px * 0.75 * 100) / 100;
+}
+
+function rebreak() {
+  const w = contentWidthPt();
+  if (w > 0 && Math.abs(w - widthPt) > 0.5 && lastSrc !== null) {
+    widthPt = w;
+    render(lastSrc);
+  }
+}
+
+new ResizeObserver(() => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(rebreak, 80);
+}).observe(previewEl);
+
 async function render(src) {
   const mine = ++seq;
-  const out = await fn.compile(src);
+  lastSrc = src;
+  const out = await fn.compile(src, widthPt);
   if (mine !== seq) return;
   last = out;
   previewEl.innerHTML = last.html;
+  rebreak();
   const errors = last.diagnostics.filter((d) => d.severity === 'error').length;
   const warnings = last.diagnostics.length - errors;
   const parts = [fn.native ? `Compiled in ${last.nativeMs.toFixed(1)} ms (native)` : `Compiled in ${last.ms.toFixed(1)} ms`];
@@ -210,8 +238,8 @@ async function dataUrl(url) {
 }
 
 async function fontFaces() {
-  const faces = [['normal', 400, lmRegular], ['italic', 400, lmItalic], ['normal', 700, lmBold], ['italic', 700, lmBoldItalic]];
-  const css = await Promise.all(faces.map(async ([style, weight, url]) => `@font-face{font-family:"Functor LM";font-style:${style};font-weight:${weight};src:url(${await dataUrl(url)}) format("woff2")}`));
+  const faces = [['Functor LM', 'normal', 400, lmRegular], ['Functor LM', 'italic', 400, lmItalic], ['Functor LM', 'normal', 700, lmBold], ['Functor LM', 'italic', 700, lmBoldItalic], ['Functor LM Mono', 'normal', 400, lmMono]];
+  const css = await Promise.all(faces.map(async ([family, style, weight, url]) => `@font-face{font-family:"${family}";font-style:${style};font-weight:${weight};font-display:block;src:url(${await dataUrl(url)}) format("woff2")}`));
   return css.join('');
 }
 

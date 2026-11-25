@@ -692,6 +692,28 @@ fn space(a: Class, b: Class, st: St) -> f64 {
     mu * MU * st.scale
 }
 
+fn layout_row(nodes: &[Node], st: St) -> LBox {
+    let mut out = LBox::empty();
+    let mut prev: Option<Class> = None;
+    for n in nodes {
+        let mut class = n.class();
+        if class == Class::Bin && matches!(prev, None | Some(Class::Bin | Class::Rel | Class::Open | Class::Op | Class::Punct)) {
+            class = Class::Ord;
+        }
+        if let Some(p) = prev {
+            out.w += space(p, class, st);
+        }
+        let b = layout(n, st);
+        let x = out.w;
+        out.h = out.h.max(b.h);
+        out.d = out.d.max(b.d);
+        out.w += b.w;
+        out.place(b, x, 0.0);
+        prev = Some(class);
+    }
+    out
+}
+
 fn layout(node: &Node, st: St) -> LBox {
     let s = st.scale;
     match node {
@@ -701,27 +723,7 @@ fn layout(node: &Node, st: St) -> LBox {
             d: g.d * s,
             items: vec![(Affine::scale(s, s), Draw::G(g.clone()))],
         },
-        Node::Row(nodes) => {
-            let mut out = LBox::empty();
-            let mut prev: Option<Class> = None;
-            for n in nodes {
-                let mut class = n.class();
-                if class == Class::Bin && matches!(prev, None | Some(Class::Bin | Class::Rel | Class::Open | Class::Op | Class::Punct)) {
-                    class = Class::Ord;
-                }
-                if let Some(p) = prev {
-                    out.w += space(p, class, st);
-                }
-                let b = layout(n, st);
-                let x = out.w;
-                out.h = out.h.max(b.h);
-                out.d = out.d.max(b.d);
-                out.w += b.w;
-                out.place(b, x, 0.0);
-                prev = Some(class);
-            }
-            out
-        }
+        Node::Row(nodes) => layout_row(nodes, st),
         Node::Scripts { base, sub, sup } => {
             let b = layout(base, st);
             let (limits, large, italic) = match base.as_ref() {
@@ -863,6 +865,68 @@ fn layout(node: &Node, st: St) -> LBox {
 
 pub fn render(node: &Node, display: bool, label: &str) -> String {
     let b = layout(node, St { scale: 1.0, display, level: 0 });
+    render_box(&b, display, Some(label))
+}
+
+pub struct MathPiece {
+    pub svg: String,
+    pub w: f64,
+    pub gap: Option<(f64, f64, f64, f64)>,
+}
+
+fn row_classes(nodes: &[Node]) -> Vec<Class> {
+    let mut prev: Option<Class> = None;
+    nodes
+        .iter()
+        .map(|n| {
+            let mut class = n.class();
+            if class == Class::Bin && matches!(prev, None | Some(Class::Bin | Class::Rel | Class::Open | Class::Op | Class::Punct)) {
+                class = Class::Ord;
+            }
+            prev = Some(class);
+            class
+        })
+        .collect()
+}
+
+pub fn inline_pieces(node: &Node, label: &str) -> Vec<MathPiece> {
+    let st = St { scale: 1.0, display: false, level: 0 };
+    let nodes: &[Node] = match node {
+        Node::Row(v) if v.len() > 1 => v,
+        _ => {
+            let b = layout(node, st);
+            return vec![MathPiece { svg: render_box(&b, false, Some(label)), w: b.w.max(1.0) / 1000.0, gap: None }];
+        }
+    };
+    let classes = row_classes(nodes);
+    let mut pieces = Vec::new();
+    let mut start = 0;
+    for i in 0..nodes.len() {
+        let last = i + 1 == nodes.len();
+        let breakable = !last
+            && matches!(classes[i], Class::Rel | Class::Bin)
+            && !matches!(classes[i + 1], Class::Rel | Class::Punct | Class::Close);
+        if !breakable && !last {
+            continue;
+        }
+        let b = layout_row(&nodes[start..=i], st);
+        let gap = if last {
+            None
+        } else {
+            let w = space(classes[i], classes[i + 1], st);
+            let mu = w / MU;
+            let (stretch, shrink) = if mu >= 5.0 { (w, 0.0) } else if mu >= 4.0 { (w / 2.0, w) } else { (0.0, 0.0) };
+            let penalty = if classes[i] == Class::Rel { 500.0 } else { 700.0 };
+            Some((w / 1000.0, stretch / 1000.0, shrink / 1000.0, penalty))
+        };
+        let lab = if start == 0 { Some(label) } else { None };
+        pieces.push(MathPiece { svg: render_box(&b, false, lab), w: b.w.max(1.0) / 1000.0, gap });
+        start = i + 1;
+    }
+    pieces
+}
+
+fn render_box(b: &LBox, display: bool, label: Option<&str>) -> String {
     let pad = 40.0;
     let (w, h, d) = (b.w.max(1.0), b.h.max(0.0), b.d.max(0.0));
     let mut body = String::new();
@@ -884,7 +948,7 @@ pub fn render(node: &Node, display: bool, label: &str) -> String {
     }
     let total = h + d + 2.0 * pad;
     format!(
-        "<svg class=\"fn-math{}\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 {} {} {}\" style=\"width:{}em;height:{}em;vertical-align:{}em\" fill=\"currentColor\" role=\"img\" aria-label=\"{}\">{}</svg>",
+        "<svg class=\"fn-math{}\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 {} {} {}\" style=\"width:{}em;height:{}em;vertical-align:{}em\" fill=\"currentColor\" {}>{}</svg>",
         if display { " fn-display-math" } else { "" },
         f(-h - pad),
         f(w),
@@ -892,7 +956,10 @@ pub fn render(node: &Node, display: bool, label: &str) -> String {
         f(w / 1000.0),
         f(total / 1000.0),
         f(-(d + pad) / 1000.0),
-        crate::render::escape_attr(label),
+        match label {
+            Some(l) => format!("role=\"img\" aria-label=\"{}\"", crate::render::escape_attr(l)),
+            None => "aria-hidden=\"true\"".into(),
+        },
         body
     )
 }

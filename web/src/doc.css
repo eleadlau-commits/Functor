@@ -11,12 +11,19 @@
   font-variant-ligatures: common-ligatures;
   color: var(--fn-ink);
   background: #fff;
-  max-width: 42em;
+  width: var(--fn-page-width, 210mm);
+  max-width: none;
   margin: 0 auto;
   padding: var(--fn-margin, 2.5cm);
   box-sizing: border-box;
 }
 .fn-doc .fn-math { display: inline-block; overflow: visible; }
+.fn-doc .fn-par { margin: .6em 0; text-align: left; hyphens: manual; }
+.fn-doc .fn-line { display: block; white-space: nowrap; }
+.fn-doc .fn-up { font-style: normal; }
+.fn-doc .fn-cite { font-style: normal; }
+.fn-doc ul, .fn-doc ol { padding-left: 2.5em; }
+.fn-doc .fn-env > .fn-par:first-of-type { display: block; }
 .fn-doc .fn-title { text-align: center; margin-bottom: 2em; }
 .fn-doc .fn-title h1 { font-size: 1.7em; font-weight: normal; margin: 0 0 .4em; }
 .fn-doc .fn-title p { margin: .2em 0; text-align: center; }
@@ -36,7 +43,7 @@
 .fn-doc .fn-theorem .fn-env-name, .fn-doc .fn-lemma .fn-env-name, .fn-doc .fn-corollary .fn-env-name, .fn-doc .fn-proposition .fn-env-name { font-style: normal; }
 .fn-doc .fn-proof .fn-env-name { font-weight: normal; font-style: italic; }
 .fn-doc .fn-qed { float: right; }
-.fn-doc .fn-note { border-left: 3px solid var(--fn-rule); padding-left: 1em; }
+.fn-doc .fn-note { border-left: .2em solid var(--fn-rule); padding-left: 1em; }
 .fn-doc .fn-quote { margin-left: 2em; margin-right: 2em; }
 .fn-doc .fn-figure { margin: 1.2em auto; text-align: center; }
 .fn-doc .fn-figure img { max-width: 100%; }
@@ -46,11 +53,11 @@
 .fn-doc .fn-table thead { border-top: 1.5px solid var(--fn-ink); border-bottom: 1px solid var(--fn-ink); }
 .fn-doc .fn-table tbody { border-bottom: 1.5px solid var(--fn-ink); }
 .fn-doc .fn-code { background: #f5f5f8; padding: .7em 1em; overflow-x: auto; font-size: .9em; }
-.fn-doc code { font-family: "Latin Modern Mono", "SFMono-Regular", Menlo, Consolas, monospace; font-size: .92em; }
+.fn-doc code { font-family: "Functor LM Mono", "Latin Modern Mono", "SFMono-Regular", Menlo, Consolas, monospace; font-size: .92em; }
 .fn-doc a { color: var(--fn-accent); text-decoration: none; }
 .fn-doc .fn-missing { color: var(--fn-error); border-bottom: 1px dashed var(--fn-error); }
 .fn-doc hr { border: 0; border-top: 1px solid var(--fn-rule); margin: 1.5em 0; }
 @media print {
-  .fn-doc { max-width: none; padding: 0; }
+  .fn-doc { width: auto; max-width: none; padding: 0; }
   @page { margin: var(--fn-margin, 2.5cm); }
 }
