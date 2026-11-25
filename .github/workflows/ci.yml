@@ -10,12 +10,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --workspace
       - run: cargo run --release -p functor-cli -- check examples/sample.fn
+      - name: Reference is up to date
+        run: |
+          cargo run --release -p functor-cli -- ref gen
+          if ! git diff --quiet -- docs/reference; then
+            echo "::error::docs/reference/gen is old. Run 'cargo run -p functor-cli -- ref gen' and commit the result."
+            git diff --stat -- docs/reference
+            exit 1
+          fi
+          cargo run --release -p functor-cli -- ref build "$RUNNER_TEMP/reference"
+      - name: Language change has reference change
+        if: github.event_name == 'pull_request'
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          lang=$(git diff --name-only "$base" HEAD -- crates/functor-core/src/symbols.rs crates/functor-core/src/math.rs crates/functor-core/src/doc.rs crates/functor-core/src/inline.rs crates/functor-core/src/ast.rs crates/functor-core/src/deform.rs)
+          docs=$(git diff --name-only "$base" HEAD -- docs/reference)
+          if [ -n "$lang" ] && [ -z "$docs" ]; then
+            echo "::warning::This PR changes the language ($(echo $lang | tr '\n' ' ')) but not docs/reference. Update the hand pages and the cheat sheet, or say in the PR why no change is needed."
+          fi
       - run: cargo run --release -p functor-cli -- bench examples/sample.fn
       - uses: actions/setup-node@v4
         with:
