@@ -50,7 +50,7 @@ pub fn did_you_mean<'a>(word: &str, candidates: impl IntoIterator<Item = &'a str
     let mut best: Option<(usize, &str)> = None;
     for c in candidates {
         let d = edit_distance(word, c);
-        if best.map_or(true, |(bd, _)| d < bd) {
+        if best.map_or(true, |(bd, bc)| d < bd || (d == bd && c < bc)) {
             best = Some((d, c));
         }
     }

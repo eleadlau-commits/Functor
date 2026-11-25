@@ -1,0 +1,52 @@
+name: Stress
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: Number of pages
+        default: '10000'
+      seed:
+        description: Seed (empty for a new seed)
+        default: ''
+
+jobs:
+  stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release -p functor-stress
+      - name: Choose seed and size
+        id: cfg
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "seed=$(date +%Y%m%d)" >> "$GITHUB_OUTPUT"
+            echo "pages=50000" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "seed=${{ inputs.seed || github.run_id }}" >> "$GITHUB_OUTPUT"
+            echo "pages=${{ inputs.pages }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "seed=1" >> "$GITHUB_OUTPUT"
+            echo "pages=10000" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Random pages
+        run: ./target/release/functor-stress run --seed ${{ steps.cfg.outputs.seed }} --pages ${{ steps.cfg.outputs.pages }} --out stress-out
+      - name: Report
+        if: always()
+        run: cat stress-out/report.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Contact sheet
+        if: always() && github.event_name != 'pull_request'
+        run: ./target/release/functor-stress sheet --seed ${{ steps.cfg.outputs.seed }} --count 50 --out stress-out/sheet
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stress-${{ steps.cfg.outputs.seed }}
+          path: stress-out

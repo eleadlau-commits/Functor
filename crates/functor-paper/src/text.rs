@@ -324,7 +324,7 @@ impl Builder {
         let lead = word.find(|c: char| c.is_alphabetic()).unwrap_or(word.len());
         let tail = word.rfind(|c: char| c.is_alphabetic()).map_or(lead, |i| i + word[i..].chars().next().unwrap().len_utf8());
         let core = &word[lead..tail.max(lead)];
-        if core.chars().count() < 5 || !core.chars().all(char::is_alphabetic) {
+        if core.chars().count() < 5 || core.len() > 45 || !core.chars().all(char::is_alphabetic) {
             self.unbreakable(word);
             return;
         }
