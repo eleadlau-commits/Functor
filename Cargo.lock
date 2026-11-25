@@ -55,6 +55,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "functor-stress"
+version = "0.1.0"
+dependencies = [
+ "functor-paper",
+ "miniz_oxide",
+]
+
+[[package]]
 name = "functor-symbols"
 version = "0.1.0"
 
