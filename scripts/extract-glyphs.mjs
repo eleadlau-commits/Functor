@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
@@ -11,7 +11,24 @@ const variants = [
   ['n', 'normal'],
   ['n', 'bbold'],
   ['L', 'largeop'],
+  ['n', 'dynamic/fraktur'],
+  ['n', 'dynamic/script'],
 ];
+
+async function loadTable(file) {
+  const path = join(pkgDir, 'mjs/svg', `${file}.js`);
+  if (!file.startsWith('dynamic/')) {
+    const mod = await import(pathToFileURL(path).href);
+    return Object.values(mod)[0];
+  }
+  let captured = {};
+  const src = readFileSync(path, 'utf8')
+    .replace(/^import .*$/m, '')
+    .replace(/MathJaxNewcmFont\.dynamicSetup\(/, 'globalThis.__functorCapture(');
+  globalThis.__functorCapture = (_a, _b, data) => { captured = data.normal || {}; };
+  await import('data:text/javascript,' + encodeURIComponent(src));
+  return captured;
+}
 
 const ranges = [
   [0x20, 0x7e],
@@ -35,8 +52,7 @@ const wanted = (cp) => ranges.some(([a, b]) => cp >= a && cp <= b);
 const lines = [];
 const seen = new Set();
 for (const [key, file] of variants) {
-  const mod = await import(pathToFileURL(join(pkgDir, 'mjs/svg', `${file}.js`)).href);
-  const table = Object.values(mod)[0];
+  const table = await loadTable(file);
   for (const [cpText, entry] of Object.entries(table)) {
     const cp = Number(cpText);
     if (!wanted(cp) || !Array.isArray(entry)) continue;

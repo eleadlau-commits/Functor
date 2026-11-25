@@ -2,7 +2,7 @@
   --fn-ink: #1b1b1f;
   --fn-muted: #5b5b66;
   --fn-rule: #d9d9e0;
-  --fn-accent: #2f4fb3;
+  --fn-accent: #4a6a85;
   --fn-error: #c0322b;
   font-family: var(--fn-font, "Latin Modern Roman", "CMU Serif", "STIX Two Text", "Times New Roman", serif);
   font-size: var(--fn-text-size, 11pt);
