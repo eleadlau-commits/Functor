@@ -164,6 +164,27 @@ mod tests {
     }
 
     #[test]
+    fn style_presets() {
+        let src = "---\nfunctor: 1\ntitle: T\nauthor: A\n---\n\nset document(style: STYLE)\n\n# One\n\nText.^[A note.] More.^[Close.]\n\n::: theorem {title=\"X\"}\nBody.\n:::\n\n- An item.^[In a list.]\n";
+        for st in ["quiet", "classic", "lecture", "compact", "board"] {
+            let doc = src.replace("STYLE", st);
+            let out = compile(&doc);
+            assert!(out.diagnostics.is_empty(), "{st}: {:?}", out.diagnostics);
+            assert!(out.html.contains(&format!("fn-style-{st}")));
+            let pdf = compile_pdf(&doc);
+            assert!(pdf.diagnostics.is_empty() && pdf.pages >= 1, "{st}");
+        }
+        let compact = compile(&src.replace("STYLE", "compact"));
+        assert!(compact.html.contains("fn-cols-2"));
+        let narrow = compile_width(&src.replace("STYLE", "compact"), Some(300.0));
+        assert!(!narrow.html.contains("fn-cols-2"));
+        let board = compile(&src.replace("STYLE", "board"));
+        assert!(board.html.contains("--fn-text-size:13.2pt"));
+        let lecture = compile(&src.replace("STYLE", "lecture"));
+        assert!(lecture.html.contains("fn-headed"));
+    }
+
+    #[test]
     fn symbols_list_is_json() {
         let s = symbols_json();
         assert!(s.contains("\"circle\"") && s.contains("\"theorem\""));

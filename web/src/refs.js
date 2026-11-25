@@ -1,4 +1,31 @@
+window.functorNotes = function functorNotes(root) {
+  const docs = root.matches && root.matches('.fn-doc') ? [root] : [...root.querySelectorAll('.fn-doc')];
+  for (const doc of docs) {
+    const sides = [...doc.querySelectorAll('.fn-side:not(.fn-side-inline)')];
+    for (const s of sides) s.style.transform = '';
+    const gap = 4;
+    let floor = -Infinity;
+    const moves = [];
+    for (const s of sides) {
+      if (getComputedStyle(s).position !== 'absolute') continue;
+      const r = s.getBoundingClientRect();
+      const shift = Math.max(0, floor + gap - r.top);
+      if (shift > 0.5) moves.push([s, shift]);
+      floor = r.bottom + shift;
+    }
+    for (const [s, shift] of moves) s.style.transform = 'translateY(' + shift.toFixed(1) + 'px)';
+  }
+};
+
 window.functorRefs = function functorRefs(root) {
+  const notes = () => window.functorNotes(root);
+  notes();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(notes);
+  let notesTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(notesTimer);
+    notesTimer = setTimeout(notes, 60);
+  });
   let pop = null;
   let back = null;
 

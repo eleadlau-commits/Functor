@@ -181,7 +181,7 @@ $$ {#eq:square}
 | `set binom(...)`, `set abs(...)`, `set norm(...)`, `set inner(...)`, `set floor(...)`, `set ceil(...)` | `fence:`, `grow:` |
 | `set cases(...)` | `fence:`, `word: "if"`, `grow:` |
 | `set wrap(...)` | `grow: stretch` or `magnify` |
-| `set document(...)` | `style: quiet` or `classic`, `accent: #4a6a85` |
+| `set document(...)` | `style: quiet`, `classic`, `lecture`, `compact` or `board`; `accent: #4a6a85` |
 | `set heading(...)` | `numbering: none` |
 | `set page(...)` | `size: a4`, `a5` or `letter`, `margin: 2.5cm` |
 | `set text(...)` | `size: 11pt`, `font: "Name"` |

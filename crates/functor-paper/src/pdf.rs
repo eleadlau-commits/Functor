@@ -6,7 +6,7 @@ use pdf_writer::{Content, Filter, Finish, Name, Pdf, Rect, Ref, Str, TextStr};
 
 use crate::glyph::{Affine, Shape, STROKE};
 use crate::math::Paint;
-use crate::page::{Draw, Layout, INK};
+use crate::page::{Draw, Layout};
 use crate::text::{self, Style};
 
 const FONT_NAMES: [&str; 5] = ["LMRoman10-Regular", "LMRoman10-Italic", "LMRoman10-Bold", "LMRoman10-BoldItalic", "LMMono10-Regular"];
@@ -157,9 +157,9 @@ fn content(draws: &[Draw]) -> Vec<u8> {
                 c.rect(*x as f32, *y as f32, *w as f32, *h as f32);
                 c.fill_nonzero();
             }
-            Draw::Qed { x, y, a } => {
+            Draw::Qed { x, y, a, color } => {
                 let t = 0.4f32;
-                c.set_stroke_rgb(INK[0], INK[1], INK[2]);
+                c.set_stroke_rgb(color[0], color[1], color[2]);
                 c.set_line_width(t);
                 c.rect(*x as f32 + t / 2.0, *y as f32 + t / 2.0, *a as f32 - t, *a as f32 - t);
                 c.stroke();
