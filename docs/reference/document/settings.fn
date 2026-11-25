@@ -18,7 +18,7 @@ set text(size: 10pt, font: "Functor LM")
 
 | Option | Values | Result |
 |:--|:--|:--|
-| `style` | `quiet` (default), `classic` | `quiet`: the title at the left, numbers in the margin, upright theorems with a rule. `classic`: the LaTeX article look. |
+| `style` | `quiet` (default), `classic`, `lecture`, `compact`, `board` | `quiet`: the title at the left, numbers in the margin, upright theorems with a rule, notes in the right margin. `classic`: the LaTeX article look. `lecture`: notes in the left margin, § before section numbers, theorems on a tinted band. `compact`: two columns on wide pages, notes after the paragraph. `board`: a dark page with larger type and light labels, for a projector. The HTML and the PDF use the same style. |
 | `accent` | a hex colour, for example `#4a6a85` | the colour of numbers and rules |
 
 # heading

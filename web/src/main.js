@@ -79,6 +79,7 @@ async function render(src) {
   if (mine !== seq) return;
   last = out;
   previewEl.innerHTML = last.html;
+  if (window.functorNotes) window.functorNotes(previewEl);
   rebreak();
   const errors = last.diagnostics.filter((d) => d.severity === 'error').length;
   const warnings = last.diagnostics.length - errors;

@@ -43,7 +43,7 @@ pub(crate) struct R<'a> {
     pub(crate) base: Style,
     pub(crate) indent: f64,
     pub(crate) in_figure: bool,
-    pub(crate) quiet: bool,
+    pub(crate) look: Look,
     pub(crate) pdf: bool,
     pub(crate) notes: usize,
     pub(crate) note_src: Vec<(usize, Vec<Inline>)>,
@@ -72,6 +72,62 @@ pub fn page_width_pt(page: &str) -> f64 {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum Look {
+    Quiet,
+    Classic,
+    Lecture,
+    Compact,
+    Board,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum Notes {
+    After,
+    Right,
+    Left,
+}
+
+impl Look {
+    pub(crate) fn of(style: &str) -> Look {
+        match style {
+            "classic" => Look::Classic,
+            "lecture" => Look::Lecture,
+            "compact" => Look::Compact,
+            "board" => Look::Board,
+            _ => Look::Quiet,
+        }
+    }
+
+    pub(crate) fn headed(self) -> bool {
+        matches!(self, Look::Quiet | Look::Lecture | Look::Board)
+    }
+
+    pub(crate) fn notes(self) -> Notes {
+        match self {
+            Look::Quiet => Notes::Right,
+            Look::Lecture => Notes::Left,
+            _ => Notes::After,
+        }
+    }
+
+    pub(crate) fn scale(self) -> f64 {
+        if self == Look::Board {
+            BOARD_SCALE
+        } else {
+            1.0
+        }
+    }
+}
+
+pub const BOARD_SCALE: f64 = 1.2;
+pub const COLUMN_GAP_PT: f64 = 22.0;
+pub const COLUMNS_MIN_PT: f64 = 420.0;
+
+pub(crate) fn columns(look: Look, content_pt: f64) -> bool {
+    look == Look::Compact && content_pt >= COLUMNS_MIN_PT
+}
+
 const LIST_INDENT: f64 = 2.5;
 const QUOTE_INDENT: f64 = 2.0;
 const NOTE_INDENT: f64 = 1.2;
@@ -83,15 +139,35 @@ pub fn render(doc: &Doc, diags: &mut Diagnostics) -> String {
 pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -> String {
     let s = &doc.settings;
     let page = page_width_pt(&s.page);
+    let look = Look::of(&s.style);
     let with_notes = has_notes(&doc.blocks);
-    let col = if with_notes && s.style != "classic" { NOTE_COLUMN_PT } else { 0.0 };
-    let measure = match (s.font.as_ref(), length_pt(&s.margin), length_pt(&s.text_size)) {
-        (None, Some(m), Some(t)) if t > 0.0 => match width_pt {
-            Some(w) if w > 0.0 => Some(w / t),
-            _ if page > 2.0 * m + col => Some((page - 2.0 * m - col) / t),
-            _ => None,
-        },
-        _ => None,
+    let col = if with_notes && look.notes() != Notes::After { NOTE_COLUMN_PT } else { 0.0 };
+    let size = length_pt(&s.text_size).map(|t| t * look.scale());
+    let mut two = false;
+    let measure = match (s.font.as_ref(), length_pt(&s.margin), size) {
+        (None, Some(m), Some(t)) if t > 0.0 => {
+            let w = match width_pt {
+                Some(w) if w > 0.0 => Some(w),
+                _ if page > 2.0 * m + col => Some(page - 2.0 * m - col),
+                _ => None,
+            };
+            w.map(|w| {
+                two = columns(look, w);
+                if two {
+                    (w - COLUMN_GAP_PT) / 2.0 / t
+                } else {
+                    w / t
+                }
+            })
+        }
+        _ => {
+            two = length_pt(&s.margin).is_some_and(|m| columns(look, width_pt.unwrap_or(page - 2.0 * m)));
+            None
+        }
+    };
+    let text_size = match size {
+        Some(t) if look.scale() != 1.0 => format!("{}pt", (t * 100.0).round() / 100.0),
+        _ => s.text_size.clone(),
     };
     let mut r = R {
         env: &doc.env,
@@ -102,19 +178,20 @@ pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -
         base: Style::default(),
         indent: 0.0,
         in_figure: false,
-        quiet: s.style != "classic",
+        look,
         pdf: false,
         notes: 0,
         note_src: Vec::new(),
     };
     r.out.push_str(&format!(
-        "<article class=\"fn-doc fn-style-{}{}\" data-page=\"{}\" style=\"--fn-page-width:{}pt;--fn-margin:{};--fn-text-size:{}{}{}\">",
+        "<article class=\"fn-doc fn-style-{}{}{}\" data-page=\"{}\" style=\"--fn-page-width:{}pt;--fn-margin:{};--fn-text-size:{}{}{}\">",
         escape_attr(&s.style),
         if with_notes { " fn-has-notes" } else { "" },
+        if two { " fn-cols-2" } else { "" },
         escape_attr(&s.page),
         page,
         escape_attr(&s.margin),
-        escape_attr(&s.text_size),
+        escape_attr(&text_size),
         s.font.as_ref().map(|f| format!(";--fn-font:{}", escape_attr(f))).unwrap_or_default(),
         s.accent.as_ref().map(|a| format!(";--fn-accent:{}", escape_attr(a))).unwrap_or_default()
     ));
@@ -237,14 +314,14 @@ impl R<'_> {
             self.out.push_str("</figcaption></figure>");
             return;
         }
-        let headed = self.quiet && !matches!(e.kind.as_str(), "proof" | "quote" | "note");
+        let headed = self.look.headed() && !matches!(e.kind.as_str(), "proof" | "quote" | "note");
         self.out.push_str(&format!("<section class=\"fn-env fn-{}{}\"{id}>", escape_attr(&e.kind), if headed { " fn-headed" } else { "" }));
         let mut name = capital(&e.kind);
         if let Some(n) = e.number {
             name.push_str(&format!(" {n}"));
         }
         let saved = (self.base, self.indent);
-        let italic_body = !self.quiet && matches!(e.kind.as_str(), "theorem" | "lemma" | "corollary" | "proposition");
+        let italic_body = self.look == Look::Classic && matches!(e.kind.as_str(), "theorem" | "lemma" | "corollary" | "proposition");
         if italic_body {
             self.base.italic = true;
         }
