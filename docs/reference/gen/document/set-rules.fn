@@ -40,7 +40,10 @@ A `set` line changes the look of the whole document. Write it on its own line, b
 | `set epi(...)` | `style` | `twohead` |
 | `set incl(...)` | `style` | `hook` |
 | `set greek(...)` | a lowercase Greek name, such as `phi` | `italic` |
+| `set NAME(...)`, for a symbol name such as `le` | `style` | `none` |
+| `set NAME(...)`, for a big operator or a function with limits, such as `sum` or `lim` | `limits` | `over`; `side` for `integral` |
 | `set dd(...)` | `style` | `italic` |
+| `set limits(...)` | `overhang` | `on` |
 | `set document(...)` | `style` | `quiet` |
 | `set document(...)` | `accent` | `none` |
 | `set lint(...)` | `notation` | `on` |
@@ -50,4 +53,4 @@ A `set` line changes the look of the whole document. Write it on its own line, b
 | `set text(...)` | `size` | `11pt` |
 | `set text(...)` | `font` | `Functor LM` |
 
-A `fence` value is a fence operation such as `brack` or `vbar.x2`, the word `none`, or any one symbol, for example a `sym`. A `grow` value is `stretch` or `magnify`. An arrow `style` is `tail` ($mono$), `twohead` ($epi$), `hook` ($incl$), `plain` ($to$). A Greek value is `alt`, `up`, `bold`.
+A `fence` value is a fence operation such as `brack` or `vbar.x2`, the word `none`, or any one symbol, for example a `sym`. A `grow` value is `stretch` or `magnify`. An arrow `style` is `tail` ($mono$), `twohead` ($epi$), `hook` ($incl$), `plain` ($to$). A Greek value is `alt`, `up`, `bold`. A symbol `style` is one to three of `alt`, `bold`, `small`, `tall`, `wide`, `bend`, `slant`, `taper`, joined with dots, such as `wide` or `alt.bold`. A `limits` value is `over` or `side`.

@@ -387,6 +387,7 @@ pub const KIND_DEFAULTS: &[(&str, &str, &str)] = &[
     ("epi", "style", "twohead"),
     ("incl", "style", "hook"),
     ("dd", "style", "italic"),
+    ("limits", "overhang", "on"),
 ];
 
 pub const ARROW_KINDS: &[&str] = &["mono", "epi", "incl"];
@@ -403,6 +404,45 @@ pub fn arrow_style(style: &str) -> Option<&'static str> {
 }
 
 pub const GREEK_STYLES: &[&str] = &["alt", "up", "bold"];
+
+pub const SYMBOL_STYLE_OPS: &[&str] = &["alt", "bold", "small", "tall", "wide", "bend", "slant", "taper"];
+
+pub const LIMITS: &[&str] = &["over", "side"];
+
+pub fn symbol_set_options(name: &str) -> &'static [&'static str] {
+    if ARROW_KINDS.contains(&name) {
+        return &[];
+    }
+    if let Some(n) = named(name) {
+        return if n.large { &["style", "limits"] } else { &["style"] };
+    }
+    match function(name) {
+        Some(Limits::Display) => &["limits"],
+        _ => &[],
+    }
+}
+
+pub fn symbol_style_error(name: &str, value: &str) -> Option<(String, String)> {
+    let allowed = SYMBOL_STYLE_OPS.iter().map(|o| format!("`{o}`")).collect::<Vec<_>>().join(", ");
+    let ops: Vec<&str> = value.split('.').collect();
+    if ops.len() > 3 {
+        return Some((format!("`{value}` has {} operations. A style rule takes at most 3.", ops.len()), "Use fewer operations.".into()));
+    }
+    for o in &ops {
+        if SYMBOL_STYLE_OPS.contains(o) {
+            continue;
+        }
+        if op_def(o).is_some() {
+            return Some((format!("`{o}` changes what `{name}` means, so a style rule cannot give it."), format!("A style rule takes {allowed}. For a new meaning, write `sym`.")));
+        }
+        return Some((format!("`{o}` is not a style of a symbol."), format!("Use {allowed}.")));
+    }
+    if ops.contains(&"alt") && composite(name, "alt").is_none() {
+        let with: Vec<String> = COMPOSITES.iter().filter(|(b, o, _)| *o == "alt" && named(b).is_some()).map(|(b, _, _)| format!("`{b}`")).collect();
+        return Some((format!("`{name}` has no other common form."), format!("`alt` works on {}.", with.join(" and "))));
+    }
+    None
+}
 
 pub const SET_OPTIONS: &[(&str, &[&str])] = &[
     ("vec", &["style", "fence", "body", "grow", "inline"]),
@@ -421,6 +461,7 @@ pub const SET_OPTIONS: &[(&str, &[&str])] = &[
     ("incl", &["style"]),
     ("greek", GREEK),
     ("dd", &["style"]),
+    ("limits", &["overhang"]),
     ("document", &["style", "accent"]),
     ("lint", &["notation"]),
     ("heading", &["numbering"]),
@@ -541,6 +582,8 @@ pub const COMPOSITES: &[(&str, &str, u32)] = &[
     ("lambda", "cross", 0x19B),
     ("in", "small", 0x220A),
     ("ni", "small", 0x220D),
+    ("partial", "slant", 0x1D715),
+    ("nabla", "slant", 0x1D6FB),
     ("le", "alt", 0x2A7D),
     ("ge", "alt", 0x2A7E),
     ("wedge", "big", 0x22C0),

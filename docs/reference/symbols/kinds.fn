@@ -70,6 +70,34 @@ $phi(x) = epsilon pi$
 
 The value is `alt` (the other common form), `up` (upright) or `bold`. `alt` works on `epsilon`, `theta`, `kappa`, `phi`, `rho` and `pi`. A style operation in one place wins over the rule: `phi.up` stays upright.
 
+# Other forms of a symbol
+
+Some symbols have more than one common form: ≤ or ⩽, a short or a long ⇒, an upright or an italic ∂. Write the plain name in the source, and one rule for the look.
+
+```fn
+set le(style: alt)
+set ge(style: alt)
+set implies(style: wide)
+
+$0 le x le 1 implies x^2 le x$, $y ge 0$
+```
+
+The target is any built-in symbol name. The value is a short recipe of one to three operations that keep the meaning: `alt`, `bold`, `small`, `tall`, `wide`, `bend`, `slant` and `taper`. An operation that changes the meaning, such as `not` or `hat`, is not a style, so the rule refuses it.
+
+| Rule | Look | Use |
+|:--|:-:|:--|
+| `set le(style: alt)` | $le.alt$ | the slanted form, common in French and Russian texts |
+| `set ge(style: alt)` | $ge.alt$ | the slanted form, to match `le` |
+| `set partial(style: slant)` | $partial.slant$ | an italic ∂, to match italic letters |
+| `set nabla(style: slant)` | $nabla.slant$ | an italic ∇ |
+| `set implies(style: wide)` | $implies.wide$ | a long ⟹, for implications between statements |
+| `set iff(style: wide)` | $iff.wide$ | a long ⟺ |
+| `set mapsto(style: wide)` | $mapsto.wide$ | a long ⟼ |
+
+Operations in one place add to the rule. With `set le(style: alt)`, `le.not` gives $le.alt.not$. An operation of the same family in one place wins: with `set implies(style: wide)`, `implies.tall` is not made wide too.
+
+`mono`, `epi` and `incl` keep their own arrow styles, and Greek letters use `set greek(...)`.
+
 # Own kinds
 
 `kind` comes in phase 1. Then you can declare a kind, for example `kind tensor`, and give it a style rule.

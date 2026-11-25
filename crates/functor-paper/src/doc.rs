@@ -261,9 +261,17 @@ impl DocParser<'_> {
         };
         let args = &rest[open + 1..close];
         let allowed = crate::symbols::SET_OPTIONS;
-        let Some((_, keys)) = allowed.iter().find(|(t, _)| *t == target) else {
-            let hint = did_you_mean(target, allowed.iter().map(|(t, _)| *t)).map(|s| format!("Did you mean `{s}`?"));
-            self.diags.error(n, col, format!("`set {target}` is not known."), hint.or(Some(format!("Targets: {}.", allowed.iter().map(|(t, _)| *t).collect::<Vec<_>>().join(", ")))));
+        let name_keys = crate::symbols::symbol_set_options(target);
+        let found = allowed.iter().find(|(t, _)| *t == target).map(|(_, k)| *k).or((!name_keys.is_empty()).then_some(name_keys));
+        let Some(keys) = found else {
+            if crate::symbols::function(target).is_some() || crate::symbols::greek_index(target).is_some() {
+                let hint = if crate::symbols::greek_index(target).is_some() { format!("Write `set greek({target}: alt)`.") } else { "Only functions with limits, such as `lim` and `max`, take `set NAME(limits: side)`.".into() };
+                self.diags.error(n, col, format!("`set {target}` is not known."), Some(hint));
+                return;
+            }
+            let names = allowed.iter().map(|(t, _)| *t).chain(crate::symbols::NAMES.iter().map(|x| x.name));
+            let hint = did_you_mean(target, names).map(|s| format!("Did you mean `{s}`?"));
+            self.diags.error(n, col, format!("`set {target}` is not known."), hint.or(Some(format!("Targets: {}, or a symbol name such as `le` or `sum`.", allowed.iter().map(|(t, _)| *t).collect::<Vec<_>>().join(", ")))));
             return;
         };
         for arg in args.split(',').map(str::trim).filter(|a| !a.is_empty()) {
@@ -338,6 +346,26 @@ impl DocParser<'_> {
                         let names = crate::symbols::ARROW_STYLES.iter().map(|(s, _, _)| *s);
                         let hint = did_you_mean(&v, names).map(|s| format!("Did you mean `{s}`?"));
                         self.diags.error(n, arg_col, format!("`{v}` is not an arrow style."), hint.or(Some("Use `tail` (↣), `twohead` (↠), `hook` (↪) or `plain` (→).".into())));
+                    }
+                }
+                (t, "style") if crate::symbols::named(t).is_some() => match crate::symbols::symbol_style_error(t, &v) {
+                    Some((msg, hint)) => self.diags.error(n, arg_col, msg, Some(hint)),
+                    None => {
+                        self.env.kinds.insert(format!("{t}.style"), v);
+                    }
+                },
+                ("limits", "overhang") => {
+                    if v == "on" || v == "off" {
+                        self.env.kinds.insert("limits.overhang".into(), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a value for `overhang`."), Some("Use `on` or `off`.".into()));
+                    }
+                }
+                (t, "limits") => {
+                    if crate::symbols::LIMITS.contains(&v.as_str()) {
+                        self.env.kinds.insert(format!("{t}.limits"), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a place for limits."), Some("Use `over` (above and below in display math) or `side` (at the side).".into()));
                     }
                 }
                 ("greek", letter) => {

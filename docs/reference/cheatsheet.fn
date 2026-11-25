@@ -198,6 +198,9 @@ $$ {#eq:square}
 | `set wrap(...)` | `grow: stretch` or `magnify` |
 | `set mono(...)`, `set epi(...)`, `set incl(...)` | `style: tail`, `twohead`, `hook` or `plain` |
 | `set greek(...)` | a Greek name and `alt`, `up` or `bold`: `phi: alt` |
+| `set le(...)`, any symbol name | `style:` one to three of `alt` `bold` `small` `tall` `wide` `bend` `slant` `taper`: `set le(style: alt)` gives ⩽ for each `le`, `set implies(style: wide)` gives ⟹ |
+| `set sum(...)`, `set integral(...)`, `set lim(...)`, other big operators and functions with limits | `limits: over` or `side` |
+| `set limits(...)` | `overhang: off` keeps each limit inside the width of its operator |
 | `set document(...)` | `style: quiet`, `classic`, `lecture`, `compact` or `board`; `accent: #4a6a85` |
 | `set heading(...)` | `numbering: none` |
 | `set page(...)` | `size: a4`, `a5` or `letter`, `margin: 2.5cm` |
@@ -229,6 +232,7 @@ Load the script once. Then write math in `fn-math` elements. A Markdown `fn` cod
 | `\begin{pmatrix} a & b \\ c & d \end{pmatrix}` | `mat(a, b; c, d)` |
 | `\begin{cases} ... \end{cases}` | `cases(value, condition; ...)` |
 | `\varphi` everywhere | `set greek(phi: alt)`, then `phi` |
+| `\leqslant` everywhere | `set le(style: alt)`, then `le` |
 | `\xrightarrow{f}`, `\overset{\text{def}}{=}` | `to^f`, `=^"def"` |
 | tikz-cd | `diagram(...)`, see "Diagrams" above |
 | `\begin{align} a &= b \\ &= c \end{align}` | one step on each line in `$$` |

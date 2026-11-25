@@ -349,7 +349,13 @@ impl Parser<'_, '_, '_> {
         } else if let Node::Glyph { g, class: Class::Rel, .. } = &base {
             Node::Over { g: g.clone(), class: Class::Rel, above: sup.map(Box::new), below: sub.map(Box::new) }
         } else {
-            Node::Scripts { base: Box::new(base), sub: sub.map(Box::new), sup: sup.map(Box::new) }
+            let limits = matches!(&base, Node::Glyph { limits: Limits::Display, .. });
+            let n = Node::Scripts { base: Box::new(base), sub: sub.map(Box::new), sup: sup.map(Box::new) };
+            if limits && self.ctx.env.opt("limits", "overhang") == "off" {
+                Node::Row(vec![n])
+            } else {
+                n
+            }
         }
     }
 
@@ -1163,6 +1169,21 @@ impl Parser<'_, '_, '_> {
                 return self.resolve_base(name, ops, start);
             }
         }
+        if symbols::named(word).is_some() && !symbols::ARROW_KINDS.contains(&word) {
+            if let Some(rule) = self.ctx.env.kinds.get(&format!("{word}.style")).cloned() {
+                let rule_kinds: Vec<OpKind> = rule.split('.').filter_map(|o| symbols::op_def(o).map(|d| d.kind)).collect();
+                let hand: Vec<&str> = ops.iter().map(|(o, _)| o.as_str()).filter(|o| symbols::op_def(o).is_some_and(|d| rule_kinds.contains(&d.kind))).collect();
+                trace::edit(|t| {
+                    t.subject = word.to_string();
+                    t.style.push(if hand.is_empty() { format!("`set {word}(style: {rule})`") } else { format!("`set {word}(style: {rule})`: not used, because `.{}` is written by hand", hand.join("`, `.")) });
+                });
+                if hand.is_empty() {
+                    let mut all: Vec<(String, usize)> = rule.split('.').map(|o| (o.to_string(), start)).collect();
+                    all.extend(ops.iter().cloned());
+                    return self.resolve_base(word, &all, start);
+                }
+            }
+        }
         if symbols::greek_index(word).is_some() {
             if let Some(style) = self.ctx.env.kinds.get(&format!("greek.{word}")).cloned() {
                 let styled = ops.first().and_then(|(o, _)| symbols::op_def(o)).is_some_and(|d| d.kind == OpKind::Style);
@@ -1214,7 +1235,7 @@ impl Parser<'_, '_, '_> {
         let display = self.ctx.display;
         let (base_cp, mut class, mut limits, italic, mut large) = if let Some(n) = symbols::named(word) {
             trace::meaning(Form::Name, false, || (format!("name {word}"), format!("The built-in symbol `{word}`, a {}.", trace::class_text(n.class))));
-            (n.cp, n.class, n.limits, false, n.large && display)
+            (n.cp, n.class, self.limits_rule(word, n.limits), false, n.large && display)
         } else if let Some(cp) = symbols::greek(word) {
             trace::meaning(Form::Name, false, || (format!("name {word}"), format!("The Greek letter `{word}`.")));
             (cp, Class::Ord, Limits::Never, true, false)
@@ -1225,7 +1246,7 @@ impl Parser<'_, '_, '_> {
                 self.err(*at, format!("`{word}` is a function name; it takes no operation `.{o}`."), None);
             }
             let cps: Vec<u32> = symbols::function_text(word).chars().map(|c| c as u32).collect();
-            return Node::Glyph { g: word_glyph(&cps, "fn"), class: Class::Op, limits: lim, italic: false, large: false };
+            return Node::Glyph { g: word_glyph(&cps, "fn"), class: Class::Op, limits: self.limits_rule(word, lim), italic: false, large: false };
         } else if word.chars().count() == 1 {
             let mut c = word.chars().next().unwrap_or('x');
             if let Some((canon, name)) = symbols::duplicate_of(c as u32) {
@@ -1273,7 +1294,7 @@ impl Parser<'_, '_, '_> {
         }
         if ops.iter().any(|(o, _)| o == "big") {
             class = Class::Op;
-            limits = Limits::Display;
+            limits = self.limits_rule(word, Limits::Display);
             large = display;
         }
         if let Some(cp) = symbols::composite(word, &ops_text[1..]) {
@@ -1283,17 +1304,34 @@ impl Parser<'_, '_, '_> {
                 return glyph_node(cp, class, limits, false, large);
             }
         }
-        let Some(base) = Glyph::from_font(base_cp, large) else {
+        let prefix = (1..ops.len()).rev().find_map(|k| {
+            let tail = join_ops(&ops[..k]);
+            symbols::composite(word, &tail[1..]).filter(|cp| glyph::font_glyph(*cp, large).is_some()).map(|cp| (k, cp))
+        });
+        let (from_cp, rest, from_italic) = match prefix {
+            Some((k, cp)) => (cp, &ops[k..], false),
+            None => (base_cp, ops, italic),
+        };
+        let Some(base) = Glyph::from_font(from_cp, large) else {
             return glyph_node(base_cp, class, limits, italic, large);
         };
         let mut base = base;
-        base.italic = italic;
+        base.italic = from_italic;
         let recipe = format!("{word}{ops_text}{}", if large { ":L" } else { "" });
         trace_build(&format!("{word}{ops_text}"), ops, Source::Built);
-        let letter = (word.chars().count() == 1).then(|| word.chars().next()).flatten();
-        match self.apply_ops(Rc::new(base), ops, &recipe, large, letter, symbols::greek_index(word)) {
+        let letter = (prefix.is_none() && word.chars().count() == 1).then(|| word.chars().next()).flatten();
+        let greek = if prefix.is_none() { symbols::greek_index(word) } else { None };
+        match self.apply_ops(Rc::new(base), rest, &recipe, large, letter, greek) {
             Some(g) => Node::Glyph { g, class, limits, italic, large },
             None => glyph_node(base_cp, class, limits, italic, large),
+        }
+    }
+
+    fn limits_rule(&self, word: &str, default: Limits) -> Limits {
+        match self.ctx.env.kinds.get(&format!("{word}.limits")).map(String::as_str) {
+            Some("over") => Limits::Display,
+            Some("side") => Limits::Never,
+            _ => default,
         }
     }
 
@@ -1817,7 +1855,7 @@ fn layout(node: &Node, st: St) -> LBox {
                 _ => bw,
             };
             let sup_dx = if large { (ink_right - bw).max(0.0) + 90.0 * s } else if italic { 40.0 * s } else { 20.0 * s };
-            let sub_dx = if large { -0.28 * (bw - ic) - ic } else { 10.0 * s - ic };
+            let sub_dx = if large && ink_right > bw + 1.0 { -0.28 * (bw - ic) - ic } else if large { 30.0 * s } else { 10.0 * s - ic };
             out.place(b, 0.0, 0.0);
             out.w = bw;
             let mut sup_x = bw + sup_dx;

@@ -174,6 +174,37 @@ mod tests {
     }
 
     #[test]
+    fn set_rules_for_symbol_names() {
+        let paths = |src: &str| -> Vec<String> {
+            let html = compile(&format!("---\nfunctor: 1\n---\n\n{src}\n")).html;
+            html.split(" d=\"").skip(1).map(|p| p.split('"').next().unwrap_or("").to_string()).collect()
+        };
+        assert_eq!(paths("set le(style: alt)\n\n$a le b$"), paths("$a le.alt b$"));
+        assert_eq!(paths("set partial(style: slant)\n\n$partial f$"), paths("$partial.slant f$"));
+        assert_eq!(paths("set implies(style: wide)\n\n$A implies B$"), paths("$A implies.wide B$"));
+        assert_eq!(paths("set implies(style: wide)\n\n$A implies.wide B$"), paths("$A implies.wide B$"));
+        assert_ne!(paths("$a le.alt.not b$"), paths("$a le.not b$"));
+        let ok = compile("---\nfunctor: 1\n---\n\nset le(style: alt)\nset integral(limits: over)\nset lim(limits: side)\nset limits(overhang: off)\n\n$a le.not b + integral_0^1 f + lim_(n to infty) a_n$\n");
+        assert!(ok.diagnostics.is_empty(), "{:?}", ok.diagnostics);
+        let bad = compile("---\nfunctor: 1\n---\n\nset le(style: hat)\nset emptyset(style: alt)\nset sum(limits: under)\nset sin(limits: over)\nset lee(style: alt)\nset limits(overhang: maybe)\nset eq(limits: side)\n");
+        assert_eq!(bad.errors(), 7, "{:?}", bad.diagnostics);
+        assert!(bad.diagnostics.iter().any(|d| d.message == "`hat` changes what `le` means, so a style rule cannot give it."));
+        assert!(bad.diagnostics.iter().any(|d| d.message == "`emptyset` has no other common form."));
+        assert!(bad.diagnostics.iter().any(|d| d.hint.as_deref() == Some("Did you mean `le`?")));
+    }
+
+    #[test]
+    fn overhang_rule_keeps_limits_inside_the_operator_box() {
+        let src = "$$\nx + sum_(i = 1, j lt i, k lt j)^n y\n$$\n";
+        let width = |rule: &str| -> f64 {
+            let html = compile(&format!("---\nfunctor: 1\n---\n\n{rule}{src}")).html;
+            let vb = html.rsplit("viewBox=\"").next().unwrap_or("").split('"').next().unwrap_or("").to_string();
+            vb.split(' ').nth(2).and_then(|w| w.parse().ok()).unwrap_or(0.0)
+        };
+        assert!(width("set limits(overhang: off)\n\n") > width("") + 500.0);
+    }
+
+    #[test]
     fn document_style_rules() {
         let quiet = compile("---\nfunctor: 1\n---\n\nText.\n");
         assert!(quiet.html.contains("fn-doc fn-style-quiet"));
