@@ -272,5 +272,5 @@ Total for diagrams: 17 of 20 (was 14).
 
 ### Key hiccups
 
-- A plain map of the control points bent the arrow head. The control points now move with the local slope of the map.
+- The first 2-cell between two curved arrows had no room for the double arrow. A curved arrow now makes the gap between its cells larger.
 - The first test for 2-cells found no error for `f implies B`, because B is a cell. The check now looks at each end alone.
