@@ -78,6 +78,8 @@ cargo run --release -p functor-cli -- bench examples/sample.fn
 
 `check` writes each problem as `file:line:col: error: message`, with a hint below it.
 
+Built glyphs go into a disk cache, so the next run does not build them again. The cache is in `FUNCTOR_CACHE_DIR`, or in your user cache folder. Use `--no-cache` to turn it off.
+
 ## The language in one page
 
 ```text
@@ -236,7 +238,7 @@ flowchart LR
   D --> E{"Font has<br/>the glyph?"}
   E -- yes --> F["Font glyph"]
   E -- no --> G["Glyph builder<br/>construction layer"]
-  G --> H[("Recipe cache")]
+  G --> H[("Recipe cache<br/>memory and disk")]
   F --> I["Math layout<br/>SVG"]
   H --> I
   I --> J["HTML"]
