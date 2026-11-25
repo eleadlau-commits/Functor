@@ -30,6 +30,7 @@ pub const HAND_PAGES: &[(&str, &str, &str)] = &[
     ("symbols/kinds", "Meaning and style", "Symbols"),
     ("structures/grids", "Grids, matrices, vectors, cases", "Structures"),
     ("structures/fences", "Fences and wrap", "Structures"),
+    ("structures/diagrams", "Diagrams and labelled arrows", "Structures"),
     ("help/errors", "Common errors", "Help"),
 ];
 

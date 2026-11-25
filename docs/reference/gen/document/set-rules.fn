@@ -13,8 +13,10 @@ A `set` line changes the look of the whole document. Write it on its own line, b
 | `set vec(...)` | `fence` | `paren` |
 | `set vec(...)` | `body` | `column` |
 | `set vec(...)` | `grow` | `stretch` |
+| `set vec(...)` | `inline` | `small` |
 | `set mat(...)` | `fence` | `paren` |
 | `set mat(...)` | `grow` | `stretch` |
+| `set mat(...)` | `inline` | `small` |
 | `set cases(...)` | `fence` | `brace.left` |
 | `set cases(...)` | `word` | `none` |
 | `set cases(...)` | `grow` | `stretch` |
@@ -31,6 +33,8 @@ A `set` line changes the look of the whole document. Write it on its own line, b
 | `set ceil(...)` | `fence` | `ceil` |
 | `set ceil(...)` | `grow` | `stretch` |
 | `set wrap(...)` | `grow` | `stretch` |
+| `set diagram(...)` | `gap` | `normal` |
+| `set diagram(...)` | `inline` | `small` |
 | `set document(...)` | `style` | `quiet` |
 | `set document(...)` | `accent` | `none` |
 | `set heading(...)` | `numbering` | `on` |

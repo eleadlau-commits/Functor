@@ -310,6 +310,20 @@ impl DocParser<'_> {
                         self.diags.error(n, arg_col, format!("`{v}` is not a vector body."), Some("Use `column` or `row`.".into()));
                     }
                 }
+                (_, "inline") => {
+                    if v == "small" || v == "full" {
+                        self.env.kinds.insert(format!("{target}.inline"), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not an inline size."), Some("Use `small` or `full`.".into()));
+                    }
+                }
+                ("diagram", "gap") => {
+                    if ["small", "normal", "large"].contains(&v.as_str()) {
+                        self.env.kinds.insert("diagram.gap".into(), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a diagram gap."), Some("Use `small`, `normal` or `large`.".into()));
+                    }
+                }
                 ("cases", "word") => {
                     self.env.kinds.insert("cases.word".into(), v);
                 }
