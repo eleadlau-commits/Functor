@@ -5,3 +5,4 @@ web/public/functor.wasm
 *.html.out
 desktop/target
 desktop/gen
+extension/dist
