@@ -118,6 +118,7 @@ Use @eq:work.
 | Value | `let n = 3`, then `{n}` in text | Text replacement |
 | Punctuation | `"text"`, `'text'`, `--`, `---`, `Theorem~2` | Curly quotes, en dash, em dash, a space that does not break. `\"`, `\'`, `\-`, `\~` give the plain sign |
 | Setting | `set page(size: a4)`, `set text(size: 11pt)`, `set heading(numbering: none)` | Document settings |
+| Note | `text.^[A note with $x^2$.]` | A numbered note. In `quiet` it sits in the right margin, next to its line, and folds into the text on narrow screens. In `classic` it follows the paragraph |
 | Document style | `set document(style: quiet)`, `set document(style: classic, accent: #4a6a85)` | The look of the whole page. `quiet` is the default: left title, numbers in the margin, upright theorems with a rule. `classic` is the LaTeX article look |
 
 Functor sets each paragraph itself, as TeX does. It shapes words with the font (kerning and ligatures), finds hyphenation points with TeX patterns, and picks the line breaks for the whole paragraph with the Knuth-Plass method. Inline math can break after `=`, `<` or `+`. The preview breaks lines again when its width changes. HTML exports and the CLI use the text width of the page (`set page(size, margin)`).

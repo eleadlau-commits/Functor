@@ -20,6 +20,7 @@ const HYPHEN_PENALTY: f64 = 50.0;
 const EX_HYPHEN_PENALTY: f64 = 50.0;
 const EXTRA_SPACE: f64 = 0.111;
 pub const EXPANSION: f64 = 0.02;
+pub const MARK_SCALE: f64 = 0.7;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct Style {
@@ -88,6 +89,7 @@ pub fn covered(s: &str, style: Style) -> bool {
 pub enum PItem {
     Text { x: f64, s: String, style: Style, scale: f64, link: bool },
     Math { x: f64, lbox: Rc<LBox>, link: bool },
+    Mark { x: f64, s: String },
 }
 
 pub struct PLine {
@@ -142,6 +144,7 @@ pub struct Wrap {
 enum Content {
     Text(String),
     Math(String, Rc<LBox>),
+    Mark(String),
 }
 
 #[derive(Clone)]
@@ -158,11 +161,12 @@ pub struct Builder {
     last: Option<char>,
     prev_last: Option<char>,
     pub hyphenate: bool,
+    sides: Vec<(usize, String)>,
 }
 
 impl Builder {
     pub fn new(base: Style) -> Self {
-        Builder { items: Vec::new(), styles: vec![base], wraps: vec![Rc::new(Vec::new())], last: None, prev_last: None, hyphenate: true }
+        Builder { items: Vec::new(), styles: vec![base], wraps: vec![Rc::new(Vec::new())], last: None, prev_last: None, hyphenate: true, sides: Vec::new() }
     }
 
     pub fn style(&self) -> Style {
@@ -252,6 +256,16 @@ impl Builder {
         self.penalty(0.0, penalty, false, false);
         let style = self.style();
         self.items.push(Item::Glue { w, stretch, shrink, style, wraps: self.cur_wraps(), nbsp: false });
+    }
+
+    pub fn mark(&mut self, s: &str) {
+        let style = self.style();
+        let w = width(s, Style { mono: false, ..style }) * MARK_SCALE;
+        self.items.push(Item::Box { w, content: Content::Mark(s.to_string()), style, wraps: self.cur_wraps() });
+    }
+
+    pub fn side(&mut self, html: String) {
+        self.sides.push((self.items.len(), html));
     }
 
     pub fn unbreakable(&mut self, s: &str) {
@@ -411,6 +425,10 @@ impl Builder {
                                 placed.push(PItem::Math { x, lbox: lb.clone(), link });
                                 x += w;
                             }
+                            Content::Mark(t) => {
+                                placed.push(PItem::Mark { x, s: t.clone() });
+                                x += w;
+                            }
                         }
                         last = Some((*style, link));
                     }
@@ -441,6 +459,7 @@ impl Builder {
                     match content {
                         Content::Text(t) => placed.push(PItem::Text { x, s: t.clone(), style: *style, scale: 1.0, link }),
                         Content::Math(_, lb) => placed.push(PItem::Math { x, lbox: lb.clone(), link }),
+                        Content::Mark(t) => placed.push(PItem::Mark { x, s: t.clone() }),
                     }
                     x += w;
                 }
@@ -455,7 +474,9 @@ impl Builder {
         let (b, lines) = self.breaks(measure, protrude, expand);
         let items = self.items;
         let base_space = width(" ", base);
-        let mut out = String::from("<p class=\"fn-par\">");
+        let sides = std::mem::take(&mut self.sides);
+        let mut next_side = 0;
+        let mut out = String::from(if sides.is_empty() { "<p class=\"fn-par\">" } else { "<p class=\"fn-par fn-has-side\">" });
         let mut start = 0;
         for line in &lines {
             let end = line.end;
@@ -482,6 +503,7 @@ impl Builder {
                         let inner = match content {
                             Content::Text(t) => escape(t),
                             Content::Math(h, _) => h.clone(),
+                            Content::Mark(t) => format!("<sup class=\"fn-mark\">{}</sup>", escape(t)),
                         };
                         if (e - 1.0).abs() > 1e-5 && !expands(content, style) {
                             out.push_str(&format!(
@@ -513,6 +535,11 @@ impl Builder {
             }
             sync(&mut out, &mut open, &Rc::new(Vec::new()));
             out.push_str("</span>");
+            let last_line = std::ptr::eq(line, lines.last().unwrap());
+            while next_side < sides.len() && (sides[next_side].0 < end || last_line) {
+                out.push_str(&sides[next_side].1);
+                next_side += 1;
+            }
             start = end;
         }
         out.push_str("</p>");
