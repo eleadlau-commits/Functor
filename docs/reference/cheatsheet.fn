@@ -11,7 +11,7 @@ This page holds all of Functor on one page. It is for people and for AI models. 
 
 - No backslashes. Write `alpha`, `sum`, `infty`, not `\alpha`.
 - Round brackets make a group: `x_(i + 1)`, `frac(a, b)`, `sqrt(x)`. Curly brackets are shown as braces.
-- A space separates two names: `d x` is d times x. `dx` is not a name, so it gives a warning and shows d x.
+- A space separates two names: `d x` is d times x. `dx` is not a name, so it gives a warning and shows d x. Write `dd x` for the differential.
 - A symbol is a base and short operations: `theta.hat`, `in.not`, `sum.circle`. There is no `\hat{}`.
 - No `&` and no `\\`. In display math, each new line is a row. Rows align at their first relation.
 - Text in math goes in quotes: `"if"`. There is no `\text{}`.
@@ -61,7 +61,7 @@ let n = 3
 A force $F = m a$ acts on {n} bodies. See @eq:work and @thm:main [@knuth84].
 
 $$
-W = csum_C F cdot d r
+W = csum_C F cdot dd r
 $$ {#eq:work}
 
 ::: theorem {#thm:main title="Closed work"}
@@ -109,8 +109,10 @@ Blocks are `::: kind` and `:::`. The kinds are theorem, lemma, corollary, propos
 | `x_1`, `x^2`, `x_(i j)^(n + 1)`, `f'`, `f''` | Scripts and primes |
 | `frac(a, b)`, `sqrt(x)`, `binom(n, k)` | Fraction, root, binomial |
 | `(a + b)`, `[a, b)`, `{x}` | Brackets that grow with the content |
-| `"if"`, `"tr" A` | Upright text in math |
-| `sum_(k = 1)^n`, `lim_(n to infty)`, `integral_0^1 f d x` | Limits |
+| `"if"`, `"tr" A` | Upright text in math. It gets a space each side. |
+| `sum_(k = 1)^n`, `lim_(n to infty)`, `integral_0^1 f dd x` | Limits |
+| `sum_(p "prime"; p le n)` | `;` = one condition per line (LaTeX `\substack`) |
+| `dd` | Differential: `f(x) dd x` adds a thin space before d. `set dd(style: up)` for upright. |
 | `join(o.up, r.up)` | Two symbols set as one touching glyph |
 | `stack(lt, sim)`, `stack("def", eq)` | One symbol over another, as one glyph |
 | `thin`, `med`, `thick`, `quad`, `qquad`, `neg` | Spaces. `neg` takes space back. |

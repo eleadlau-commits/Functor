@@ -261,6 +261,8 @@ pub fn space(name: &str) -> Option<f64> {
     SPACES.iter().find(|(n, _)| *n == name).map(|(_, w)| *w)
 }
 
+pub const DIFFERENTIALS: &[&str] = &["dd"];
+
 pub const CALLS: &[&str] = &["frac", "sqrt", "vec", "text", "join", "grid", "mat", "cases", "binom", "abs", "norm", "inner", "floor", "ceil", "wrap", "stack", "diagram"];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -376,6 +378,7 @@ pub const KIND_DEFAULTS: &[(&str, &str, &str)] = &[
     ("ceil", "fence", "ceil"),
     ("wrap", "grow", "stretch"),
     ("lint", "notation", "on"),
+    ("dd", "style", "italic"),
 ];
 
 pub const SET_OPTIONS: &[(&str, &[&str])] = &[
@@ -390,6 +393,7 @@ pub const SET_OPTIONS: &[(&str, &[&str])] = &[
     ("ceil", &["fence", "grow"]),
     ("wrap", &["grow"]),
     ("diagram", &["gap", "inline"]),
+    ("dd", &["style"]),
     ("document", &["style", "accent"]),
     ("lint", &["notation"]),
     ("heading", &["numbering"]),
@@ -692,6 +696,7 @@ pub fn all_names() -> Vec<&'static str> {
     v.extend(FUNCTIONS.iter().map(|(f, _)| *f));
     v.extend(CALLS.iter().copied());
     v.extend(SPACES.iter().map(|(n, _)| *n));
+    v.extend(DIFFERENTIALS.iter().copied());
     v
 }
 
@@ -721,7 +726,8 @@ mod tests {
     #[test]
     fn no_name_is_in_two_tables() {
         let mut seen: std::collections::HashMap<&str, &str> = std::collections::HashMap::new();
-        let tables: [(&str, Vec<&str>); 5] = [
+        let tables: [(&str, Vec<&str>); 6] = [
+            ("differentials", DIFFERENTIALS.to_vec()),
             ("names", NAMES.iter().map(|n| n.name).collect()),
             ("greek", GREEK.to_vec()),
             ("functions", FUNCTIONS.iter().map(|(f, _)| *f).collect()),

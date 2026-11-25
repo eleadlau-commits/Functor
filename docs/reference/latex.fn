@@ -98,7 +98,9 @@ Functor is not compatible with LaTeX, and it does not try to be. This page maps 
 |:--|:--|:-:|
 | `\sum_{k=1}^{n}` | `sum_(k = 1)^n` | $sum_(k = 1)^n$ |
 | `\prod`, `\coprod` | `prod`, `coprod` | $prod, coprod$ |
-| `\int_0^1 f\,dx` | `integral_0^1 f thin d x` | $integral_0^1 f thin d x$ |
+| `\int_0^1 f\,dx` | `integral_0^1 f dd x` | $integral_0^1 f dd x$ |
+| `\sum_{\substack{p \text{ prime} \\ p \le n}}` | `sum_(p "prime"; p le n)` | $sum_(p "prime"; p le n)$ |
+| `\smashoperator`, `\mathclap` | not needed: a wide limit goes under clear neighbours | $x = sum_(1 le i lt j le n) a_i b_j$ |
 | `\iint`, `\iiint`, `\oint` | `integral.x2`, `integral.x3`, `integral.circle` | $integral.x2, integral.x3, integral.circle$ |
 | `\bigcup`, `\bigcap` | `union`, `inter` | $union, inter$ |
 | `\bigwedge`, `\bigvee` | `wedge.big`, `vee.big` | $wedge.big, vee.big$ |

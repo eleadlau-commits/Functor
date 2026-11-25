@@ -32,7 +32,7 @@ A symbol has a base and a few short operations. The base $sum$ with the operatio
 The line `object vec: F, v, u` makes $F$, $v$ and $u$ vectors. Their look comes from one style rule, so $F = m a$ shows $F$ with an arrow. Change `set vec(style: bold)` once, and every vector changes.^[Meaning is in the source, and style is in one rule. A margin note is the same: `^[...]` says "note", and the document style says where it goes.]
 
 $$
-F = frac(d, d t) (m v)
+F = frac(dd, dd t) (m v)
 $$ {#eq:newton}
 
 # Structures {#sec:structures}
@@ -62,7 +62,7 @@ $$ {#eq:square}
 For {n} terms $a_k$, a closed sum over a loop $gamma$ is
 
 $$
-csum_(k = 1)^n a_k = dint_D (partial_x u - partial_y v) d x d y
+csum_(k = 1)^n a_k = dint_D (partial_x u - partial_y v) dd x dd y
 $$ {#eq:green}
 :::
 

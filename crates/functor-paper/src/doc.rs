@@ -324,6 +324,13 @@ impl DocParser<'_> {
                         self.diags.error(n, arg_col, format!("`{v}` is not a diagram gap."), Some("Use `small`, `normal` or `large`.".into()));
                     }
                 }
+                ("dd", "style") => {
+                    if v == "italic" || v == "up" {
+                        self.env.kinds.insert("dd.style".into(), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a style of `dd`."), Some("Use `italic` or `up`.".into()));
+                    }
+                }
                 ("cases", "word") => {
                     self.env.kinds.insert("cases.word".into(), v);
                 }

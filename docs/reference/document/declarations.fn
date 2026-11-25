@@ -15,7 +15,7 @@ A declaration is one line. It works from its line to the end of the file. Write 
 object vec: F, v
 set vec(style: bold)
 
-$F = m a$ and $v = frac(d x, d t)$.
+$F = m a$ and $v = frac(dd x, dd t)$.
 ```
 
 Today `vec` is the only kind for `object`. Own kinds come with `kind` in phase 1.
