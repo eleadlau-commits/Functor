@@ -143,3 +143,58 @@ Where it is used:
 
 - Font outlines have no close command. The open end made a straight edge that did not follow the bands, so `⟩` was lopsided. Deform now closes each outline first.
 - The loop of a script L has near vertical sides, so the first version stretched the loop. A count of strokes in each band fixed it.
+
+## Symbol coverage (S1 to S3)
+
+The audit found that the font package has 1,519 of 1,521 Unicode math symbols, but Functor named about 100. This change makes the whole font reachable and adds names, recipes and six operations.
+
+```mermaid
+flowchart LR
+  F["Font package<br/>3,021 glyphs"] --> N["61 new names"]
+  F --> R["81 new composites<br/>18 stacks"]
+  O["6 new operations<br/>big, rot, ring, harpoon, alt, cal"] --> R
+  S["stack(a, b)"] --> R
+  D["Duplicate codes<br/>Ω ohm, Å, µ, ∆, K"] --> W["warning, then one form"]
+```
+
+### Operations: what stays out
+
+Twenty operations were proposed. Six stay. Each one closes at least 3 gaps that no other operation can close.
+
+| Operation | Family | Gaps it closes | Why no other operation can do it |
+|:--|:--|:-:|:--|
+| `big` | magnify | 9 | It changes the class to a large operator with limits |
+| `rot` | reflect | 7 | `flip`, `flipv` and `turn` cannot point an arrow up |
+| `ring` | decorate | 3 | No ring mark existed |
+| `harpoon` | decorate | 3 | A half arrow head, on letters and on arrows |
+| `alt` | style | 8 | The other common form of a symbol is a style choice |
+| `cal` | style | 26 | TeX calligraphic and script are both used in one text |
+| `stack(a, b)` | call | 18 | The vertical partner of `join` |
+
+Left out: `long` (phase 1 `wide` does it), `ccw` and `cw` (one `rot` is enough), `inside` and `slash` (fewer than 3 gaps), `squig`, `dash`, `sans`, `mono`, `acute`, `grave`, four rare fences and `eval`.
+
+### Duplicates
+
+Some symbols have two Unicode codes, or two names for one look. The rule: one glyph has one name, and a recipe may explain that name (`E.flip` is `exists`). Tests refuse two names or two recipes for one glyph. The only exception is `perp` and `bot`, which share ⊥ but space differently. A typed second code (Ω ohm sign, Å angstrom sign, µ micro sign, ∆ increment, K kelvin sign, ⨯, ⨿, ⟂) gives a warning and shows the one form.
+
+### Scorecard
+
+| Principle | Before | Now | Gap |
+|:--|:-:|:-:|:--|
+| Meaning layer | 4 | 4 | `mono`, `epi`, `incl` are names, not kinds with a style rule yet |
+| Style layer | 3 | 4 | `alt` and `cal` work in one place; there is no document rule such as `set greek(phi: alt)` yet |
+| Construction layer | 4 | 5 | `big`, `rot` and `stack` reach the font glyph when it exists and build it when not |
+| Glyph layer | 4 | 5 | The whole font package is reachable; typed Unicode gets a math class |
+| Guidelines, not rules | 5 | 5 | Duplicate codes give a warning, not an error |
+| Speed | 5 | 5 | Worst new glyph 0.89 ms (gate 5 ms). Sample document 0.91 ms warm (gate 100 ms) |
+| Tight grammar | 4 | 4 | 41 operations, up from 35; tests stop duplicate names |
+| Personal use | 3 | 3 | No change |
+
+Total: 35 of 40 (32 before).
+
+### Key hiccups
+
+- The extractor imported the font files as code. Auto mode refused to run code from a downloaded package, so the extractor now reads the files as text. The 1,385 old glyphs came out byte for byte the same.
+- The proxy blocks unicode.org, so the math class table comes from Unicode names (Python 15.1 data), not from the official MathClass file.
+- The glyph table grew from 0.69 MB to 1.42 MB. The website download grows by about the same before compression.
+- `…` (U+2026) stays out of the table, because Functor builds its dots from periods.

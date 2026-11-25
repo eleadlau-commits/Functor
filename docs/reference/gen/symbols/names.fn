@@ -37,6 +37,16 @@ Write a symbol by its name, with spaces between names: `x in A`. Each name is sh
 | `cup` | $cup$ | U+222A |
 | `cap` | $cap$ | U+2229 |
 | `setminus` | $setminus$ | U+2216 |
+| `ltimes` | $ltimes$ | U+22C9 |
+| `rtimes` | $rtimes$ | U+22CA |
+| `sqcup` | $sqcup$ | U+2294 |
+| `sqcap` | $sqcap$ | U+2293 |
+| `uplus` | $uplus$ | U+228E |
+| `wr` | $wr$ | U+2240 |
+| `bullet` | $bullet$ | U+2219 |
+| `smash` | $smash$ | U+2A33 |
+| `semi` | $semi$ | U+2A3E |
+| `par` | $par$ | U+214B |
 
 # Relations
 
@@ -65,6 +75,27 @@ Write a symbol by its name, with spaces between names: `x in A`. Each name is sh
 | `implies` | $implies$ | U+21D2 |
 | `iff` | $iff$ | U+21D4 |
 | `mapsto` | $mapsto$ | U+21A6 |
+| `prec` | $prec$ | U+227A |
+| `succ` | $succ$ | U+227B |
+| `cong` | $cong$ | U+2245 |
+| `simeq` | $simeq$ | U+2243 |
+| `asymp` | $asymp$ | U+224D |
+| `bowtie` | $bowtie$ | U+22C8 |
+| `pitchfork` | $pitchfork$ | U+22D4 |
+| `indep` | $indep$ | U+2AEB |
+| `between` | $between$ | U+226C |
+| `normal` | $normal$ | U+22B2 |
+| `proves` | $proves$ | U+22A2 |
+| `models` | $models$ | U+22A8 |
+| `forces` | $forces$ | U+22A9 |
+| `lollipop` | $lollipop$ | U+22B8 |
+| `therefore` | $therefore$ | U+2234 |
+| `because` | $because$ | U+2235 |
+| `tofro` | $tofro$ | U+2194 |
+| `equil` | $equil$ | U+21CC |
+| `mono` | $mono$ | U+21A3 |
+| `epi` | $epi$ | U+21A0 |
+| `incl` | $incl$ | U+21AA |
 
 # Ordinary symbols
 
@@ -84,5 +115,34 @@ Write a symbol by its name, with spaces between names: `x in A`. Each name is sh
 | `dots` | $dots$ | U+2026 |
 | `cdots` | $cdots$ | U+22EF |
 | `prime` | $prime$ | U+2032 |
+| `bot` | $bot$ | U+22A5 |
+| `lnot` | $lnot$ | U+00AC |
+| `complement` | $complement$ | U+2201 |
+| `diamond` | $diamond$ | U+25C7 |
+| `wp` | $wp$ | U+2118 |
+| `beth` | $beth$ | U+2136 |
+| `gimel` | $gimel$ | U+2137 |
+| `daleth` | $daleth$ | U+2138 |
+| `digamma` | $digamma$ | U+03DD |
+| `imath` | $imath$ | U+1D6A4 |
+| `jmath` | $jmath$ | U+1D6A5 |
+| `vdots` | $vdots$ | U+22EE |
+| `ddots` | $ddots$ | U+22F1 |
+| `udots` | $udots$ | U+22F0 |
+| `degree` | $degree$ | U+00B0 |
+| `permille` | $permille$ | U+2030 |
+| `dagger` | $dagger$ | U+2020 |
+| `ddagger` | $ddagger$ | U+2021 |
+| `qed` | $qed$ | U+220E |
+| `corner` | $corner$ | U+231F |
+| `lightning` | $lightning$ | U+21AF |
+| `plimsoll` | $plimsoll$ | U+29B5 |
+| `diameter` | $diameter$ | U+2300 |
+| `blackstar` | $blackstar$ | U+2605 |
+| `checkmark` | $checkmark$ | U+2713 |
+| `flat` | $flat$ | U+266D |
+| `natural` | $natural$ | U+266E |
+| `sharp` | $sharp$ | U+266F |
+| `clubs` | $clubs$ | U+2663 |
 
 Capital Greek letters are on the [Greek letters](symbols/greek.html) page.

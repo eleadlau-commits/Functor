@@ -28,6 +28,52 @@ A function name is set upright. It takes no operations.
 | `min` | $min x$ | below |
 | `sup` | $sup x$ | below |
 | `inf` | $inf x$ | below |
+| `sinh` | $sinh x$ | at the side |
+| `cosh` | $cosh x$ | at the side |
+| `tanh` | $tanh x$ | at the side |
+| `coth` | $coth x$ | at the side |
+| `sec` | $sec x$ | at the side |
+| `csc` | $csc x$ | at the side |
+| `cot` | $cot x$ | at the side |
+| `arcsin` | $arcsin x$ | at the side |
+| `arccos` | $arccos x$ | at the side |
+| `arctan` | $arctan x$ | at the side |
+| `lg` | $lg x$ | at the side |
+| `limsup` | $limsup x$ | below |
+| `liminf` | $liminf x$ | below |
+| `argmax` | $argmax x$ | below |
+| `argmin` | $argmin x$ | below |
+| `colim` | $colim x$ | below |
+| `rank` | $rank x$ | at the side |
+| `tr` | $tr x$ | at the side |
+| `Tr` | $Tr x$ | at the side |
+| `sgn` | $sgn x$ | at the side |
+| `lcm` | $lcm x$ | below |
+| `span` | $span x$ | at the side |
+| `diag` | $diag x$ | at the side |
+| `id` | $id x$ | at the side |
+| `im` | $im x$ | at the side |
+| `coker` | $coker x$ | at the side |
+| `Aut` | $Aut x$ | at the side |
+| `End` | $End x$ | at the side |
+| `Hom` | $Hom x$ | at the side |
+| `Ext` | $Ext x$ | at the side |
+| `Tor` | $Tor x$ | at the side |
+| `Spec` | $Spec x$ | at the side |
+| `Gal` | $Gal x$ | at the side |
+| `Re` | $Re x$ | at the side |
+| `Im` | $Im x$ | at the side |
+| `supp` | $supp x$ | at the side |
+| `vol` | $vol x$ | at the side |
+| `erf` | $erf x$ | at the side |
+| `res` | $res x$ | at the side |
+| `Pr` | $Pr x$ | below |
+| `Var` | $Var x$ | at the side |
+| `Cov` | $Cov x$ | at the side |
+| `Corr` | $Corr x$ | at the side |
+| `grad` | $grad x$ | at the side |
+| `curl` | $curl x$ | at the side |
+| `mod` | $mod x$ | at the side |
 
 For another upright name, write text in quotes: `"tr" A`.
 

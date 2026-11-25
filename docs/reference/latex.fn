@@ -33,7 +33,12 @@ Functor is not compatible with LaTeX, and it does not try to be. This page maps 
 | `\mathbf{A}`, `\boldsymbol{\alpha}` | `A.bold`, `alpha.bold` | $A.bold + alpha.bold$ |
 | `\mathbb{R}` | `R.bb` | $R.bb$ |
 | `\mathfrak{g}` | `g.frak` | $g.frak$ |
-| `\mathcal{L}`, `\mathscr{L}` | `L.script` | $L.script$ |
+| `\mathcal{L}` | `L.cal` | $L.cal$ |
+| `\mathscr{L}` | `L.script` | $L.script$ |
+| `\varphi`, `\epsilon`, `\vartheta` | `phi.alt`, `epsilon.alt`, `theta.alt` (the other form of `phi`, `epsilon`, `theta`) | $phi.alt + epsilon.alt + theta.alt$ |
+| `\mathring{x}`, `\overrightharpoon{x}` | `x.ring`, `x.harpoon` | $x.ring + x.harpoon$ |
+| `\mathbb{1}`, `\Bbbk` | `1.bb`, `k.bb` | $k.bb$ |
+| `\upmu` | `mu.up` | $mu.up$ |
 | `\mathrm{d}x` | `d.up x` | $d.up x$ |
 | `\boxed{x}` | `(x).box` | $(x).box$ |
 
@@ -56,6 +61,36 @@ Functor is not compatible with LaTeX, and it does not try to be. This page maps 
 | `\hbar`, `\ell`, `\aleph` | `h.cross`, `ell`, `aleph` | $h.cross, ell, aleph$ |
 | `\ldots`, `\cdots` | `dots`, `cdots` | $dots, cdots$ |
 | `\emptyset` | `emptyset` | $emptyset$ |
+| `\ll`, `\gg`, `\lll` | `lt.x2`, `gt.x2`, `lt.x3` | $lt.x2, gt.x2, lt.x3$ |
+| `\prec`, `\succ`, `\preceq` | `prec`, `succ`, `stack(prec, eq)` | $prec, succ, stack(prec, eq)$ |
+| `\leqslant`, `\lesssim`, `\lessgtr` | `le.alt`, `stack(lt, sim)`, `stack(lt, gt)` | $le.alt, stack(lt, sim), stack(lt, gt)$ |
+| `\cong`, `\simeq`, `\asymp`, `\doteq` | `cong`, `simeq`, `asymp`, `eq.dot` | $cong, simeq, asymp, eq.dot$ |
+| `\sqsubset`, `\sqsubseteq` | `subset.square`, `subseteq.square` | $subset.square, subseteq.square$ |
+| `\subsetneq`, `\Subset` | `stack(subset, eq.not)`, `subset.x2` | $stack(subset, eq.not), subset.x2$ |
+| `\vdash`, `\dashv`, `\models`, `\Vdash` | `proves`, `proves.flip`, `models`, `forces` | $proves, proves.flip, models, forces$ |
+| `\top`, `\bot`, `\neg` | `bot.flipv`, `bot`, `lnot` | $bot.flipv, bot, lnot$ |
+| `\therefore`, `\because`, `\Diamond` | `therefore`, `because`, `diamond` | $therefore, because, diamond$ |
+| `\multimap`, `\parr` | `lollipop`, `par` | $lollipop, par$ |
+| `\ltimes`, `\rtimes`, `\wr` | `ltimes`, `rtimes`, `wr` | $ltimes, rtimes, wr$ |
+| `\sqcup`, `\sqcap`, `\uplus`, `\amalg` | `sqcup`, `sqcap`, `uplus`, `coprod` | $sqcup, sqcap, uplus$ |
+| `\oslash`, `\circledast`, `\circledcirc` | `div.circle`, `ast.circle`, `circ.circle` | $div.circle, ast.circle, circ.circle$ |
+| `\dotplus`, `\bullet`, `\dagger`, `\ddagger` | `plus.dot`, `bullet`, `dagger`, `ddagger` | $plus.dot, bullet, dagger, ddagger$ |
+| `\triangleleft` (normal subgroup), `\bowtie`, `\pitchfork` | `normal`, `bowtie`, `pitchfork` | $normal, bowtie, pitchfork$ |
+| `\perp\!\!\!\perp` (independent) | `indep` | $indep$ |
+| `\leftrightarrow`, `\uparrow`, `\downarrow` | `tofro`, `to.rot`, `to.flip.rot` | $tofro, to.rot, to.flip.rot$ |
+| `\Uparrow`, `\Downarrow`, `\updownarrow` | `implies.rot`, `implies.flip.rot`, `tofro.rot` | $implies.rot, implies.flip.rot, tofro.rot$ |
+| `\longrightarrow`, `\Longrightarrow`, `\longmapsto` | `to.wide`, `implies.wide`, `mapsto.wide` | $to.wide, implies.wide, mapsto.wide$ |
+| `\hookrightarrow`, `\rightarrowtail`, `\twoheadrightarrow` | `incl`, `mono`, `epi` | $incl, mono, epi$ |
+| `\rightleftharpoons`, `\rightharpoonup` | `equil`, `to.harpoon` | $equil, to.harpoon$ |
+| `\rightrightarrows`, `\rightleftarrows` | `stack(to, to)`, `stack(to, to.flip)` | $stack(to, to), stack(to, to.flip)$ |
+| `\nrightarrow`, `\nRightarrow` | `to.not`, `implies.not` | $to.not, implies.not$ |
+| `\vdots`, `\ddots`, `\iddots` | `vdots`, `ddots`, `udots` | $vdots, ddots, udots$ |
+| `\complement`, `\wp`, `\beth` | `complement`, `wp`, `beth` | $complement, wp, beth$ |
+| `\imath`, `\jmath`, `\digamma` | `imath`, `jmath`, `digamma` | $imath, jmath, digamma$ |
+| `\prime`, `\dprime`, `\trprime` | `prime`, `prime.x2`, `prime.x3` | $prime, prime.x2, prime.x3$ |
+| `^\circ`, `\permil`, `\qed` | `degree`, `permille`, `qed` | $degree, permille, qed$ |
+| `\Finv`, `\Game`, `\mho` | `F.turn`, `G.turn`, `Omega.turn` | $F.turn, G.turn, Omega.turn$ |
+| `\flat`, `\natural`, `\sharp`, `\clubsuit`, `\bigstar`, `\checkmark` | `flat`, `natural`, `sharp`, `clubs`, `blackstar`, `checkmark` | $flat, natural, sharp, clubs, blackstar, checkmark$ |
 
 # Large operators
 
@@ -66,6 +101,12 @@ Functor is not compatible with LaTeX, and it does not try to be. This page maps 
 | `\int_0^1 f\,dx` | `integral_0^1 f thin d x` | $integral_0^1 f thin d x$ |
 | `\iint`, `\iiint`, `\oint` | `integral.x2`, `integral.x3`, `integral.circle` | $integral.x2, integral.x3, integral.circle$ |
 | `\bigcup`, `\bigcap` | `union`, `inter` | $union, inter$ |
+| `\bigwedge`, `\bigvee` | `wedge.big`, `vee.big` | $wedge.big, vee.big$ |
+| `\bigoplus`, `\bigotimes`, `\bigodot` | `plus.circle.big`, `times.circle.big`, `cdot.circle.big` | $plus.circle.big, times.circle.big, cdot.circle.big$ |
+| `\biguplus`, `\bigsqcup` | `uplus.big`, `sqcup.big` | $uplus.big, sqcup.big$ |
+| `\iiiint`, `\fint` | `integral.x4`, `integral.cross` | $integral.x4, integral.cross$ |
+| `\limsup`, `\liminf`, `\operatorname*{arg\,max}` | `limsup`, `liminf`, `argmax` | $limsup_(n to infty) a_n$ |
+| `\operatorname{Hom}`, `\operatorname{rank}` | `Hom`, `rank` | $Hom(A, B)$ |
 | `\lim_{n\to\infty}` | `lim_(n to infty)` | $lim_(n to infty)$ |
 
 # Fractions, roots, brackets

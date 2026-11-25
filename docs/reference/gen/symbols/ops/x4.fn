@@ -15,7 +15,7 @@ set heading(numbering: none)
 
 | Recipe | Result | Glyph |
 |:--|:-:|:--|
-| `integral.x4` | $integral.x4$ | built and cached |
+| `integral.x4` | $integral.x4$ | font glyph U+2A0C |
 
 # Four layers
 

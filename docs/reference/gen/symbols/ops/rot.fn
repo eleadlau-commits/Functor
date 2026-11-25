@@ -1,0 +1,38 @@
+---
+functor: 1
+title: rot
+---
+
+set heading(numbering: none)
+
+`rot` · reflect · the same thing in a new direction, such as an arrow up.
+
+# Form
+
+`x.rot` on a symbol, `(a + b).rot` on a group. A recipe has one base and up to three operations.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | The same thing in a new direction, such as an arrow up. A guideline, not a rule. |
+| Style | Use a `sym` to give a recipe a short name. |
+| Construction | A mirror image or a half turn of the base. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- More than three operations on one base gives a warning.
+
+# From LaTeX
+
+no LaTeX command.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)

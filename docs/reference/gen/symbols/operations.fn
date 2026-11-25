@@ -5,7 +5,7 @@ title: Operations
 
 set heading(numbering: none)
 
-Functor has 35 operations in 9 families. Write an operation after a dot: `theta.hat`. Each operation has a meaning. The meaning is a guideline, not a rule.
+Functor has 41 operations in 9 families. Write an operation after a dot: `theta.hat`. Each operation has a meaning. The meaning is a guideline, not a rule.
 
 # decorate
 
@@ -22,6 +22,8 @@ A mark above or below the base. The mark follows the slant of an italic letter.
 | [`breve`](symbols/ops/breve.html) | $u.breve$ | a related object |
 | [`arrow`](symbols/ops/arrow.html) | $v.arrow$ | a vector |
 | [`under`](symbols/ops/under.html) | $x.under$ | a related object |
+| [`ring`](symbols/ops/ring.html) | $x$ | a ring above, such as the ring in Å or ≗ |
+| [`harpoon`](symbols/ops/harpoon.html) | $x$ | a half arrow head; on an arrow it makes a harpoon |
 
 # enclose
 
@@ -61,6 +63,7 @@ A mirror image or a half turn of the base.
 | [`flip`](symbols/ops/flip.html) | $E.flip$ | a dual or opposite |
 | [`flipv`](symbols/ops/flipv.html) | $Pi.flipv$ | a dual or opposite |
 | [`turn`](symbols/ops/turn.html) | $A.turn$ | a dual or opposite |
+| [`rot`](symbols/ops/rot.html) | $x$ | the same thing in a new direction, such as an arrow up |
 
 # style
 
@@ -73,6 +76,8 @@ Another alphabet for a letter: bold, double-struck, fraktur, script, upright.
 | [`frak`](symbols/ops/frak.html) | $g.frak$ | an ideal, an algebra or a structure |
 | [`script`](symbols/ops/script.html) | $L.script$ | a family, a category or a transform |
 | [`up`](symbols/ops/up.html) | $d.up$ | a constant, a unit or a name |
+| [`cal`](symbols/ops/cal.html) | $x$ | calligraphic capitals, a second family next to script |
+| [`alt`](symbols/ops/alt.html) | $x$ | the other common form of the same symbol, such as ϕ for φ |
 
 # magnify
 
@@ -81,6 +86,7 @@ A smaller or larger copy of the base.
 | Operation | Example | Meaning |
 |:--|:-:|:--|
 | [`small`](symbols/ops/small.html) | $T.up.small$ | a smaller version, about four fifths |
+| [`big`](symbols/ops/big.html) | $x$ | the n-ary version, a large operator with limits |
 
 # deform
 
