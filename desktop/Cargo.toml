@@ -11,7 +11,7 @@ license = "MIT"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-functor-core = { path = "../crates/functor-core" }
+functor-paper = { path = "../crates/functor-paper" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 notify = "8"

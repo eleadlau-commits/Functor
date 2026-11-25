@@ -6,22 +6,7 @@ use crate::doc::Doc;
 use crate::math::{self, MathEnv};
 use crate::text::{self, Builder, Style, Wrap};
 
-pub fn escape(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for c in s.chars() {
-        match c {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            _ => out.push(c),
-        }
-    }
-    out
-}
-
-pub fn escape_attr(s: &str) -> String {
-    escape(s).replace('"', "&quot;")
-}
+pub use functor_math::escape::{escape, escape_attr};
 
 fn safe_url(url: &str) -> String {
     let lower = url.trim().to_ascii_lowercase();

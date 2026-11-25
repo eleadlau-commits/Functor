@@ -40,8 +40,8 @@ npm run dev
 The desktop app is the same editor in a native window. The compiler runs as native Rust, not WebAssembly.
 
 ```text
- .fn file on disk ──► editor (web/) ──► functor-core (native) ──► preview
-        ▲                                      │
+ .fn file on disk ──► editor (web/) ──► functor-paper (native) ──► preview
+        ▲                                       │
         └────────── watch: reload on change ◄──┘
 ```
 
@@ -267,11 +267,27 @@ The four layers are in [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md).
 
 | Crate | Job |
 |:--|:--|
-| `functor-core` | Parser, symbol grammar, glyph builder, math layout, HTML |
+```text
+ functor-symbols   names, recipes, deform, glyph builder, glyph cache
+        ▲
+ functor-math      formula layout (sums, fractions, grids, fences, diagrams)
+        ▲
+ functor-paper     parser, text, line breaking, pages, HTML, PDF, reference
+        ▲
+ functor-wasm · functor-cli · desktop
+```
+
+| Crate | Job |
+|:--|:--|
+| `functor-symbols` | Symbol engine: names, recipes, deform, glyph builder. Knows nothing about documents. |
+| `functor-math` | Formula layout. Uses only `functor-symbols`. |
+| `functor-paper` | Document engine: parser, text, pages, HTML, PDF |
 | `functor-wasm` | WebAssembly functions for the website |
 | `functor-cli` | The `functor` command |
 
-The core has no dependencies.
+Dependencies go one way only, down the list. A later `functor-proof` engine (Lean, issue #21) will use `functor-math`, not `functor-paper`.
+
+`functor-symbols` and `functor-math` have no outside dependencies.
 
 ## Speed
 

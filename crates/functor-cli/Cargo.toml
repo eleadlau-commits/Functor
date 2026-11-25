@@ -10,4 +10,4 @@ name = "functor"
 path = "src/main.rs"
 
 [dependencies]
-functor-core = { path = "../functor-core" }
+functor-paper = { path = "../functor-paper" }

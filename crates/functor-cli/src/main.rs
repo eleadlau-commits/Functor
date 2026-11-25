@@ -2,9 +2,9 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::Instant;
 
-use functor_core::diag::Diagnostic;
-use functor_core::diag::Severity;
-use functor_core::{compile, compile_pdf, glyph, glyph_svg};
+use functor_paper::diag::Diagnostic;
+use functor_paper::diag::Severity;
+use functor_paper::{compile, compile_pdf, glyph, glyph_svg};
 
 const USAGE: &str = "functor compile <file.fn> [-o out.html]
 functor pdf <file.fn> [-o out.pdf]
@@ -79,7 +79,7 @@ fn font_faces() -> String {
 fn page(body: &str, title: &str) -> String {
     format!(
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>{}</title><style>{}{}</style></head><body>{body}<script>{}functorRefs(document.body);</script></body></html>",
-        functor_core::render::escape(title),
+        functor_paper::render::escape(title),
         font_faces(),
         include_str!("../../../web/src/doc.css"),
         include_str!("../../../web/src/refs.js")
@@ -257,16 +257,16 @@ const REF_CSS: &str = "body.ref{margin:0;display:flex;align-items:flex-start;bac
 .ref-main{flex:1 1 auto;overflow-x:auto;padding:24px 0}.ref-main .fn-doc{box-shadow:0 1px 4px rgba(0,0,0,.08)}\
 @media (max-width:900px){body.ref{display:block}.ref-nav{position:static;height:auto;border-right:0;border-bottom:1px solid #d9d9e0}}";
 
-fn ref_page(p: &functor_core::reference::Page, pages: &[functor_core::reference::Page], html: &str) -> String {
-    use functor_core::reference::SECTIONS;
-    use functor_core::render::escape;
+fn ref_page(p: &functor_paper::reference::Page, pages: &[functor_paper::reference::Page], html: &str) -> String {
+    use functor_paper::reference::SECTIONS;
+    use functor_paper::render::escape;
     let depth = p.path.matches('/').count();
     let root = "../".repeat(depth);
     let mut nav = String::from("<a class=\"ref-home\" href=\"index.html\">Functor reference</a>");
     let mut sections: Vec<&str> = SECTIONS.to_vec();
     sections.push("Operations");
     for sec in sections {
-        let items: Vec<&functor_core::reference::Page> = pages.iter().filter(|q| q.section == sec && q.path != "index").collect();
+        let items: Vec<&functor_paper::reference::Page> = pages.iter().filter(|q| q.section == sec && q.path != "index").collect();
         if items.is_empty() {
             continue;
         }
@@ -292,7 +292,7 @@ fn ref_page(p: &functor_core::reference::Page, pages: &[functor_core::reference:
     )
 }
 
-fn llms_txt(pages: &[functor_core::reference::Page]) -> String {
+fn llms_txt(pages: &[functor_paper::reference::Page]) -> String {
     let mut s = String::from("# Functor\n\n> Functor is a typesetting language for mathematics. It is not LaTeX: no backslashes, round brackets for groups, symbols built from a base and short operations (theta.hat, in.not, sum.circle).\n\nRead cheatsheet.fn first. It holds the whole grammar on one page. latex.fn maps LaTeX to Functor. Check your output with `functor check file.fn`.\n\n## Pages (Functor source)\n\n");
     for p in pages {
         s.push_str(&format!("- [{}]({}.fn)\n", p.title, p.path));
@@ -301,7 +301,7 @@ fn llms_txt(pages: &[functor_core::reference::Page]) -> String {
 }
 
 fn reference(args: &[String]) -> Result<bool, String> {
-    use functor_core::reference::{file_of, generated_pages, load};
+    use functor_paper::reference::{file_of, generated_pages, load};
     let sub = args.first().map(String::as_str).unwrap_or("");
     match sub {
         "gen" => {

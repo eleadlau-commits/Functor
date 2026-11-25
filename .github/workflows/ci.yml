@@ -31,7 +31,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           base="${{ github.event.pull_request.base.sha }}"
-          lang=$(git diff --name-only "$base" HEAD -- crates/functor-core/src/symbols.rs crates/functor-core/src/math.rs crates/functor-core/src/doc.rs crates/functor-core/src/inline.rs crates/functor-core/src/ast.rs crates/functor-core/src/deform.rs)
+          lang=$(git diff --name-only "$base" HEAD -- crates/functor-symbols/src/symbols.rs crates/functor-math/src/math.rs crates/functor-paper/src/doc.rs crates/functor-paper/src/inline.rs crates/functor-paper/src/ast.rs crates/functor-symbols/src/deform.rs)
           docs=$(git diff --name-only "$base" HEAD -- docs/reference)
           if [ -n "$lang" ] && [ -z "$docs" ]; then
             echo "::warning::This PR changes the language ($(echo $lang | tr '\n' ' ')) but not docs/reference. Update the hand pages and the cheat sheet, or say in the PR why no change is needed."

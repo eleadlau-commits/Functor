@@ -1,0 +1,9 @@
+[package]
+name = "functor-math"
+description = "The Functor formula layout engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+functor-symbols = { path = "../functor-symbols" }

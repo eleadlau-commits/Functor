@@ -1,6 +1,6 @@
 use std::fs;
 
-const INPUTS: [&str; 5] = ["data/glyphs.tsv", "src/glyph.rs", "src/math.rs", "src/symbols.rs", "src/deform.rs"];
+const INPUTS: [&str; 5] = ["data/glyphs.tsv", "src/glyph.rs", "../functor-math/src/math.rs", "src/symbols.rs", "src/deform.rs"];
 
 fn main() {
     let mut h: u64 = 0xcbf29ce484222325;

@@ -9,4 +9,4 @@ license.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-functor-core = { path = "../functor-core" }
+functor-paper = { path = "../functor-paper" }
