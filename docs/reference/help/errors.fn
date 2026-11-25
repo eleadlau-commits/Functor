@@ -28,7 +28,8 @@ Each problem has a line, a column, a message and a hint. Errors stop the output 
 | "`bb` works only on a single capital letter." | Use one capital letter: `R.bb`. |
 | "`frak` works only on a single letter, as the first operation." | Put the style operation first: `g.frak.hat`. |
 | "`x` has 4 operations." (warning) | Use at most three, or define a `sym`. |
-| "Operation `deform` comes in phase 1." | Not in the language yet. |
+| "Operation `deform` is not in Functor 1." (also `stretch`) | Write `tall` or `wide`: `integral.tall`, `to.wide`. |
+| "Operation `fuse` is not in Functor 1." | Use `join(a, b)` for now. |
 | "`left` works only after a fence." | Write a fence first: `(x).brace.left`. |
 
 # Brackets and calls

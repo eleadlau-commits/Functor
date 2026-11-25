@@ -136,10 +136,10 @@ A recipe is a base and up to three operations: `base.op1.op2.op3`. Operations al
 | reflect | `flip` `flipv` `turn` `rot` | a dual or opposite; `rot` is a quarter turn to the left |
 | style | `bold` `bb` `frak` `script` `up` `cal` `alt` | another alphabet: first operation on one letter |
 | magnify | `small` `big` | four fifths of the size; the n-ary version |
-| deform | `tall` `wide` | a taller or wider version; the ends keep their shape |
+| deform | `tall` `wide` | grow along one axis; the ends keep their shape |
 | fence | `paren` `brack` `brace` `angle` `vbar` `floor` `ceil` | brackets around a group |
 
-Examples: `R.bb`, `g.frak`, `L.script`, `d.up`, `v.bold`, `integral.x2.circle`, `E.flip`, `h.cross`, `(a + b).angle`. After a fence, `x2` doubles it and `left` or `right` keeps one side: `(v).vbar.x2`, `(x).brace.left`.
+Examples: `R.bb`, `g.frak`, `L.script`, `d.up`, `v.bold`, `integral.x2.circle`, `E.flip`, `h.cross`, `(a + b).angle`, `to.wide` (a long arrow). After a fence, `x2` doubles it and `left` or `right` keeps one side: `(v).vbar.x2`, `(x).brace.left`.
 
 # Structures
 
