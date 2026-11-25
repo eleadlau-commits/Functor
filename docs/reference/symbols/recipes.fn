@@ -54,4 +54,4 @@ Each operation has a meaning: `hat` is a derived object, `not` is negation, `bb`
 
 # Not yet
 
-`deform`, `fuse` and `stretch` come in phase 1. `deform` will be the most general operation.
+`deform` has two operations today: `tall` and `wide`. They grow one axis and keep the ends and thin strokes, so `to.wide` is a long arrow. More kinds of `deform` come later. `fuse` comes in a later phase: use `join(a, b)` for now.
