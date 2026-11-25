@@ -12,7 +12,7 @@ flowchart TB
 1. **Meaning.** You say what an object is. `object vec: F` says that `F` is a vector.
 2. **Style.** One rule sets how a kind of object looks. `set vec(style: bold)` changes every vector in the document.
 3. **Construction.** A recipe is a base and short operations: `theta.hat`, `in.not`, `integral.x2`. Each operation has one meaning.
-4. **Glyph.** The compiler uses the font glyph when the font has it. If not, it builds the glyph from the recipe and keeps it in a cache.
+4. **Glyph.** The compiler uses the font glyph when the font has it. If not, it builds the glyph from the recipe and keeps it in a cache. The cache also goes to disk, so a glyph is built one time only, not one time for each run.
 
 ## Rules
 
@@ -78,3 +78,31 @@ The plan said that phase 0 would use browser MathML. Phase 0 draws math as SVG w
 - The double-struck letters (ℝ, ℕ) are in a separate table in the font package. The extractor now reads it.
 - The first "Did you mean" check counted a swap of two letters as two changes. `alpah` got no hint. The check now counts a swap as one change.
 - The proxy blocks jsDelivr and GitHub raw files. The font data comes from npm.
+
+## Glyph cache scorecard (D2)
+
+A recipe is built one time. The result and its errors go into the cache. The cache goes to disk, so the next run starts warm.
+
+```mermaid
+flowchart LR
+  R["Recipe<br/><code>x.hat.box</code>"] --> M{"In memory?"}
+  M -- yes --> U["Glyph + its errors"]
+  M -- no --> B["Glyph builder"]
+  B --> E["Entry: glyph + errors"]
+  E --> U
+  E -. new entry .-> D[("Disk cache<br/>CLI and desktop: glyphs.txt<br/>website: localStorage")]
+  D -. next start, same key .-> M
+```
+
+- The cache keeps the errors of a recipe with its glyph. Before, a bad recipe showed its error only the first time. The second use came from the cache with no error, and `glyph_preview` showed the bad glyph.
+- The file starts with a key. The key is a hash of the font data and of the glyph builder source. When the builder changes, old files do not load, so a stale glyph cannot show.
+- The CLI uses `FUNCTOR_CACHE_DIR`, or the user cache folder. `--no-cache` turns it off. The desktop app uses its app cache folder. The website uses localStorage.
+
+| Principle | Before | Now | What it does now | Gap |
+|:--|:-:|:-:|:--|:--|
+| Correct errors | 1 | 5 | Each use of a recipe gives its errors, at the right column. | None. |
+| Keep across runs | 0 | 5 | CLI, desktop and website load the cache at start and write only new entries. | The cache has no size limit. It grows slowly, about 100 bytes for each recipe. |
+| No stale glyphs | – | 5 | A key from the builder source and the font data. | A change to an unrelated part of `math.rs` also clears the cache. This is safe, and costs one cold run. |
+| Speed | 5 | 5 | Disk load 0.04 ms for 22 glyphs. Sample document 0.9–1.7 ms after load. | Built glyphs cost less than 1 ms now, so the gain is small today. It grows with `deform`. |
+
+Total: 20 of 20 for the cache. The four layers do not change: Meaning 4, Style 3, Construction 3, Glyph 3. The glyph gap is still stroke weight, not the cache.
