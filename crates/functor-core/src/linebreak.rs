@@ -32,11 +32,14 @@ pub struct Line {
     pub end: usize,
     pub ratio: f64,
     pub protrude: (f64, f64),
+    pub expand: (f64, f64),
+    pub glue: (f64, f64),
 }
 
 #[derive(Clone, Copy)]
 struct Node {
     pos: usize,
+    from: usize,
     fitness: usize,
     total: f64,
     w: f64,
@@ -83,7 +86,7 @@ pub fn break_lines(items: &[BItem], width: f64, margins: &[(f64, f64)]) -> Vec<L
             return lines;
         }
     }
-    vec![Line { end: items.len() - 1, ratio: 0.0, protrude: (0.0, 0.0) }]
+    vec![Line { end: items.len() - 1, ratio: 0.0, protrude: (0.0, 0.0), expand: (0.0, 0.0), glue: (0.0, 0.0) }]
 }
 
 fn first_box(items: &[BItem], from: usize, to: usize) -> Option<usize> {
@@ -99,17 +102,22 @@ fn run(items: &[BItem], width: f64, margins: &[(f64, f64)], pass: &Pass) -> Opti
     let mut sw = vec![0.0; n + 1];
     let mut sst = vec![0.0; n + 1];
     let mut ssh = vec![0.0; n + 1];
+    let mut xst = vec![0.0; n + 1];
+    let mut xsh = vec![0.0; n + 1];
     for (i, it) in items.iter().enumerate() {
         let (w, st, sh) = match it.kind {
-            Kind::Box => (it.w, 0.0, 0.0),
+            Kind::Box => (it.w, it.stretch, it.shrink),
             Kind::Glue => (it.w, it.stretch, it.shrink),
             Kind::Penalty => (0.0, 0.0, 0.0),
         };
+        let (bx, bs) = if it.kind == Kind::Box { (it.stretch, it.shrink) } else { (0.0, 0.0) };
         sw[i + 1] = sw[i] + w;
         sst[i + 1] = sst[i] + st;
         ssh[i + 1] = ssh[i] + sh;
+        xst[i + 1] = xst[i] + bx;
+        xsh[i + 1] = xsh[i] + bs;
     }
-    let mut nodes = vec![Node { pos: 0, fitness: 1, total: 0.0, w: 0.0, st: 0.0, sh: 0.0, flagged: false, prev: None }];
+    let mut nodes = vec![Node { pos: 0, from: 0, fitness: 1, total: 0.0, w: 0.0, st: 0.0, sh: 0.0, flagged: false, prev: None }];
     let mut active: Vec<usize> = vec![0];
     for b in 0..n {
         let it = items[b];
@@ -209,6 +217,7 @@ fn run(items: &[BItem], width: f64, margins: &[(f64, f64)], pass: &Pass) -> Opti
                 if total <= min_total + ADJ_DEMERITS {
                     nodes.push(Node {
                         pos: b,
+                        from: j,
                         fitness: f,
                         total,
                         w: sw[j],
@@ -263,7 +272,9 @@ fn run(items: &[BItem], width: f64, margins: &[(f64, f64)], pass: &Pass) -> Opti
         } else {
             0.0
         };
-        lines.push(Line { end: b, ratio: r, protrude: (pl, pr) });
+        let ex = (xst[b] - xst[prev.from], xsh[b] - xsh[prev.from]);
+        let gl = (y - ex.0, z - ex.1);
+        lines.push(Line { end: b, ratio: r, protrude: (pl, pr), expand: ex, glue: gl });
         prev = node;
     }
     Some(lines)

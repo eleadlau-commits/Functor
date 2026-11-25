@@ -320,7 +320,7 @@ impl R<'_> {
         if b.is_empty() {
             return false;
         }
-        self.out.push_str(&b.finish(measure - self.indent, base, true));
+        self.out.push_str(&b.finish(measure - self.indent, base, true, true));
         true
     }
 

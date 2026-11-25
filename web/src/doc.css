@@ -19,7 +19,8 @@
 }
 .fn-doc .fn-math { display: inline-block; overflow: visible; }
 .fn-doc .fn-par { margin: .6em 0; text-align: left; hyphens: manual; }
-.fn-doc .fn-line { display: block; white-space: nowrap; }
+.fn-doc .fn-line { display: block; white-space: nowrap; transform-origin: 0 0; }
+.fn-doc .fn-keep { display: inline-block; transform-origin: 0 0; white-space: nowrap; }
 .fn-doc .fn-up { font-style: normal; }
 .fn-doc .fn-cite { font-style: normal; }
 .fn-doc ul, .fn-doc ol { padding-left: 2.5em; }

@@ -18,6 +18,7 @@ pub const CODE_SCALE: f64 = 0.92;
 const HYPHEN_PENALTY: f64 = 50.0;
 const EX_HYPHEN_PENALTY: f64 = 50.0;
 const EXTRA_SPACE: f64 = 0.111;
+pub const EXPANSION: f64 = 0.02;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct Style {
@@ -294,7 +295,7 @@ impl Builder {
         self.items.is_empty()
     }
 
-    pub fn finish(mut self, measure: f64, base: Style, protrude: bool) -> String {
+    pub fn finish(mut self, measure: f64, base: Style, protrude: bool, expand: bool) -> String {
         while matches!(self.items.last(), Some(Item::Glue { .. })) {
             self.items.pop();
         }
@@ -302,7 +303,10 @@ impl Builder {
         let mut b: Vec<BItem> = items
             .iter()
             .map(|it| match it {
-                Item::Box { w, .. } => BItem { kind: Kind::Box, w: *w, stretch: 0.0, shrink: 0.0, p: 0.0, flagged: false, disc: false },
+                Item::Box { w, content, style, .. } => {
+                    let x = if expand && expands(content, style) { w * EXPANSION } else { 0.0 };
+                    BItem { kind: Kind::Box, w: *w, stretch: x, shrink: x, p: 0.0, flagged: false, disc: false }
+                }
                 Item::Glue { w, stretch, shrink, .. } => {
                     BItem { kind: Kind::Glue, w: *w, stretch: *stretch, shrink: *shrink, p: 0.0, flagged: false, disc: false }
                 }
@@ -336,28 +340,40 @@ impl Builder {
             while s < end && !matches!(b[s].kind, Kind::Box) {
                 s += 1;
             }
-            let r = line.ratio;
-            let base_delta = adjust(base_space, base_space / 2.0, base_space / 3.0, r) - base_space;
+            let (r, e) = split_ratio(line);
+            let base_delta = adjust(base_space, base_space / 2.0, base_space / 3.0, r) / e - base_space;
             let (pl, _) = line.protrude;
             let mut style_attr = format!("word-spacing:{}em", num(base_delta));
             if pl.abs() > 1e-6 {
                 style_attr.push_str(&format!(";margin-left:{}em", num(-pl)));
             }
+            if (e - 1.0).abs() > 1e-5 {
+                style_attr.push_str(&format!(";transform:scaleX({})", num(e)));
+            }
             out.push_str(&format!("<span class=\"fn-line\" style=\"{style_attr}\">"));
             let mut open: Vec<Wrap> = Vec::new();
             for it in items.iter().take(end.min(items.len())).skip(s) {
                 match it {
-                    Item::Box { content, wraps, .. } => {
+                    Item::Box { w, content, wraps, style } => {
                         sync(&mut out, &mut open, wraps);
-                        match content {
-                            Content::Text(t) => out.push_str(&escape(t)),
-                            Content::Raw(h) => out.push_str(h),
+                        let inner = match content {
+                            Content::Text(t) => escape(t),
+                            Content::Raw(h) => h.clone(),
+                        };
+                        if (e - 1.0).abs() > 1e-5 && !expands(content, style) {
+                            out.push_str(&format!(
+                                "<span class=\"fn-keep\" style=\"width:{}em;transform:scaleX({})\">{inner}</span>",
+                                num(w / e),
+                                num(1.0 / e)
+                            ));
+                        } else {
+                            out.push_str(&inner);
                         }
                     }
                     Item::Glue { w, stretch, shrink, style, wraps, nbsp } => {
                         sync(&mut out, &mut open, wraps);
                         let ch = if *nbsp { "\u{A0}" } else { " " };
-                        let target = adjust(*w, *stretch, *shrink, r);
+                        let target = adjust(*w, *stretch, *shrink, r) / e;
                         let delta = target - width(" ", *style);
                         if (delta - base_delta).abs() < 1e-4 && *style == base {
                             out.push_str(ch);
@@ -378,6 +394,29 @@ impl Builder {
         }
         out.push_str("</p>");
         out
+    }
+}
+
+fn expands(content: &Content, style: &Style) -> bool {
+    matches!(content, Content::Text(_)) && !style.mono
+}
+
+fn split_ratio(line: &linebreak::Line) -> (f64, f64) {
+    let r = line.ratio;
+    let (xs, xh) = line.expand;
+    let (gs, gh) = line.glue;
+    if r >= 0.0 {
+        if xs <= 0.0 {
+            return (r, 1.0);
+        }
+        let re = r.min(1.0);
+        let rest = r * (gs + xs) - re * xs;
+        let rg = if gs > 0.0 { rest / gs } else { 0.0 };
+        (rg, 1.0 + re * EXPANSION)
+    } else if xh <= 0.0 || gh < 0.0 {
+        (r, 1.0)
+    } else {
+        (r, 1.0 + r.max(-1.0) * EXPANSION)
     }
 }
 
@@ -455,7 +494,7 @@ mod tests {
     fn breaks_a_paragraph_into_full_lines() {
         let mut b = Builder::new(Style::default());
         b.text("The total-fit line breaker looks at the whole paragraph at once. It prefers lines whose spaces stretch by the same amount, and it avoids hyphens on consecutive lines.");
-        let html = b.finish(20.0, Style::default(), true);
+        let html = b.finish(20.0, Style::default(), true, true);
         assert!(html.matches("fn-line").count() >= 3, "{html}");
         assert!(html.starts_with("<p class=\"fn-par\">"));
     }
