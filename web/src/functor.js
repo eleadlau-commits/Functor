@@ -9,14 +9,15 @@ export async function loadFunctor(url) {
 
   const read = (len) => dec.decode(new Uint8Array(w.memory.buffer, w.result_ptr(), len));
 
-  const call = (fn, text, ...extra) => {
+  const callRaw = (fn, text, ...extra) => {
     const data = enc.encode(text);
     const ptr = w.alloc(data.length);
     new Uint8Array(w.memory.buffer, ptr, data.length).set(data);
     const len = fn(ptr, data.length, ...extra);
     w.dealloc(ptr, data.length);
-    return read(len);
+    return len;
   };
+  const call = (fn, text, ...extra) => read(callRaw(fn, text, ...extra));
 
   const glyphCache = new Map();
 
@@ -26,6 +27,10 @@ export async function loadFunctor(url) {
       const out = JSON.parse(call(w.compile_width, src, widthPt || 0));
       out.ms = performance.now() - t;
       return out;
+    },
+    pdf(src) {
+      const len = callRaw(w.compile_pdf, src);
+      return new Uint8Array(w.memory.buffer, w.result_ptr(), len).slice();
     },
     glyph(recipe) {
       if (!glyphCache.has(recipe)) glyphCache.set(recipe, call(w.glyph, recipe));
@@ -66,6 +71,7 @@ export async function loadNative() {
       save: (path, text) => invoke('save_file', { path, text }),
       saveAs: (name, text) => invoke('save_as', { name, text }),
       exportHtml: (name, html) => invoke('export_html', { name, html }),
+      exportPdf: (name, src) => invoke('export_pdf', { name, src }),
       close: () => invoke('close_file'),
       onChange: (cb) => listen('file-changed', (e) => cb(e.payload)),
     },

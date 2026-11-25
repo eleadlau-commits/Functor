@@ -1219,6 +1219,7 @@ pub fn render(node: &Node, display: bool, label: &str) -> String {
 
 pub struct MathPiece {
     pub svg: String,
+    pub lbox: Rc<LBox>,
     pub w: f64,
     pub gap: Option<(f64, f64, f64, f64)>,
 }
@@ -1244,7 +1245,7 @@ pub fn inline_pieces(node: &Node, label: &str) -> Vec<MathPiece> {
         Node::Row(v) if v.len() > 1 => v,
         _ => {
             let b = layout(node, st);
-            return vec![MathPiece { svg: render_box(&b, false, Some(label)), w: b.w.max(1.0) / 1000.0, gap: None }];
+            return vec![MathPiece { svg: render_box(&b, false, Some(label)), w: b.w.max(1.0) / 1000.0, lbox: Rc::new(b), gap: None }];
         }
     };
     let classes = row_classes(nodes);
@@ -1269,10 +1270,30 @@ pub fn inline_pieces(node: &Node, label: &str) -> Vec<MathPiece> {
             Some((w / 1000.0, stretch / 1000.0, shrink / 1000.0, penalty))
         };
         let lab = if start == 0 { Some(label) } else { None };
-        pieces.push(MathPiece { svg: render_box(&b, false, lab), w: b.w.max(1.0) / 1000.0, gap });
+        pieces.push(MathPiece { svg: render_box(&b, false, lab), w: b.w.max(1.0) / 1000.0, lbox: Rc::new(b), gap });
         start = i + 1;
     }
     pieces
+}
+
+pub fn display_box(node: &Node) -> LBox {
+    layout(node, St { scale: 1.0, display: true, level: 0 })
+}
+
+pub enum Paint<'a> {
+    Glyph(Affine, &'a Glyph),
+    Rule(Affine, f64, f64),
+}
+
+impl LBox {
+    pub fn paint(&self, f: &mut dyn FnMut(Paint)) {
+        for (a, d) in &self.items {
+            match d {
+                Draw::G(g) => f(Paint::Glyph(*a, g)),
+                Draw::Rule(w, h) => f(Paint::Rule(*a, *w, *h)),
+            }
+        }
+    }
 }
 
 fn render_box(b: &LBox, display: bool, label: Option<&str>) -> String {

@@ -6,6 +6,8 @@ pub mod inline;
 pub mod json;
 pub mod linebreak;
 pub mod math;
+pub mod page;
+pub mod pdf;
 pub mod render;
 pub mod symbols;
 pub mod text;
@@ -53,6 +55,20 @@ pub fn compile_width(src: &str, width_pt: Option<f64>) -> Output {
     let d = doc::parse(src, &mut diags);
     let html = render::render_width(&d, &mut diags, width_pt);
     Output { html, diagnostics: diags.finish(), stats: glyph::take_stats() }
+}
+
+pub struct PdfOutput {
+    pub pdf: Vec<u8>,
+    pub diagnostics: Vec<Diagnostic>,
+    pub pages: usize,
+}
+
+pub fn compile_pdf(src: &str) -> PdfOutput {
+    let mut diags = Diagnostics::default();
+    let d = doc::parse(src, &mut diags);
+    let layout = page::layout(&d, &mut diags);
+    let pages = layout.pages.len();
+    PdfOutput { pdf: pdf::write(&layout), diagnostics: diags.finish(), pages }
 }
 
 pub fn glyph_svg(recipe: &str) -> Option<String> {
