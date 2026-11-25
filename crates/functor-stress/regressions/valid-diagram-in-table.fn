@@ -1,0 +1,7 @@
+---
+functor: 1
+---
+
+| map | note |
+|:--|:--|
+| $diagram(A, B | f: A to B)$ | `a | b` |

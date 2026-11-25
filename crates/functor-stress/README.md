@@ -41,7 +41,7 @@ The same seed and page number always give the same page. Use `page` to see a pag
 
 ## Known failures
 
-`known.txt` holds the failures that are known. A known failure does not fail CI. When you fix a bug, remove its lines from `known.txt` and put the smallest case in `regressions/`. A file name that starts with `garbage-` is checked as garbage. All other files must compile with no error.
+`known.txt` holds the failures that are known. A known failure does not fail CI. A line can end with `<= N`: then at most N pages in 10,000 can fail with it, and more fails CI. This catches a fix that breaks again. When you fix a bug, remove its lines from `known.txt` and put the smallest case in `regressions/`. A file name that starts with `garbage-` is checked as garbage. All other files must compile with no error.
 
 ## CI
 

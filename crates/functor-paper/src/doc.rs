@@ -737,13 +737,21 @@ fn table_cells(line: &str) -> Vec<(String, usize)> {
     let mut start: Option<usize> = None;
     let chars: Vec<char> = line.chars().collect();
     let mut i = 0;
+    let mut math = false;
+    let mut code = false;
     while i < chars.len() {
         let c = chars[i];
         if c == '\\' {
             i += 2;
             continue;
         }
-        if c == '|' {
+        if c == '$' && !code {
+            math = !math;
+        }
+        if c == '`' && !math {
+            code = !code;
+        }
+        if c == '|' && !math && !code {
             if let Some(s) = start {
                 let raw: String = chars[s..i].iter().collect();
                 let lead = raw.chars().take_while(|c| c.is_whitespace()).count();

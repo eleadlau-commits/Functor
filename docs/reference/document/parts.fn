@@ -40,7 +40,7 @@ A list item starts with `- `, `* ` or a number and `. `. Lists do not nest yet.
 | `in.not` | $in.not$ |
 ```
 
-The second row sets the alignment of each column: `:--` left, `:-:` centre, `--:` right. A cell can hold math and code.
+The second row sets the alignment of each column: `:--` left, `:-:` centre, `--:` right. A cell can hold math and code. A bar `|` inside math or code does not end the cell, so a cell can hold `$diagram(A, B | A to B)$`.
 
 # Code blocks
 

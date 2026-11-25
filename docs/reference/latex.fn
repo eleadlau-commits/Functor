@@ -121,6 +121,7 @@ Functor is not compatible with LaTeX, and it does not try to be. This page maps 
 | `\sqrt{x}` | `sqrt(x)` | $sqrt(x)$ |
 | `\binom{n}{k}` | `binom(n, k)` | $binom(n, k)$ |
 | `\left( \frac{a}{b} \right)` | `(frac(a, b))` | $(frac(a, b))$ |
+| `\left[ 0, \frac{1}{2} \right)` | `[0, frac(1, 2))` | $[0, frac(1, 2))$ |
 | `\lvert x \rvert`, `\lVert v \rVert` | `abs(x)`, `norm(v)` | $abs(x) + norm(v)$ |
 | `\langle u, v \rangle` | `inner(u, v)` | $inner(u, v)$ |
 | `\lfloor x \rfloor`, `\lceil x \rceil` | `floor(x)`, `ceil(x)` | $floor(x) + ceil(x)$ |

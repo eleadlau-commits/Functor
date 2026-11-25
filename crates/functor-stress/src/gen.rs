@@ -377,7 +377,11 @@ impl<'a> Gen<'a> {
                 let b = self.leaf();
                 let b = if b.contains(' ') { format!("({b})") } else { b };
                 if b.ends_with('\'') {
-                    return format!("{b}_{}", self.arg(e));
+                    return match self.r.below(3) {
+                        0 => format!("{b}_{}", self.arg(e)),
+                        1 => format!("{b}^{}", self.arg(e)),
+                        _ => format!("{b}_{}^{}", self.arg(e), self.arg(e)),
+                    };
                 }
                 match self.r.below(3) {
                     0 => format!("{b}_{}", self.arg(e)),
@@ -388,7 +392,7 @@ impl<'a> Gen<'a> {
             11 => format!("frac({}, {})", self.expr(e), self.expr(e)),
             12 => format!("sqrt({})", self.expr(e)),
             13 => {
-                let (o, c) = *self.r.pick(&[("(", ")"), ("[", "]"), ("{", "}")]);
+                let (o, c) = *self.r.pick(&[("(", ")"), ("[", "]"), ("{", "}"), ("[", ")"), ("(", "]")]);
                 format!("{o}{}{c}", self.expr(e))
             }
             14 => format!("({}).{}", self.expr(e), self.fence_spec()),

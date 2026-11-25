@@ -529,6 +529,7 @@ impl Builder {
                     Item::Penalty { .. } => {}
                 }
             }
+            let hyphen = matches!(items.get(end), Some(Item::Penalty { discretionary: true, .. }));
             if let Some(Item::Penalty { discretionary: true, wraps, .. }) = items.get(end) {
                 sync(&mut out, &mut open, wraps);
                 out.push('-');
@@ -536,6 +537,9 @@ impl Builder {
             sync(&mut out, &mut open, &Rc::new(Vec::new()));
             out.push_str("</span>");
             let last_line = std::ptr::eq(line, lines.last().unwrap());
+            if !last_line && !hyphen {
+                out.push(' ');
+            }
             while next_side < sides.len() && (sides[next_side].0 < end || last_line) {
                 out.push_str(&sides[next_side].1);
                 next_side += 1;

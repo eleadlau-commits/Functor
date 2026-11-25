@@ -31,9 +31,10 @@ Single letters are italic. The signs `+ - * = < > , ; : ! / |` work as they are,
 | `a_(i j)` | $a_(i j)$ |
 | `f'`, `f''`, `f'''` | $f', f'', f'''$ |
 | `f'_n`, `f''(x)` | $f'_n, f''(x)$ |
+| `f'^2`, `y''^(n)_1` | $f'^2, y''^(n)_1$ |
 | `e^(i pi)` | $e^(i pi)$ |
 
-A script is one item or a group in round brackets. Two `_` on one term is an error: put both parts in one group. A prime has full size and sits at the height of the font, before the other scripts.
+A script is one item or a group in round brackets. Two `_` on one term is an error: put both parts in one group. A prime has full size and sits at the height of the font, before the other scripts. A prime and a `^` script go together: `f'^2`.
 
 # Groups and brackets
 
@@ -46,7 +47,7 @@ Round brackets group and show. `x_(i + 1)` uses the brackets as a group only. `(
 | `{x}` | ${x}$ |
 | `(frac(a, b))` | $(frac(a, b))$ |
 
-Brackets grow with the content. Each bracket must close with its own kind, so a half-open interval such as `[0, 1)` has no form yet. A group can take operations: `(a + b).bar`, `(F_T).box`. See [Recipes](symbols/recipes.html).
+Brackets grow with the content. A square bracket can close with a round one, and a round one with a square one, for half-open intervals: `[0, 1)`, `(a, b]`. Groups can go 48 levels deep in one formula. A group can take operations: `(a + b).bar`, `(F_T).box`. See [Recipes](symbols/recipes.html).
 
 # Text in math
 
