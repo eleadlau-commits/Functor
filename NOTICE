@@ -11,8 +11,15 @@ scripts/extract-glyphs.mjs makes this file. The script changes the format of the
 data only: it adds a move command at the start of each path and writes one glyph
 on each line.
 
+<<<<<<< HEAD
 The files web/src/fonts/functor-lm-*.woff2 and crates/functor-core/data/fonts/functor-lm-*.otf
 are subsets of Latin Modern Roman 10 (regular, italic, bold, bold italic) and Latin Modern Mono 10 by B. Jackowski and J. M. Nowacki, under the
 GUST Font License (web/src/fonts/GUST-FONT-LICENSE.txt). They hold Latin letters
 and punctuation only, some are converted to WOFF2, and all have new file names. The fonts
+=======
+The files web/src/fonts/functor-lm-*.woff2 are subsets of Latin Modern Roman 10
+(regular, italic, bold, bold italic) by B. Jackowski and J. M. Nowacki, under the
+GUST Font License (web/src/fonts/GUST-FONT-LICENSE.txt). They hold Latin letters
+and punctuation only, are converted to WOFF2, and have new file names. The fonts
+>>>>>>> 5afaedfbc3e1163eebc86e03ce5cd2560ff6aed7
 are not otherwise changed.
