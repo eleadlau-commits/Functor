@@ -260,7 +260,7 @@ pub const SET_OPTIONS: &[(&str, &[&str])] = &[
 ];
 
 pub const LATER_OPS: &[(&str, &str)] = &[
-    ("deform", "Deform has two operations: `tall` and `wide`. For example `paren.tall` or `to.wide`."),
+    ("deform", "Deform has two operations: `tall` and `wide`. For example `integral.tall` or `to.wide`."),
     ("stretch", "Write `tall` or `wide`. They stretch the straight parts and keep the ends."),
     ("fuse", "`fuse` comes in a later phase. Use `join(a, b)` for now."),
 ];

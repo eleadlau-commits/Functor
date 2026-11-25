@@ -72,10 +72,10 @@ $vec(1, 2)$
 
 | Value | Result | Good for |
 |:--|:--|:--|
-| `stretch` | only the height grows | brackets and bars |
+| `stretch` | the straight parts grow, the ends keep their shape | brackets and bars |
 | `magnify` | the whole glyph grows | letters and symbols that must keep their shape |
 
-`set wrap(grow: magnify)` sets it for `wrap`. Each kind also has a `grow` option, for example `set vec(grow: magnify)`. Today `stretch` is a plain vertical scale, so thin strokes of a letter become thick. A clean stretch comes with `deform` in phase 1.
+`set wrap(grow: magnify)` sets it for `wrap`. Each kind also has a `grow` option, for example `set vec(grow: magnify)`. `stretch` uses `deform`: the straight parts grow, and the ends and thin strokes keep their shape. The `tall` operation does the same on one symbol, for example `integral.tall`.
 
 # Fence values in rules
 

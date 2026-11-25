@@ -1,0 +1,41 @@
+---
+functor: 1
+title: wide
+---
+
+set heading(numbering: none)
+
+`wide` · deform · a wider version, such as a long arrow; the ends keep their shape.
+
+# Form
+
+`x.wide` on a symbol, `(a + b).wide` on a group. A recipe has one base and up to three operations.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `to.wide` | $to.wide$ | built and cached |
+| `eq.wide` | $eq.wide$ | built and cached |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | A wider version, such as a long arrow; the ends keep their shape. A guideline, not a rule. |
+| Style | Use a `sym` to give a recipe a short name. |
+| Construction | A changed outline of the base. The straight parts grow and the ends and thin strokes keep their shape. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- More than three operations on one base gives a warning.
+- Makes the base wider. The shaft of an arrow grows, the head keeps its shape.
+
+# From LaTeX
+
+`\longrightarrow`, `\xrightarrow{}` without the label.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)

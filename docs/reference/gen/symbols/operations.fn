@@ -5,7 +5,7 @@ title: Operations
 
 set heading(numbering: none)
 
-Functor has 33 operations in 8 families. Write an operation after a dot: `theta.hat`. Each operation has a meaning. The meaning is a guideline, not a rule.
+Functor has 35 operations in 9 families. Write an operation after a dot: `theta.hat`. Each operation has a meaning. The meaning is a guideline, not a rule.
 
 # decorate
 
@@ -82,6 +82,15 @@ A smaller or larger copy of the base.
 |:--|:-:|:--|
 | [`small`](symbols/ops/small.html) | $T.up.small$ | a smaller version, about four fifths |
 
+# deform
+
+A changed outline of the base. The straight parts grow and the ends and thin strokes keep their shape.
+
+| Operation | Example | Meaning |
+|:--|:-:|:--|
+| [`tall`](symbols/ops/tall.html) | $integral.tall$ | a taller version; the straight parts grow and the ends keep their shape |
+| [`wide`](symbols/ops/wide.html) | $to.wide$ | a wider version, such as a long arrow; the ends keep their shape |
+
 # fence
 
 Brackets around a group or a symbol. The brackets grow with the content.
@@ -98,4 +107,4 @@ Brackets around a group or a symbol. The brackets grow with the content.
 
 # Not yet
 
-The compiler refuses these with a clear message: `deform` (phase 1), `fuse` (phase 1), `stretch` (phase 1).
+The compiler refuses these with a clear message: `deform` (Deform has two operations: `tall` and `wide`. For example `integral.tall` or `to.wide`.), `stretch` (Write `tall` or `wide`. They stretch the straight parts and keep the ends.), `fuse` (`fuse` comes in a later phase. Use `join(a, b)` for now.).

@@ -1,0 +1,41 @@
+---
+functor: 1
+title: tall
+---
+
+set heading(numbering: none)
+
+`tall` · deform · a taller version; the straight parts grow and the ends keep their shape.
+
+# Form
+
+`x.tall` on a symbol, `(a + b).tall` on a group. A recipe has one base and up to three operations.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `integral.tall` | $integral.tall$ | built and cached |
+| `x.tall` | $x.tall$ | built and cached |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | A taller version; the straight parts grow and the ends keep their shape. A guideline, not a rule. |
+| Style | Use a `sym` to give a recipe a short name. |
+| Construction | A changed outline of the base. The straight parts grow and the ends and thin strokes keep their shape. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- More than three operations on one base gives a warning.
+- Makes the base half again as tall. Stems and straight parts grow, the ends keep their shape.
+
+# From LaTeX
+
+`\bigl(` and the like, for a bigger glyph.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)

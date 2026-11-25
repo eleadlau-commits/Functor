@@ -43,6 +43,7 @@ const FAMILY: &[(OpKind, &str, &str)] = &[
     (OpKind::Reflect, "reflect", "A mirror image or a half turn of the base."),
     (OpKind::Style, "style", "Another alphabet for a letter: bold, double-struck, fraktur, script, upright."),
     (OpKind::Magnify, "magnify", "A smaller or larger copy of the base."),
+    (OpKind::Deform, "deform", "A changed outline of the base. The straight parts grow and the ends and thin strokes keep their shape."),
     (OpKind::Fence, "fence", "Brackets around a group or a symbol. The brackets grow with the content."),
 ];
 
@@ -73,6 +74,8 @@ const OP_EXAMPLES: &[(&str, &[&str])] = &[
     ("script", &["L.script", "F.script"]),
     ("up", &["d.up", "e.up"]),
     ("small", &["T.up.small", "x.small"]),
+    ("tall", &["integral.tall", "x.tall"]),
+    ("wide", &["to.wide", "eq.wide"]),
     ("paren", &["(a + b).paren", "(frac(1, 2)).paren"]),
     ("brack", &["(a, b).brack", "(M).brack.x2"]),
     ("brace", &["(x).brace", "(x).brace.left"]),
@@ -109,6 +112,8 @@ const OP_LATEX: &[(&str, &str)] = &[
     ("script", "`\\mathcal{L}` and `\\mathscr{L}` become `L.script`"),
     ("up", "`\\mathrm{d}` becomes `d.up`"),
     ("small", "no direct LaTeX command"),
+    ("tall", "`\\bigl(` and the like, for a bigger glyph"),
+    ("wide", "`\\longrightarrow`, `\\xrightarrow{}` without the label"),
     ("paren", "`\\left( x \\right)` becomes `(x).paren`, or just `(x)`"),
     ("brack", "`\\left[ x \\right]` becomes `(x).brack`, `\\llbracket x \\rrbracket` becomes `(x).brack.x2`"),
     ("brace", "`\\left\\{ x \\right\\}` becomes `(x).brace`, `\\left\\{ x \\right.` becomes `(x).brace.left`"),
@@ -127,6 +132,8 @@ const OP_RULES: &[(&str, &str)] = &[
     ("script", "Works on a single letter, as the first operation."),
     ("up", "Works on a single letter, as the first operation."),
     ("small", "Scales the base to four fifths of its size."),
+    ("tall", "Makes the base half again as tall. Stems and straight parts grow, the ends keep their shape."),
+    ("wide", "Makes the base wider. The shaft of an arrow grows, the head keeps its shape."),
     ("x2", "Uses the font glyph when the font has one, for example the double integral."),
 ];
 
