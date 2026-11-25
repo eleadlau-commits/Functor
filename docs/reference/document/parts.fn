@@ -1,0 +1,51 @@
+---
+functor: 1
+title: Headings, lists, tables, code
+---
+
+set heading(numbering: none)
+
+These parts work as in Markdown, with labels added.
+
+# Headings
+
+```fn
+# Fields {#sec:fields}
+
+## Work
+
+### A small point
+```
+
+One to six `#` signs give the level. Headings have numbers, for example 2.1. A label in curly brackets at the end lets text refer to the heading: `@sec:fields` shows "Section 1". The rule `set heading(numbering: none)` removes the numbers.
+
+# Lists
+
+```fn
+- A point
+- Another point
+
+1. First step
+2. Second step
+```
+
+A list item starts with `- `, `* ` or a number and `. `. Lists do not nest yet.
+
+# Tables
+
+```fn
+| Recipe | Result |
+|:--|:-:|
+| `theta.hat` | $theta.hat$ |
+| `in.not` | $in.not$ |
+```
+
+The second row sets the alignment of each column: `:--` left, `:-:` centre, `--:` right. A cell can hold math and code.
+
+# Code blocks
+
+A code block starts with three backticks and a language name, and ends with three backticks. Functor shows the code as it is.
+
+# Images
+
+`![alt text](plot.svg)` shows an image. Put an image in a figure block to give it a number and a caption. See [Blocks](document/blocks.html).

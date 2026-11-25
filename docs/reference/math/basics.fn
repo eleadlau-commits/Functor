@@ -1,0 +1,66 @@
+---
+functor: 1
+title: Math basics
+---
+
+set heading(numbering: none)
+
+Inline math is between two dollar signs: `$x + y$`. Display math is between two lines of `$$`. Math uses names, not backslashes.
+
+# Names and spaces
+
+A space separates two names. `d x` is d times x. A word that is not a name shows as single letters, with a warning and a hint.
+
+| Write | Result | Note |
+|:--|:-:|:--|
+| `a b c` | $a b c$ | three letters |
+| `2 x + 1` | $2 x + 1$ | numbers are upright |
+| `3.14` | $3.14$ | a decimal point |
+| `sin x` | $sin x$ | a function name is upright |
+| `alpha + Omega` | $alpha + Omega$ | Greek |
+| `x in A` | $x in A$ | a relation |
+
+Single letters are italic. The signs `+ - * = < > , ; : ! / |` work as they are, and `-` is a true minus sign.
+
+# Scripts and primes
+
+| Write | Result |
+|:--|:-:|
+| `x_1`, `x^2` | $x_1, x^2$ |
+| `x_(i + 1)^(n - 1)` | $x_(i + 1)^(n - 1)$ |
+| `a_(i j)` | $a_(i j)$ |
+| `f'`, `f''`, `f'''` | $f', f'', f'''$ |
+| `e^(i pi)` | $e^(i pi)$ |
+
+A script is one item or a group in round brackets. Two `_` on one term is an error: put both parts in one group.
+
+# Groups and brackets
+
+Round brackets group and show. `x_(i + 1)` uses the brackets as a group only. `(a + b)^2` shows them. Square and curly brackets also show.
+
+| Write | Result |
+|:--|:-:|
+| `(a + b)^2` | $(a + b)^2$ |
+| `[0, 1]` | $[0, 1]$ |
+| `{x}` | ${x}$ |
+| `(frac(a, b))` | $(frac(a, b))$ |
+
+Brackets grow with the content. Each bracket must close with its own kind, so a half-open interval such as `[0, 1)` has no form yet. A group can take operations: `(a + b).bar`, `(F_T).box`. See [Recipes](symbols/recipes.html).
+
+# Text in math
+
+Text in quotes is upright: `"if"`, `"tr" A`.
+
+```fn
+$f(x) = 0 quad "for all" quad x in R.bb$
+```
+
+# Limits
+
+`sum`, `prod`, `union`, `inter`, `lim`, `max` and `min` put their scripts below and above in display math, and at the side in text. `integral` puts them at the side.
+
+```fn
+$$
+sum_(k = 1)^n k = frac(n (n + 1), 2),   lim_(n to infty) (1 + frac(1, n))^n = e,   integral_0^1 x^2 d x = frac(1, 3)
+$$
+```

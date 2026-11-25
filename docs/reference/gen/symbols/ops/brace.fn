@@ -1,0 +1,40 @@
+---
+functor: 1
+title: brace
+---
+
+set heading(numbering: none)
+
+`brace` · fence · curly brackets, a set.
+
+# Form
+
+`(a + b).brace` on a group, `x.brace` on a symbol.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `(x).brace` | $(x).brace$ | fence around the group |
+| `(x).brace.left` | $(x).brace.left$ | fence around the group |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | Curly brackets, a set. A guideline, not a rule. |
+| Style | A kind can take this fence from a rule: `set abs(fence: brace)`. |
+| Construction | Brackets around a group or a symbol. The brackets grow with the content. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- Works on a group, `(a + b).brace`, or on a symbol, `x.brace`. Write `x2` after it to double the fence. Write `left` or `right` after it to keep one side only. A style rule can give a kind its fence: `set mat(fence: brace)`.
+
+# From LaTeX
+
+`\left\{ x \right\}` becomes `(x).brace`, `\left\{ x \right.` becomes `(x).brace.left`.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)

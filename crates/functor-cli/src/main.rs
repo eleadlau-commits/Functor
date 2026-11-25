@@ -9,7 +9,9 @@ const USAGE: &str = "functor compile <file.fn> [-o out.html]
 functor pdf <file.fn> [-o out.pdf]
 functor check <file.fn>
 functor glyph <recipe>
-functor bench [file.fn]";
+functor bench [file.fn]
+functor ref gen [docs/reference]
+functor ref build <out-dir> [docs/reference]";
 
 const BENCH_SYMBOLS: &[&str] = &[
     "sum.circle", "prod.circle", "union.circle", "inter.box", "integral.flip", "theta.hat", "theta.tilde", "theta.bar",
@@ -188,6 +190,104 @@ fn run(args: &[String]) -> Result<bool, String> {
             }
         }
         "bench" => bench(args.get(1).map(String::as_str)),
+        "ref" => reference(&args[1..]),
+        _ => Err(USAGE.into()),
+    }
+}
+
+const REF_CSS: &str = "body.ref{margin:0;display:flex;align-items:flex-start;background:#f4f4f6;font-family:\"Functor LM\",serif}\
+.ref-nav{position:sticky;top:0;flex:0 0 230px;height:100vh;overflow-y:auto;box-sizing:border-box;padding:20px 16px;font-size:14px;line-height:1.5;background:#fff;border-right:1px solid #d9d9e0}\
+.ref-nav a{display:block;color:#1b1b1f;text-decoration:none;padding:1px 6px;border-radius:4px}\
+.ref-nav a:hover{background:#eef1f5}.ref-nav a.here{background:#e3e9f0;color:#2f4a62;font-weight:700}\
+.ref-nav h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#5b5b66;margin:16px 0 4px}\
+.ref-nav .ref-home{font-size:17px;font-weight:700;padding:0 6px 4px}\
+.ref-nav .ref-ops{display:flex;flex-wrap:wrap;gap:0 2px}.ref-nav .ref-ops a{display:inline-block;font-family:\"Functor LM Mono\",monospace;font-size:12px}\
+.ref-nav .ref-tools{margin-top:16px;border-top:1px solid #d9d9e0;padding-top:8px}\
+.ref-main{flex:1 1 auto;overflow-x:auto;padding:24px 0}.ref-main .fn-doc{box-shadow:0 1px 4px rgba(0,0,0,.08)}\
+@media (max-width:900px){body.ref{display:block}.ref-nav{position:static;height:auto;border-right:0;border-bottom:1px solid #d9d9e0}}";
+
+fn ref_page(p: &functor_core::reference::Page, pages: &[functor_core::reference::Page], html: &str) -> String {
+    use functor_core::reference::SECTIONS;
+    use functor_core::render::escape;
+    let depth = p.path.matches('/').count();
+    let root = "../".repeat(depth);
+    let mut nav = String::from("<a class=\"ref-home\" href=\"index.html\">Functor reference</a>");
+    let mut sections: Vec<&str> = SECTIONS.to_vec();
+    sections.push("Operations");
+    for sec in sections {
+        let items: Vec<&functor_core::reference::Page> = pages.iter().filter(|q| q.section == sec && q.path != "index").collect();
+        if items.is_empty() {
+            continue;
+        }
+        nav.push_str(&format!("<h2>{}</h2>", escape(sec)));
+        if sec == "Operations" {
+            nav.push_str("<div class=\"ref-ops\">");
+        }
+        for q in items {
+            let here = if q.path == p.path { " class=\"here\"" } else { "" };
+            nav.push_str(&format!("<a href=\"{}.html\"{here}>{}</a>", q.path, escape(&q.title)));
+        }
+        if sec == "Operations" {
+            nav.push_str("</div>");
+        }
+    }
+    nav.push_str(&format!(
+        "<div class=\"ref-tools\"><a href=\"{}.fn\">Source of this page</a><a href=\"llms.txt\">For AI: llms.txt</a><a href=\"../\">Open the editor</a></div>",
+        p.path
+    ));
+    format!(
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>{} · Functor reference</title><base href=\"{root}\"><link rel=\"stylesheet\" href=\"style.css\"></head><body class=\"ref\"><nav class=\"ref-nav\">{nav}</nav><main class=\"ref-main\">{html}</main></body></html>",
+        escape(&p.title)
+    )
+}
+
+fn llms_txt(pages: &[functor_core::reference::Page]) -> String {
+    let mut s = String::from("# Functor\n\n> Functor is a typesetting language for mathematics. It is not LaTeX: no backslashes, round brackets for groups, symbols built from a base and short operations (theta.hat, in.not, sum.circle).\n\nRead cheatsheet.fn first. It holds the whole grammar on one page. latex.fn maps LaTeX to Functor. Check your output with `functor check file.fn`.\n\n## Pages (Functor source)\n\n");
+    for p in pages {
+        s.push_str(&format!("- [{}]({}.fn)\n", p.title, p.path));
+    }
+    s
+}
+
+fn reference(args: &[String]) -> Result<bool, String> {
+    use functor_core::reference::{file_of, generated_pages, load};
+    let sub = args.first().map(String::as_str).unwrap_or("");
+    match sub {
+        "gen" => {
+            let dir = std::path::PathBuf::from(args.get(1).map(String::as_str).unwrap_or("docs/reference"));
+            for p in generated_pages() {
+                let file = dir.join(file_of(&p));
+                if let Some(parent) = file.parent() {
+                    std::fs::create_dir_all(parent).map_err(|e| format!("Cannot make {}: {e}", parent.display()))?;
+                }
+                std::fs::write(&file, &p.src).map_err(|e| format!("Cannot write {}: {e}", file.display()))?;
+            }
+            println!("wrote {} generated pages to {}", generated_pages().len(), dir.join("gen").display());
+            Ok(true)
+        }
+        "build" => {
+            let out = std::path::PathBuf::from(args.get(1).ok_or(USAGE)?);
+            let dir = std::path::PathBuf::from(args.get(2).map(String::as_str).unwrap_or("docs/reference"));
+            let pages = load(&dir)?;
+            let mut ok = true;
+            for p in &pages {
+                let res = compile(&p.src);
+                print_diags(&dir.join(file_of(p)).display().to_string(), &res.diagnostics);
+                ok &= res.errors() == 0;
+                for (ext, body) in [("html", ref_page(p, &pages, &res.html)), ("fn", p.src.clone())] {
+                    let file = out.join(format!("{}.{ext}", p.path));
+                    if let Some(parent) = file.parent() {
+                        std::fs::create_dir_all(parent).map_err(|e| format!("Cannot make {}: {e}", parent.display()))?;
+                    }
+                    std::fs::write(&file, body).map_err(|e| format!("Cannot write {}: {e}", file.display()))?;
+                }
+            }
+            let css = format!("{}{}{}", font_faces(), include_str!("../../../web/src/doc.css"), REF_CSS);
+            std::fs::write(out.join("style.css"), css).map_err(|e| format!("Cannot write style.css: {e}"))?;
+            std::fs::write(out.join("llms.txt"), llms_txt(&pages)).map_err(|e| format!("Cannot write llms.txt: {e}"))?;
+            println!("wrote {} pages to {}", pages.len(), out.display());
+            Ok(ok)
+        }
         _ => Err(USAGE.into()),
     }
 }

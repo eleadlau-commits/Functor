@@ -1,0 +1,88 @@
+---
+functor: 1
+title: Named symbols
+---
+
+set heading(numbering: none)
+
+Write a symbol by its name, with spaces between names: `x in A`. Each name is short and canonical. There are no aliases in files.
+
+# Large operators
+
+| Name | Result | Unicode |
+|:--|:-:|:--|
+| `sum` | $sum$ | U+2211, limits below and above in display |
+| `prod` | $prod$ | U+220F, limits below and above in display |
+| `coprod` | $coprod$ | U+2210, limits below and above in display |
+| `integral` | $integral$ | U+222B |
+| `union` | $union$ | U+22C3, limits below and above in display |
+| `inter` | $inter$ | U+22C2, limits below and above in display |
+
+# Binary operators
+
+| Name | Result | Unicode |
+|:--|:-:|:--|
+| `plus` | $plus$ | U+002B |
+| `minus` | $minus$ | U+2212 |
+| `times` | $times$ | U+00D7 |
+| `cdot` | $cdot$ | U+22C5 |
+| `pm` | $pm$ | U+00B1 |
+| `mp` | $mp$ | U+2213 |
+| `div` | $div$ | U+00F7 |
+| `circ` | $circ$ | U+2218 |
+| `ast` | $ast$ | U+2217 |
+| `star` | $star$ | U+22C6 |
+| `wedge` | $wedge$ | U+2227 |
+| `vee` | $vee$ | U+2228 |
+| `cup` | $cup$ | U+222A |
+| `cap` | $cap$ | U+2229 |
+| `setminus` | $setminus$ | U+2216 |
+
+# Relations
+
+| Name | Result | Unicode |
+|:--|:-:|:--|
+| `eq` | $eq$ | U+003D |
+| `lt` | $lt$ | U+003C |
+| `gt` | $gt$ | U+003E |
+| `le` | $le$ | U+2264 |
+| `ge` | $ge$ | U+2265 |
+| `approx` | $approx$ | U+2248 |
+| `sim` | $sim$ | U+223C |
+| `equiv` | $equiv$ | U+2261 |
+| `propto` | $propto$ | U+221D |
+| `in` | $in$ | U+2208 |
+| `ni` | $ni$ | U+220B |
+| `subset` | $subset$ | U+2282 |
+| `supset` | $supset$ | U+2283 |
+| `subseteq` | $subseteq$ | U+2286 |
+| `supseteq` | $supseteq$ | U+2287 |
+| `perp` | $perp$ | U+22A5 |
+| `mid` | $mid$ | U+2223 |
+| `parallel` | $parallel$ | U+2225 |
+| `to` | $to$ | U+2192 |
+| `gets` | $gets$ | U+2190 |
+| `implies` | $implies$ | U+21D2 |
+| `iff` | $iff$ | U+21D4 |
+| `mapsto` | $mapsto$ | U+21A6 |
+
+# Ordinary symbols
+
+| Name | Result | Unicode |
+|:--|:-:|:--|
+| `infty` | $infty$ | U+221E |
+| `partial` | $partial$ | U+2202 |
+| `nabla` | $nabla$ | U+2207 |
+| `forall` | $forall$ | U+2200 |
+| `exists` | $exists$ | U+2203 |
+| `emptyset` | $emptyset$ | U+2205 |
+| `ell` | $ell$ | U+2113 |
+| `aleph` | $aleph$ | U+2135 |
+| `angle` | $angle$ | U+2220 |
+| `triangle` | $triangle$ | U+25B3 |
+| `square` | $square$ | U+25A1 |
+| `dots` | $dots$ | U+2026 |
+| `cdots` | $cdots$ | U+22EF |
+| `prime` | $prime$ | U+2032 |
+
+Capital Greek letters are on the [Greek letters](symbols/greek.html) page.

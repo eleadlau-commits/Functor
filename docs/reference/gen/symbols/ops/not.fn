@@ -1,0 +1,42 @@
+---
+functor: 1
+title: not
+---
+
+set heading(numbering: none)
+
+`not` · strike · negation.
+
+# Form
+
+`x.not` on a symbol, `(a + b).not` on a group. A recipe has one base and up to three operations.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `in.not` | $in.not$ | font glyph U+2209 |
+| `eq.not` | $eq.not$ | font glyph U+2260 |
+| `exists.not` | $exists.not$ | font glyph U+2204 |
+| `sim.not` | $sim.not$ | font glyph U+2241 |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | Negation. A guideline, not a rule. |
+| Style | Use a `sym` to give a recipe a short name. |
+| Construction | A line through the base. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- More than three operations on one base gives a warning.
+
+# From LaTeX
+
+`\notin` becomes `in.not`, `\neq` becomes `eq.not`, `\nexists` becomes `exists.not`.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)

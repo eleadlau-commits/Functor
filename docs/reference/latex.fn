@@ -1,0 +1,123 @@
+---
+functor: 1
+title: From LaTeX
+---
+
+set heading(numbering: none)
+
+Functor is not compatible with LaTeX, and it does not try to be. This page maps LaTeX to Functor so that people and AI models can move a document by hand or with a converter. Where Functor has a meaning form, use it. For example, write `object vec: v` once, not `v.arrow` in each place.
+
+# Rules that change most
+
+| LaTeX habit | Functor |
+|:--|:--|
+| `\name` | `name`, with no backslash |
+| `{...}` for a group | `(...)` for a group |
+| `ab` for a times b | `a b`, with a space |
+| `\command{x}` for an accent or a font | `x.operation` |
+| `&` and `\\` in align | one step on each line in display math |
+| `\text{...}` | `"..."` |
+| `\newcommand` | `sym name = recipe` |
+
+# Accents and fonts
+
+| LaTeX | Functor | Result |
+|:--|:--|:-:|
+| `\hat{\theta}` | `theta.hat` | $theta.hat$ |
+| `\tilde{x}` | `x.tilde` | $x.tilde$ |
+| `\bar{x}`, `\overline{x}` | `x.bar` | $x.bar$ |
+| `\dot{x}`, `\ddot{x}` | `x.dot`, `x.ddot` | $x.dot + x.ddot$ |
+| `\check{f}`, `\breve{u}` | `f.check`, `u.breve` | $f.check + u.breve$ |
+| `\vec{v}` | `v.arrow`, or `object vec: v` | $v.arrow$ |
+| `\underline{x}` | `x.under` | $x.under$ |
+| `\mathbf{A}`, `\boldsymbol{\alpha}` | `A.bold`, `alpha.bold` | $A.bold + alpha.bold$ |
+| `\mathbb{R}` | `R.bb` | $R.bb$ |
+| `\mathfrak{g}` | `g.frak` | $g.frak$ |
+| `\mathcal{L}`, `\mathscr{L}` | `L.script` | $L.script$ |
+| `\mathrm{d}x` | `d.up x` | $d.up x$ |
+| `\boxed{x}` | `(x).box` | $(x).box$ |
+
+# Relations and operators
+
+| LaTeX | Functor | Result |
+|:--|:--|:-:|
+| `\neq`, `\leq`, `\geq` | `eq.not`, `le`, `ge` | $eq.not, le, ge$ |
+| `\in`, `\notin`, `\ni` | `in`, `in.not`, `ni` | $in, in.not, ni$ |
+| `\subset`, `\subseteq`, `\not\subset` | `subset`, `subseteq`, `subset.not` | $subset, subseteq, subset.not$ |
+| `\approx`, `\sim`, `\equiv`, `\propto` | `approx`, `sim`, `equiv`, `propto` | $approx, sim, equiv, propto$ |
+| `\to`, `\gets`, `\mapsto` | `to`, `gets`, `mapsto` | $to, gets, mapsto$ |
+| `\Rightarrow`, `\Leftarrow`, `\Leftrightarrow` | `implies`, `implies.flip`, `iff` | $implies, implies.flip, iff$ |
+| `\times`, `\cdot`, `\pm`, `\div` | `times`, `cdot`, `pm`, `div` | $times, cdot, pm, div$ |
+| `\cup`, `\cap`, `\setminus` | `cup`, `cap`, `setminus` | $cup, cap, setminus$ |
+| `\oplus`, `\otimes`, `\odot` | `plus.circle`, `times.circle`, `cdot.circle` | $plus.circle, times.circle, cdot.circle$ |
+| `\boxplus`, `\boxtimes` | `plus.box`, `times.box` | $plus.box, times.box$ |
+| `\forall`, `\exists`, `\nexists` | `forall`, `exists`, `exists.not` | $forall, exists, exists.not$ |
+| `\partial`, `\nabla`, `\infty` | `partial`, `nabla`, `infty` | $partial, nabla, infty$ |
+| `\hbar`, `\ell`, `\aleph` | `h.cross`, `ell`, `aleph` | $h.cross, ell, aleph$ |
+| `\ldots`, `\cdots` | `dots`, `cdots` | $dots, cdots$ |
+| `\emptyset` | `emptyset` | $emptyset$ |
+
+# Large operators
+
+| LaTeX | Functor | Result |
+|:--|:--|:-:|
+| `\sum_{k=1}^{n}` | `sum_(k = 1)^n` | $sum_(k = 1)^n$ |
+| `\prod`, `\coprod` | `prod`, `coprod` | $prod, coprod$ |
+| `\int_0^1 f\,dx` | `integral_0^1 f thin d x` | $integral_0^1 f thin d x$ |
+| `\iint`, `\iiint`, `\oint` | `integral.x2`, `integral.x3`, `integral.circle` | $integral.x2, integral.x3, integral.circle$ |
+| `\bigcup`, `\bigcap` | `union`, `inter` | $union, inter$ |
+| `\lim_{n\to\infty}` | `lim_(n to infty)` | $lim_(n to infty)$ |
+
+# Fractions, roots, brackets
+
+| LaTeX | Functor | Result |
+|:--|:--|:-:|
+| `\frac{a}{b}` | `frac(a, b)` | $frac(a, b)$ |
+| `\sqrt{x}` | `sqrt(x)` | $sqrt(x)$ |
+| `\binom{n}{k}` | `binom(n, k)` | $binom(n, k)$ |
+| `\left( \frac{a}{b} \right)` | `(frac(a, b))` | $(frac(a, b))$ |
+| `\lvert x \rvert`, `\lVert v \rVert` | `abs(x)`, `norm(v)` | $abs(x) + norm(v)$ |
+| `\langle u, v \rangle` | `inner(u, v)` | $inner(u, v)$ |
+| `\lfloor x \rfloor`, `\lceil x \rceil` | `floor(x)`, `ceil(x)` | $floor(x) + ceil(x)$ |
+| `\llbracket x \rrbracket` | `(x).brack.x2` | $(x).brack.x2$ |
+
+The n-th root, `\sqrt[n]{x}`, has no form yet.
+
+# Environments
+
+| LaTeX | Functor |
+|:--|:--|
+| `\begin{pmatrix} a & b \\ c & d \end{pmatrix}` | `mat(a, b; c, d)` |
+| `bmatrix`, `vmatrix`, `Bmatrix` | `mat(...)` with `set mat(fence: brack)`, `vbar` or `brace` |
+| `\begin{cases} x & x \ge 0 \\ -x & x < 0 \end{cases}` | `cases(x, x ge 0; -x, x lt 0)` |
+| `\begin{align} a &= b \\ &= c \end{align}` | `$$`, then `a = b`, then `  = c` on the next line |
+| `\begin{theorem}[Name] \label{thm:a}` | `::: theorem {#thm:a title="Name"}` |
+| `\begin{proof} ... \end{proof}` | `::: proof` ... `:::` |
+| `\begin{figure} ... \caption{...}` | `::: figure` with a line `Caption: ...` |
+| `\begin{itemize} \item` | `- item` |
+| `\begin{enumerate} \item` | `1. item` |
+| `\begin{verbatim}` | three backticks |
+
+# Document
+
+| LaTeX | Functor |
+|:--|:--|
+| `\documentclass`, `\usepackage` | nothing. Use `set` rules. |
+| `\title{}`, `\author{}`, `\date{}` | front matter: `title:`, `author:`, `date:` |
+| `\section{Intro}\label{sec:intro}` | `# Intro {#sec:intro}` |
+| `\subsection{}` | `## ...` |
+| `\emph{x}`, `\textbf{x}` | `*x*`, `**x**` |
+| `\ref{thm:a}`, `\eqref{eq:a}` | `@thm:a`, `@eq:a` |
+| `\cite{knuth84}` | `[@knuth84]` |
+| `\href{url}{text}` | `[text](url)` |
+| `\includegraphics{plot}` | `![alt](plot.svg)` |
+| Two backticks and two apostrophes for quotes; `--`, `---`, `~` | `"quotes"`, `--`, `---`, `~` |
+| `\newcommand{\R}{\mathbb{R}}` | `sym RR = R.bb` |
+
+# Spaces
+
+| LaTeX | Functor |
+|:--|:--|
+| `\,`, `\:`, `\;` | `thin`, `med`, `thick` |
+| `\quad`, `\qquad` | `quad`, `qquad` |
+| `\!` | `neg` |

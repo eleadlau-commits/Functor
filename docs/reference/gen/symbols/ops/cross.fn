@@ -1,0 +1,40 @@
+---
+functor: 1
+title: cross
+---
+
+set heading(numbering: none)
+
+`cross` · strike · a fixed variant.
+
+# Form
+
+`x.cross` on a symbol, `(a + b).cross` on a group. A recipe has one base and up to three operations.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `h.cross` | $h.cross$ | font glyph U+210F |
+| `in.cross` | $in.cross$ | built and cached |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | A fixed variant. A guideline, not a rule. |
+| Style | Use a `sym` to give a recipe a short name. |
+| Construction | A line through the base. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- More than three operations on one base gives a warning.
+
+# From LaTeX
+
+`\hbar` becomes `h.cross`.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)

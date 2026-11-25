@@ -1,0 +1,65 @@
+---
+functor: 1
+title: Common errors
+---
+
+set heading(numbering: none)
+
+Each problem has a line, a column, a message and a hint. Errors stop the output from being correct. Warnings do not. Run `functor check file.fn` to see them all.
+
+# LaTeX habits
+
+| You wrote | Message | Fix |
+|:--|:--|:--|
+| `\alpha` | the backslash shows as a sign | `alpha` |
+| `\frac{a}{b}` | unknown symbol, or braces shown | `frac(a, b)` |
+| `x_{i+1}` | braces shown in the script | `x_(i + 1)` |
+| `dx` | "`dx` is not a symbol name, so it shows as single letters." | `d x` |
+| `!=` | the two signs show as they are | `eq.not` |
+| `a & b \\ c & d` | the signs show as they are | `mat(a, b; c, d)` |
+| `\text{if}` | the backslash shows | `"if"` |
+
+# Names and operations
+
+| Message | Fix |
+|:--|:--|
+| "Unknown symbol `alpah`." with "Did you mean `alpha`?" | Correct the name. |
+| "Unknown operation `circel`." with "Did you mean `circle`?" | Correct the operation. |
+| "`bb` works only on a single capital letter." | Use one capital letter: `R.bb`. |
+| "`frak` works only on a single letter, as the first operation." | Put the style operation first: `g.frak.hat`. |
+| "`x` has 4 operations." (warning) | Use at most three, or define a `sym`. |
+| "Operation `deform` comes in phase 1." | Not in the language yet. |
+| "`left` works only after a fence." | Write a fence first: `(x).brace.left`. |
+
+# Brackets and calls
+
+| Message | Fix |
+|:--|:--|
+| "This `(` is not closed." | Add the closing bracket. |
+| "A script needs something before it." | Write the base first: `x_1`. |
+| "This term has two `_` scripts." | Put both in one group: `x_(i j)`. |
+| "`frac` takes 2 arguments, but it has 1." | `frac(top, bottom)`. |
+| "`join` takes two single symbols." | Build each side first: `join(o.up, r.up)`. |
+| "`wrap` needs single symbols as its fences." | `wrap(L.script, x + y)`. |
+| "The rows of this `mat` have different numbers of cells." (warning) | Give each row the same number of cells. A cell can be empty. |
+
+# Document
+
+| Message | Fix |
+|:--|:--|
+| "This file does not state its language version." (warning) | Add `functor: 1` to the front matter. |
+| "The label `eq:nope` does not exist." | Correct the label, or add it. For a plain at sign, write `\@`. |
+| "The label `eq:a` is used twice." | Rename one of them. |
+| "The block `theorem` is not closed." | Add a line `:::`. |
+| "Unknown block `theorm`." | Correct the kind. |
+| "This figure has no caption." (warning) | Add a line `Caption: ...`. |
+| "`set pgae` is not known." | Correct the rule name. |
+| "`nope` is not a fence." | Use a fence name, `none`, or one symbol. |
+| "This math has no closing `$`." | Add `$`. For a dollar sign, write `\$`. |
+
+# Known gaps
+
+- `text(x)` sets its argument as math today. Use quotes for words.
+- `{n}` values do not work in math yet.
+- Lists do not nest yet.
+- Error messages have no stable codes yet.

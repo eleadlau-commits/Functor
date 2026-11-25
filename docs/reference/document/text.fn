@@ -1,0 +1,50 @@
+---
+functor: 1
+title: Text and punctuation
+---
+
+set heading(numbering: none)
+
+A paragraph is lines of text with an empty line before and after it. Functor sets each paragraph itself: it shapes words with the font, hyphenates them with TeX patterns, and picks the line breaks for the whole paragraph.
+
+# Inline marks
+
+| Write | Result |
+|:--|:--|
+| `*italic*` or `_italic_` | *italic* |
+| `**bold**` or `__bold__` | **bold** |
+| a word between two backticks | `code` |
+| `$x.hat$` | inline math: $x.hat$ |
+| `[Functor](https://eleadlau-commits.github.io/Functor/)` | [Functor](https://eleadlau-commits.github.io/Functor/) |
+| `![A plot](plot.svg)` | an image |
+| `[@knuth84]` or `[@a; @b]` | a citation: [@knuth84] |
+| `{n}` | the value of `let n = 3` |
+
+# Punctuation
+
+Functor changes some signs to the correct typographic sign.
+
+| Write | Result | Name |
+|:--|:--|:--|
+| `"text"` | "text" | double quotes |
+| `'text'`, `don't` | 'text', don't | single quotes, apostrophe |
+| `3--5` | 3--5 | en dash, for ranges |
+| `yes---no` | yes---no | em dash |
+| `Theorem~2` | Theorem~2 | a space that does not break |
+
+# Plain signs
+
+A backslash before a sign gives the plain sign.
+
+| Write | Result |
+|:--|:--|
+| `\$` | a dollar sign |
+| `\@` | an at sign |
+| `\*`, `\_` | a star, an underscore |
+| `\{` | a curly bracket |
+| `\"`, `\'`, `\-`, `\~` | the plain quote, apostrophe, hyphen, tilde |
+
+# Things to know
+
+- A line that starts with a declaration word followed by a space is a declaration, for example `let n = 3`. Do not start a line of text with the lowercase words `object`, `sym`, `let`, `set`, `use`, `kind`, `style` or `default`.
+- Math in text can break after `=`, `<` or `+`.

@@ -1,0 +1,46 @@
+---
+functor: 1
+title: Labels and references
+---
+
+set heading(numbering: none)
+
+A label names a heading, an equation or a block. A reference to the label shows its number.
+
+# Labels
+
+| Target | Label |
+|:--|:--|
+| Heading | `# Fields {#sec:fields}` |
+| Display equation | `$$`, the math, then `$$ {#eq:work}` |
+| Block | `::: theorem {#thm:main}` |
+
+A label is a prefix, a colon and a name. The prefix is a convention: `sec`, `eq`, `thm`, `lem`, `def`, `fig`. Each label must be unique.
+
+# References
+
+```fn
+# Fields {#sec:fields}
+
+$$
+W = F cdot d
+$$ {#eq:work}
+
+::: theorem {#thm:main}
+Text.
+:::
+
+See @sec:fields, @eq:work and @thm:main.
+```
+
+| Reference | Shows |
+|:--|:--|
+| `@sec:fields` | Section 1 |
+| `@eq:work` | (1) |
+| `@thm:main` | Theorem 2 |
+
+A reference to a label that does not exist is an error, with a "Did you mean" hint. To write a plain at sign, write `\@`.
+
+# Citations
+
+`[@knuth84]` shows the key in square brackets. `[@a; @b]` gives two keys. Bibliography files come later.

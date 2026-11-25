@@ -1,0 +1,82 @@
+---
+functor: 1
+title: Fences and wrap
+---
+
+set heading(numbering: none)
+
+Brackets are operations. A fence wraps a group or a symbol, and grows with the content.
+
+| Fence | Example | Result |
+|:--|:--|:-:|
+| `paren` | `(a + b).paren` | $(a + b).paren$ |
+| `brack` | `(a + b).brack` | $(a + b).brack$ |
+| `brace` | `(a + b).brace` | $(a + b).brace$ |
+| `angle` | `(a + b).angle` | $(a + b).angle$ |
+| `vbar` | `(x).vbar` | $(x).vbar$ |
+| `floor` | `(x).floor` | $(x).floor$ |
+| `ceil` | `(x).ceil` | $(x).ceil$ |
+
+# Double and one-sided
+
+Write `x2` after a fence to double it. Write `left` or `right` after a fence to keep one side.
+
+| Write | Result |
+|:--|:-:|
+| `(v).vbar.x2` | $(v).vbar.x2$ |
+| `(M).brack.x2` | $(M).brack.x2$ |
+| `(x).brace.left` | $(x).brace.left$ |
+| `(x).angle.right` | $(x).angle.right$ |
+
+# Meaning names
+
+These calls give the meaning, and a rule gives the fence.
+
+| Call | Default fence | Example | Result |
+|:--|:--|:--|:-:|
+| `abs(x)` | `vbar` | `abs(x - y)` | $abs(x - y)$ |
+| `norm(v)` | `vbar.x2` | `norm(v)` | $norm(v)$ |
+| `inner(u, v)` | `angle` | `inner(u, v)` | $inner(u, v)$ |
+| `floor(x)` | `floor` | `floor(frac(n, 2))` | $floor(frac(n, 2))$ |
+| `ceil(x)` | `ceil` | `ceil(x)` | $ceil(x)$ |
+
+```fn
+set norm(fence: vbar)
+set abs(grow: magnify)
+set inner(fence: paren)
+set floor(fence: brack)
+set ceil(fence: brack)
+
+$norm(v) + abs(frac(a, b)) + inner(u, v) + floor(x) + ceil(x)$
+```
+
+# wrap: any symbol as a fence
+
+`wrap(glyph, body)` puts the glyph at the left and the glyph turned left to right at the right. `wrap(left, right, body)` gives two different sides.
+
+| Write | Result |
+|:--|:-:|
+| `wrap(L.script, x + y)` | $wrap(L.script, x + y)$ |
+| `wrap(T.frak, S.frak, a)` | $wrap(T.frak, S.frak, a)$ |
+
+A `sym` can name a fence, and a rule can use it:
+
+```fn
+sym lsf = L.script
+set vec(fence: lsf)
+
+$vec(1, 2)$
+```
+
+# Grow: stretch or magnify
+
+| Value | Result | Good for |
+|:--|:--|:--|
+| `stretch` | only the height grows | brackets and bars |
+| `magnify` | the whole glyph grows | letters and symbols that must keep their shape |
+
+`set wrap(grow: magnify)` sets it for `wrap`. Each kind also has a `grow` option, for example `set vec(grow: magnify)`. Today `stretch` is a plain vertical scale, so thin strokes of a letter become thick. A clean stretch comes with `deform` in phase 1.
+
+# Fence values in rules
+
+A `fence` value in a rule is a fence operation (`brack`, `vbar.x2`, `brace.left`), the word `none`, or any one symbol, for example `L.script` or a `sym`.

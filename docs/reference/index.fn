@@ -1,0 +1,43 @@
+---
+functor: 1
+title: Functor reference
+---
+
+set heading(numbering: none)
+
+Functor is a typesetting language for mathematics. This reference describes each part of the language. Each page is a Functor file, and the compiler builds the pages, so each example on them works.
+
+# Where to start
+
+- [Cheat sheet](cheatsheet.html): the whole language on one page. Read it first. It is also the page to give to an AI model.
+- [From LaTeX](latex.html): each common LaTeX command and its Functor form.
+- [Recipes](symbols/recipes.html): how Functor builds a symbol from a base and operations.
+
+# The parts
+
+| Part | Pages |
+|:--|:--|
+| Document | [File](document/file.html), [Text](document/text.html), [Headings, lists, tables, code](document/parts.html), [Blocks](document/blocks.html), [References](document/references.html), [object, sym, let](document/declarations.html), [Settings](document/settings.html), [All set rules](document/set-rules.html) |
+| Math | [Basics](math/basics.html), [frac, sqrt, text, join](math/calls.html), [Display math and chains](math/display.html) |
+| Symbols | [Recipes](symbols/recipes.html), [Meaning and style](symbols/kinds.html), [Named symbols](symbols/names.html), [Greek](symbols/greek.html), [Functions and spaces](symbols/functions.html), [Operations](symbols/operations.html), [Font composites](symbols/composites.html) |
+| Structures | [Grids, matrices, vectors, cases](structures/grids.html), [Fences and wrap](structures/fences.html) |
+| Help | [Common errors](help/errors.html) |
+
+# Four layers
+
+Functor builds each symbol and each structure in four layers. The reference shows the four layers on each operation page.
+
+| Layer | Job | Example |
+|:--|:--|:--|
+| Meaning | What the object is | `object vec: F`, `mat(1, 0; 0, 1)` |
+| Style | How this kind looks in this document | `set vec(style: arrow)`, `set mat(fence: brack)` |
+| Construction | Which operations make the glyph | `F.arrow`, `sum.circle`, a grid in a fence |
+| Glyph | The outline that is drawn | a font glyph, or a built glyph from the cache |
+
+# Kept in step with the compiler
+
+The lists of symbols, operations, composites and set rules come from the tables in the compiler. The command `functor ref gen` writes them. The tests stop a change when a page is out of date, when an example does not compile, or when a new operation, call, block or set rule has no page.
+
+# For AI models
+
+Each page has its Functor source next to it: change `.html` to `.fn` in the address. The file `llms.txt` lists all sources. Give a model the cheat sheet first. Then let it check its output with `functor check`, because each error has a line, a column and a hint.

@@ -1,0 +1,42 @@
+---
+functor: 1
+title: All set rules
+---
+
+set heading(numbering: none)
+
+A `set` line changes the look of the whole document. Write it on its own line, before the text it changes.
+
+| Rule | Option | Default |
+|:--|:--|:--|
+| `set vec(...)` | `style` | `arrow` |
+| `set vec(...)` | `fence` | `paren` |
+| `set vec(...)` | `body` | `column` |
+| `set vec(...)` | `grow` | `stretch` |
+| `set mat(...)` | `fence` | `paren` |
+| `set mat(...)` | `grow` | `stretch` |
+| `set cases(...)` | `fence` | `brace.left` |
+| `set cases(...)` | `word` | `none` |
+| `set cases(...)` | `grow` | `stretch` |
+| `set binom(...)` | `fence` | `paren` |
+| `set binom(...)` | `grow` | `stretch` |
+| `set abs(...)` | `fence` | `vbar` |
+| `set abs(...)` | `grow` | `stretch` |
+| `set norm(...)` | `fence` | `vbar.x2` |
+| `set norm(...)` | `grow` | `stretch` |
+| `set inner(...)` | `fence` | `angle` |
+| `set inner(...)` | `grow` | `stretch` |
+| `set floor(...)` | `fence` | `floor` |
+| `set floor(...)` | `grow` | `stretch` |
+| `set ceil(...)` | `fence` | `ceil` |
+| `set ceil(...)` | `grow` | `stretch` |
+| `set wrap(...)` | `grow` | `stretch` |
+| `set document(...)` | `style` | `quiet` |
+| `set document(...)` | `accent` | `none` |
+| `set heading(...)` | `numbering` | `on` |
+| `set page(...)` | `size` | `a4` |
+| `set page(...)` | `margin` | `2.5cm` |
+| `set text(...)` | `size` | `11pt` |
+| `set text(...)` | `font` | `Functor LM` |
+
+A `fence` value is a fence operation such as `brack` or `vbar.x2`, the word `none`, or any one symbol, for example a `sym`. A `grow` value is `stretch` or `magnify`.

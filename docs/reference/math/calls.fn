@@ -1,0 +1,36 @@
+---
+functor: 1
+title: frac, sqrt, text, join
+---
+
+set heading(numbering: none)
+
+A call is a name and arguments in round brackets, with commas between them. Structure calls such as `mat(...)` are on [Grids, matrices, vectors, cases](structures/grids.html) and [Fences and wrap](structures/fences.html).
+
+| Call | Arguments | Result |
+|:--|:--|:-:|
+| `frac(a, b)` | top, bottom | $frac(a, b)$ |
+| `sqrt(x)` | one | $sqrt(x^2 + y^2)$ |
+| `binom(n, k)` | top, bottom | $binom(n, k)$ |
+| `join(o.up, r.up)` | two single symbols | $join(o.up, r.up)$ |
+| `text(x)` | one | $text(x)$ |
+
+# frac
+
+`frac(a + b, 2)`. In display math the parts are full size. In text they are smaller.
+
+# sqrt
+
+`sqrt(x)` draws the root sign over its argument. The sign grows with the content. The n-th root has no form yet.
+
+# join
+
+`join(a, b)` sets two symbols so that they touch and become one glyph. Build each side first: `join(circ, r.up)`. The logo of Functor uses `join(o.up, r.up.arrow)`.
+
+# text
+
+Today `text(x)` sets its argument as math, the same as `x`. For upright words, use quotes: `"if"`. See [Common errors](help/errors.html).
+
+# Wrong number of arguments
+
+A call with the wrong number of arguments is an error, and the hint shows the correct form, for example "Write `frac(top, bottom)`."

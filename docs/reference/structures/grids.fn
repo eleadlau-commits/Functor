@@ -1,0 +1,88 @@
+---
+functor: 1
+title: Grids, matrices, vectors, cases
+---
+
+set heading(numbering: none)
+
+A matrix, a vector and cases are grids in a fence. In a grid, a comma ends a cell and a semicolon ends a row. New lines are free space.
+
+| Write | Result |
+|:--|:-:|
+| `mat(1, 0; 0, 1)` | $mat(1, 0; 0, 1)$ |
+| `vec(1, 2, 3)` | $vec(1, 2, 3)$ |
+| `cases(x, x ge 0; -x, x lt 0)` | $cases(x, x ge 0; -x, x lt 0)$ |
+| `binom(n, k)` | $binom(n, k)$ |
+| `grid(a, b; c, d)` | $grid(a, b; c, d)$ |
+
+The four layers:
+
+| Layer | For a matrix |
+|:--|:--|
+| Meaning | `mat(1, 0; 0, 1)` says "this is a matrix" |
+| Style | `set mat(fence: brack)` sets the look of all matrices |
+| Construction | a `grid` in a fence |
+| Layout | cells in columns, a fence that grows with the content |
+
+# grid
+
+`grid(a, b; c, d)` is the layout with no meaning and no fence. Prefer `mat`, `vec` or `cases`, because a rule can change them. A cell can be empty: `grid(a, , c; d, e, f)`. Rows with different numbers of cells give a warning.
+
+# mat
+
+```fn
+set mat(fence: brack)
+
+$$
+A = mat(
+  a_11, a_12;
+  a_21, a_22
+)
+$$
+```
+
+| Rule | Values | Default |
+|:--|:--|:--|
+| `set mat(fence: ...)` | a fence | `paren` |
+| `set mat(grow: ...)` | `stretch`, `magnify` | `stretch` |
+
+A determinant is a matrix with bars: `set mat(fence: vbar)` for all matrices, or `(grid(a, b; c, d)).vbar` for one.
+
+# vec
+
+`vec(x)` is a named vector. `vec(1, 2, 3)` is a vector with components. Both are the same kind, so one rule changes both.
+
+```fn
+set vec(style: bold, fence: angle, body: row)
+
+$vec(v) = vec(1, 2, 3)$
+```
+
+| Rule | Values | Default |
+|:--|:--|:--|
+| `set vec(style: ...)` | `arrow`, `bold` | `arrow` |
+| `set vec(fence: ...)` | a fence | `paren` |
+| `set vec(body: ...)` | `column`, `row` | `column` |
+| `set vec(grow: ...)` | `stretch`, `magnify` | `stretch` |
+
+# cases
+
+Each row is a value and a condition.
+
+```fn
+set cases(word: "if")
+
+$$
+abs(x) = cases(x, x ge 0; -x, x lt 0)
+$$
+```
+
+| Rule | Values | Default |
+|:--|:--|:--|
+| `set cases(fence: ...)` | a fence | `brace.left` |
+| `set cases(word: ...)` | text before each condition | none |
+| `set cases(grow: ...)` | `stretch`, `magnify` | `stretch` |
+
+# binom
+
+`binom(n, k)`. Rules: `set binom(fence: ...)`, `set binom(grow: ...)`.

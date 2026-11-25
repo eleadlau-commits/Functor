@@ -8,6 +8,7 @@ pub mod linebreak;
 pub mod math;
 pub mod page;
 pub mod pdf;
+pub mod reference;
 pub mod render;
 pub mod symbols;
 pub mod text;

@@ -1,0 +1,87 @@
+---
+functor: 1
+title: Blocks
+---
+
+set heading(numbering: none)
+
+A block starts with `:::` and a kind, and ends with a line `:::`. Blocks can hold paragraphs, math, lists and other blocks.
+
+```fn
+::: theorem {#thm:main title="Closed work"}
+If $F = nabla phi$, then the work around a loop is zero.
+:::
+```
+
+# Kinds
+
+| Kind | Number | Use |
+|:--|:--|:--|
+| `theorem` | yes | a main result |
+| `lemma` | yes | a step to a result |
+| `corollary` | yes | a result that follows |
+| `proposition` | yes | a smaller result |
+| `definition` | yes | a new term |
+| `example` | yes | an example |
+| `remark` | yes | a comment |
+| `proof` | no | a proof, with an end mark |
+| `note` | no | a side note |
+| `figure` | own count | an image or a table with a caption |
+| `quote` | no | a quotation |
+
+The numbered kinds share one count: Theorem 1, Lemma 2, Definition 3.
+
+# Options
+
+| Option | Example | Result |
+|:--|:--|:--|
+| label | `{#thm:main}` | `@thm:main` shows "Theorem 1" |
+| `title` | `title="Closed work"` | a name after the number |
+| `width` | `width="60%"` | the width of a figure |
+
+# One example of each kind
+
+```fn
+::: lemma {#lem:a}
+Text.
+:::
+
+::: corollary
+Text.
+:::
+
+::: proposition
+Text.
+:::
+
+::: definition {#def:est title="Estimate"}
+An estimate of $theta$ is $theta.hat$.
+:::
+
+::: example
+Text.
+:::
+
+::: remark
+Text.
+:::
+
+::: proof
+Use @lem:a.
+:::
+
+::: note
+Text.
+:::
+
+::: figure {#fig:plot width="60%"}
+![A plot](plot.svg)
+Caption: The plot of $f$.
+:::
+
+::: quote
+Text.
+:::
+```
+
+A figure needs a line `Caption: ...`. Without it, the compiler gives a warning.

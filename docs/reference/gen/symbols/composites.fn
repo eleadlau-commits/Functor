@@ -1,0 +1,47 @@
+---
+functor: 1
+title: Font composites
+---
+
+set heading(numbering: none)
+
+These recipes have a glyph in the font, so the compiler uses it. All other recipes are built from the base and the operations, and kept in a cache.
+
+| Recipe | Result | Unicode |
+|:--|:-:|:--|
+| `integral.circle` | $integral.circle$ | U+222E |
+| `integral.x2` | $integral.x2$ | U+222C |
+| `integral.x3` | $integral.x3$ | U+222D |
+| `integral.x2.circle` | $integral.x2.circle$ | U+222F |
+| `integral.x3.circle` | $integral.x3.circle$ | U+2230 |
+| `plus.circle` | $plus.circle$ | U+2295 |
+| `minus.circle` | $minus.circle$ | U+2296 |
+| `times.circle` | $times.circle$ | U+2297 |
+| `cdot.circle` | $cdot.circle$ | U+2299 |
+| `plus.box` | $plus.box$ | U+229E |
+| `minus.box` | $minus.box$ | U+229F |
+| `times.box` | $times.box$ | U+22A0 |
+| `cdot.box` | $cdot.box$ | U+22A1 |
+| `in.not` | $in.not$ | U+2209 |
+| `ni.not` | $ni.not$ | U+220C |
+| `eq.not` | $eq.not$ | U+2260 |
+| `lt.not` | $lt.not$ | U+226E |
+| `gt.not` | $gt.not$ | U+226F |
+| `le.not` | $le.not$ | U+2270 |
+| `ge.not` | $ge.not$ | U+2271 |
+| `sim.not` | $sim.not$ | U+2241 |
+| `approx.not` | $approx.not$ | U+2249 |
+| `equiv.not` | $equiv.not$ | U+2262 |
+| `subset.not` | $subset.not$ | U+2284 |
+| `supset.not` | $supset.not$ | U+2285 |
+| `subseteq.not` | $subseteq.not$ | U+2288 |
+| `supseteq.not` | $supseteq.not$ | U+2289 |
+| `exists.not` | $exists.not$ | U+2204 |
+| `mid.not` | $mid.not$ | U+2224 |
+| `parallel.not` | $parallel.not$ | U+2226 |
+| `E.flip` | $E.flip$ | U+2203 |
+| `A.turn` | $A.turn$ | U+2200 |
+| `Delta.turn` | $Delta.turn$ | U+2207 |
+| `h.cross` | $h.cross$ | U+210F |
+| `to.flip` | $to.flip$ | U+2190 |
+| `implies.flip` | $implies.flip$ | U+21D0 |

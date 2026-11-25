@@ -1,0 +1,41 @@
+---
+functor: 1
+title: small
+---
+
+set heading(numbering: none)
+
+`small` · magnify · a smaller version, about four fifths.
+
+# Form
+
+`x.small` on a symbol, `(a + b).small` on a group. A recipe has one base and up to three operations.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `T.up.small` | $T.up.small$ | built and cached |
+| `x.small` | $x.small$ | built and cached |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | A smaller version, about four fifths. A guideline, not a rule. |
+| Style | Use a `sym` to give a recipe a short name. |
+| Construction | A smaller or larger copy of the base. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- More than three operations on one base gives a warning.
+- Scales the base to four fifths of its size.
+
+# From LaTeX
+
+no direct LaTeX command.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)

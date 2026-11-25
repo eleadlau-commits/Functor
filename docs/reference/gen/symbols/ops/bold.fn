@@ -1,0 +1,42 @@
+---
+functor: 1
+title: bold
+---
+
+set heading(numbering: none)
+
+`bold` · style · a new kind of object, often a vector.
+
+# Form
+
+`x.bold` on a symbol, `(a + b).bold` on a group. A recipe has one base and up to three operations.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `v.bold` | $v.bold$ | font letter |
+| `A.bold` | $A.bold$ | font letter |
+| `sum.bold` | $sum.bold$ | font letter |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | A new kind of object, often a vector. A guideline, not a rule. |
+| Style | For a kind of object, prefer `object` and a `set` rule. Use the operation for fixed notation, such as `R.bb`. |
+| Construction | Another alphabet for a letter: bold, double-struck, fraktur, script, upright. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- More than three operations on one base gives a warning.
+- On a single letter as the first operation, it uses the bold letter of the font. On any other base, it makes the strokes thicker.
+
+# From LaTeX
+
+`\mathbf{A}` and `\boldsymbol{v}` become `A.bold` and `v.bold`.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)
