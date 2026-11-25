@@ -349,3 +349,22 @@ pub fn all_names() -> Vec<&'static str> {
     v.extend(SPACES.iter().map(|(n, _)| *n));
     v
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::glyph::Glyph;
+
+    #[test]
+    fn every_named_symbol_has_a_glyph() {
+        let missing: Vec<&str> = NAMES.iter().filter(|n| Glyph::from_font(n.cp, false).is_none()).map(|n| n.name).collect();
+        assert!(missing.is_empty(), "no glyph for {missing:?}");
+    }
+
+    #[test]
+    fn dots_is_built_from_three_periods() {
+        let dots = Glyph::from_font(0x2026, false).unwrap();
+        let period = Glyph::from_font(0x2E, false).unwrap();
+        assert!((dots.w - (3.0 * period.w + 2.0 * 1000.0 * 3.0 / 18.0)).abs() < 1e-6);
+    }
+}

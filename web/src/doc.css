@@ -4,9 +4,11 @@
   --fn-rule: #d9d9e0;
   --fn-accent: #4a6a85;
   --fn-error: #c0322b;
-  font-family: var(--fn-font, "Latin Modern Roman", "CMU Serif", "STIX Two Text", "Times New Roman", serif);
+  font-family: var(--fn-font, "Functor LM", "Latin Modern Roman", "CMU Serif", "STIX Two Text", "Times New Roman", serif);
   font-size: var(--fn-text-size, 11pt);
-  line-height: 1.45;
+  line-height: 1.24;
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
   color: var(--fn-ink);
   background: #fff;
   max-width: 42em;
@@ -23,7 +25,7 @@
 .fn-doc h3 { font-size: 1.12em; margin: 1.4em 0 .5em; }
 .fn-doc h4, .fn-doc h5, .fn-doc h6 { font-size: 1em; margin: 1.2em 0 .4em; }
 .fn-doc .fn-num { margin-right: .6em; }
-.fn-doc p { margin: .6em 0; text-align: justify; hyphens: auto; }
+.fn-doc p { margin: .6em 0; text-align: justify; hyphens: auto; text-wrap: pretty; }
 .fn-doc .fn-equation { display: flex; align-items: center; justify-content: center; position: relative; margin: .9em 0; }
 .fn-doc .fn-eqnum { position: absolute; right: 0; }
 .fn-doc .fn-env { margin: 1em 0; }
