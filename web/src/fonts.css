@@ -1,12 +1,5 @@
-<<<<<<< HEAD
 @font-face { font-family: "Functor LM"; font-style: normal; font-weight: 400; font-display: block; src: url("./fonts/functor-lm-regular.woff2") format("woff2"); }
 @font-face { font-family: "Functor LM"; font-style: italic; font-weight: 400; font-display: block; src: url("./fonts/functor-lm-italic.woff2") format("woff2"); }
 @font-face { font-family: "Functor LM"; font-style: normal; font-weight: 700; font-display: block; src: url("./fonts/functor-lm-bold.woff2") format("woff2"); }
 @font-face { font-family: "Functor LM"; font-style: italic; font-weight: 700; font-display: block; src: url("./fonts/functor-lm-bolditalic.woff2") format("woff2"); }
 @font-face { font-family: "Functor LM Mono"; font-style: normal; font-weight: 400; font-display: block; src: url("./fonts/functor-lm-mono.woff2") format("woff2"); }
-=======
-@font-face { font-family: "Functor LM"; font-style: normal; font-weight: 400; font-display: swap; src: url("./fonts/functor-lm-regular.woff2") format("woff2"); }
-@font-face { font-family: "Functor LM"; font-style: italic; font-weight: 400; font-display: swap; src: url("./fonts/functor-lm-italic.woff2") format("woff2"); }
-@font-face { font-family: "Functor LM"; font-style: normal; font-weight: 700; font-display: swap; src: url("./fonts/functor-lm-bold.woff2") format("woff2"); }
-@font-face { font-family: "Functor LM"; font-style: italic; font-weight: 700; font-display: swap; src: url("./fonts/functor-lm-bolditalic.woff2") format("woff2"); }
->>>>>>> 5afaedfbc3e1163eebc86e03ce5cd2560ff6aed7
