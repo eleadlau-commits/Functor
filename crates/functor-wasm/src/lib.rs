@@ -74,3 +74,14 @@ pub unsafe extern "C" fn glyph(ptr: *const u8, len: usize) -> usize {
 pub extern "C" fn symbols() -> usize {
     set_result(functor_core::symbols_json())
 }
+
+#[no_mangle]
+pub extern "C" fn cache_export() -> usize {
+    let dirty = functor_core::glyph::take_dirty();
+    set_result(if dirty { functor_core::glyph::export_cache() } else { String::new() })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cache_import(ptr: *const u8, len: usize) -> usize {
+    functor_core::glyph::import_cache(&input(ptr, len))
+}

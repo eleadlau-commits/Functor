@@ -9,6 +9,7 @@ pub enum Inline {
     Image { alt: String, src: String },
     Ref { label: String, line: usize, col: usize },
     Cite(Vec<String>),
+    Note(Vec<Inline>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

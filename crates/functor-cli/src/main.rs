@@ -1,3 +1,4 @@
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::Instant;
 
@@ -11,7 +12,9 @@ functor check <file.fn>
 functor glyph <recipe>
 functor bench [file.fn]
 functor ref gen [docs/reference]
-functor ref build <out-dir> [docs/reference]";
+functor ref build <out-dir> [docs/reference]
+
+Built glyphs are kept in a disk cache. Set FUNCTOR_CACHE_DIR to move it, or pass --no-cache.";
 
 const BENCH_SYMBOLS: &[&str] = &[
     "sum.circle", "prod.circle", "union.circle", "inter.box", "integral.flip", "theta.hat", "theta.tilde", "theta.bar",
@@ -82,6 +85,30 @@ fn page(body: &str, title: &str) -> String {
     )
 }
 
+fn cache_file() -> Option<PathBuf> {
+    let env = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty()).map(PathBuf::from);
+    let dir = env("FUNCTOR_CACHE_DIR")
+        .or_else(|| env("XDG_CACHE_HOME").map(|d| d.join("functor")))
+        .or_else(|| env("LOCALAPPDATA").map(|d| d.join("functor")))
+        .or_else(|| env("HOME").map(|d| d.join(".cache").join("functor")))?;
+    Some(dir.join("glyphs.txt"))
+}
+
+fn load_cache(file: &Path) -> usize {
+    std::fs::read_to_string(file).map(|t| glyph::import_cache(&t)).unwrap_or(0)
+}
+
+fn save_cache(file: &Path) {
+    if !glyph::take_dirty() {
+        return;
+    }
+    let Some(dir) = file.parent() else { return };
+    let tmp = file.with_extension("tmp");
+    let _ = std::fs::create_dir_all(dir)
+        .and_then(|_| std::fs::write(&tmp, glyph::export_cache()))
+        .and_then(|_| std::fs::rename(&tmp, file));
+}
+
 fn ms(t: Instant) -> f64 {
     t.elapsed().as_secs_f64() * 1000.0
 }
@@ -135,6 +162,15 @@ fn bench(file: Option<&str>) -> Result<bool, String> {
         println!("document  {path}: {} lines, {} errors", src.lines().count(), out.errors());
         println!("          first {:.2} ms, median warm {:.2} ms  gate < 100 ms: {}", first, runs[runs.len() / 2], pass(gate_doc));
         println!("          glyphs built {}, cache hits {}, from font {}", out.stats.built, out.stats.hits, out.stats.from_font);
+        let text = glyph::export_cache();
+        let t = Instant::now();
+        glyph::clear_cache();
+        let n = glyph::import_cache(&text);
+        let load = ms(t);
+        let t = Instant::now();
+        compile(&src);
+        let after = ms(t);
+        println!("disk      {} glyphs, {} bytes, load {:.3} ms, then compile {:.2} ms", n, text.len(), load, after);
     }
     Ok(ok)
 }
@@ -148,6 +184,20 @@ fn pass(b: bool) -> &'static str {
 }
 
 fn run(args: &[String]) -> Result<bool, String> {
+    let disk = !args.iter().any(|a| a == "--no-cache");
+    let args: Vec<String> = args.iter().filter(|a| *a != "--no-cache").cloned().collect();
+    let file = cache_file().filter(|_| disk && args.first().is_some_and(|c| c != "bench"));
+    if let Some(f) = &file {
+        load_cache(f);
+    }
+    let result = run_cmd(&args);
+    if let Some(f) = &file {
+        save_cache(f);
+    }
+    result
+}
+
+fn run_cmd(args: &[String]) -> Result<bool, String> {
     let cmd = args.first().map(String::as_str).unwrap_or("");
     match cmd {
         "compile" | "check" => {
@@ -322,5 +372,18 @@ mod tests {
         let html = page("<p>x</p>", "t");
         assert!(html.starts_with("<!doctype html><html lang=\"en\">"));
         assert_eq!(html.matches("font/woff2;base64,").count(), 5);
+    }
+
+    #[test]
+    fn cache_file_survives_a_round_trip() {
+        let dir = std::env::temp_dir().join(format!("functor-cache-test-{}", std::process::id()));
+        let file = dir.join("glyphs.txt");
+        glyph::clear_cache();
+        glyph_svg("sum.circle").unwrap();
+        save_cache(&file);
+        glyph::clear_cache();
+        assert_eq!(load_cache(&file), 1);
+        assert!(!glyph::take_dirty());
+        let _ = std::fs::remove_dir_all(dir);
     }
 }
