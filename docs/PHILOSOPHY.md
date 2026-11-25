@@ -21,7 +21,7 @@ These are guidelines. The compiler gives a warning, not an error, when you go ag
 - Use at most three operations on one symbol. If you need more, define a `sym` with a clear name.
 - Use the operation whose meaning fits. `hat` is a derived object, `tilde` is a related object, `not` is negation.
 - Put meaning in the source and style in one rule. Do not write `F.arrow` in each place. Write `object vec: F` once.
-- `deform` is the most general operation. In version 1 it changes existing symbols only. It comes in phase 1.
+- `deform` is the most general operation. In version 1 it changes existing symbols only. Phase 1 has the first kind: grow along one axis.
 - Speed is part of the design. The compiler builds glyphs at compile time and keeps each recipe in a cache.
 
 ## Priorities
@@ -64,9 +64,9 @@ Matrices, vectors, cases and aligned equations use the same four layers as symbo
 | Meaning | 1 | 4 | Kinds: `mat`, `vec`, `cases`, `binom`, `abs`, `norm`, `inner`, `floor`, `ceil`. | Own kinds wait for `kind` in phase 1. |
 | Style | 1 | 4 | One rule for each kind: `fence`, `grow`, `body`, `word`. A fence can be any symbol. | Named matrices (`object mat: A`) have no style yet. |
 | Construction | 0 | 4 | One `grid`. Fences are an operation family on any group, and `x2` doubles them. `wrap` takes any glyph. | The align point of a chain is always the first relation. |
-| Layout | 1 | 3 | Columns, rows and fences that grow. | `stretch` is a plain vertical scale, so thin strokes get thick. Good stretch needs `deform`. |
+| Layout | 1 | 4 | Columns, rows and fences that grow. Since phase 1, `stretch` uses `deform`, so thin strokes stay thin. | The align point of a chain is always the first relation. |
 
-Total: 15 of 20.
+Total: 16 of 20 (15 before phase 1 deform).
 
 ### Decision: Functor draws its own math
 
@@ -106,3 +106,40 @@ flowchart LR
 | Speed | 5 | 5 | Disk load 0.04 ms for 22 glyphs. Sample document 0.9–1.7 ms after load. | Built glyphs cost less than 1 ms now, so the gain is small today. It grows with `deform`. |
 
 Total: 20 of 20 for the cache. The four layers do not change: Meaning 4, Style 3, Construction 3, Glyph 3. The glyph gap is still stroke weight, not the cache.
+
+## Phase 1 deform
+
+`deform` changes the outline of an existing glyph. Version 1 has one kind: grow along one axis. It moves points and keeps the parts that have detail.
+
+```mermaid
+flowchart LR
+  A["Glyph outline"] --> B["Cut into 48 bands<br/>along the axis"]
+  B --> C["Score each band<br/>flat parts, many strokes, ends"]
+  C --> D["Give the extra length<br/>to the plain bands"]
+  D --> E["Split curves at band edges<br/>and move the points"]
+  E --> F["New outline<br/>in the recipe cache"]
+```
+
+- A band with flat parts (serifs, the ends of a bracket, the tip of a brace) keeps its size.
+- A band with more strokes than the plainest band (the loop of a script L) keeps its size.
+- The 22% at each end of the glyph grows less, so terminals keep their shape.
+- Each curve is split where it crosses a band edge. In one band the move is a plain scale, so the curve stays exact.
+
+Where it is used:
+
+- `tall` and `wide` are deform operations. `to.wide` is a long arrow.
+- Fences with `grow: stretch` (the default) and the radical use deform. Only one fifth of the growth (as a power) is magnify, so large fences get a little heavier, as in good print.
+- The cache key is the glyph and the size rounded up to 2%. Similar heights share one glyph.
+
+| Principle | Score | What phase 1 deform does | Gap |
+|:--|:-:|:--|:--|
+| Deform is the most general operation | 3 | One kind of deform with two operations and the fence growth. | No bend, slant or taper yet. No deform on a group. |
+| Existing symbols only (v1) | 5 | Deform takes any glyph: font, built or styled. | None. |
+| Construction layer | 4 | 35 operations in 9 families. | `fuse` is not there yet. |
+| Glyph layer | 4 | Stretched fences and letters keep their stroke weight. | The rule of a radical has a fixed weight. |
+| Speed | 5 | About 0.2 ms for each new deformed glyph. Sample document: first compile 3.6 ms (was 1.6 ms), warm 0.9 ms. Gate 100 ms. | None. |
+
+### Key hiccups
+
+- Font outlines have no close command. The open end made a straight edge that did not follow the bands, so `⟩` was lopsided. Deform now closes each outline first.
+- The loop of a script L has near vertical sides, so the first version stretched the loop. A count of strokes in each band fixed it.

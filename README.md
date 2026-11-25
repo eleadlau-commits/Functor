@@ -14,7 +14,7 @@ $$
 
 ## Status
 
-Phase 0. The compiler, the glyph builder and the compile website work. Some parts come in phase 1: own kinds, `deform`, `fuse`, `stretch`, labels on single rows of an aligned chain, packages and page layout for print.
+Phase 0. The compiler, the glyph builder and the compile website work. Phase 1 has started: `deform` works (`tall`, `wide`, and fences that grow). Some parts come later: own kinds, `fuse`, labels on single rows of an aligned chain, packages and page layout for print.
 
 ## Use the website
 
@@ -165,7 +165,7 @@ A `fence` value is a fence operation (`brack`, `vbar.x2`, `brace.left`), `none`,
 
 **Fences are operations.** `(a + b).angle` gives ⟨a + b⟩. `x2` doubles a fence: `(v).vbar.x2` gives ‖v‖ and `(M).brack.x2` gives ⟦M⟧. `left` and `right` keep one side: `(x).brace.left`.
 
-**Any glyph can be a fence.** `wrap(L.script, x + y)` puts L at the left and L turned left to right at the right. `wrap(T.frak, S.frak, a)` gives two different sides. The fence grows with the content: `stretch` makes only the height larger, and `magnify` makes the whole glyph larger.
+**Any glyph can be a fence.** `wrap(L.script, x + y)` puts L at the left and L turned left to right at the right. `wrap(T.frak, S.frak, a)` gives two different sides. The fence grows with the content: `stretch` deforms the glyph, so the straight parts grow and the ends and thin strokes keep their shape. `magnify` makes the whole glyph larger.
 
 **Aligned equations.** In display math, a new line starts a new row. The rows align at the first relation. A line that starts with a relation continues the left side. New lines inside brackets do not start a row.
 
@@ -208,6 +208,8 @@ A recipe is a base and up to three operations: `base.op1.op2.op3`. Operations al
 | `script` | style | a family, a category or a transform |
 | `up` | style | a constant, a unit or a name |
 | `small` | magnify | a smaller version, about four fifths |
+| `tall` | deform | a taller version; the straight parts grow and the ends keep their shape |
+| `wide` | deform | a wider version, such as a long arrow; the ends keep their shape |
 | `paren` | fence | round brackets, a group or a tuple |
 | `brack` | fence | square brackets, a group or a matrix |
 | `brace` | fence | curly brackets, a set |

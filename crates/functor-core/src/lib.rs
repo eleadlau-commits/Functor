@@ -1,4 +1,5 @@
 pub mod ast;
+pub mod deform;
 pub mod diag;
 pub mod doc;
 pub mod glyph;
