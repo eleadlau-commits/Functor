@@ -228,3 +228,37 @@ Total for diagrams: 14 of 20 (0 before). Matrices stay at 16 of 20.
 
 - The first test for "can this glyph grow" also needed the fewest crossings, so `implies` (two bars) failed. The test now looks only at straight bands.
 - A bar `|` inside a table cell ends the cell, so the reference tables do not show `diagram` code. The examples are in code blocks.
+
+## Arrow kinds, Greek rule, Yoneda glyph
+
+The symbol audit left three gaps. This change closes them.
+
+```mermaid
+flowchart LR
+  M["Meaning<br/><code>f: A mono B</code>"] --> S["Style<br/><code>set mono(style: hook)</code>"]
+  S --> N["Glyph name<br/><code>incl</code> ↪"]
+  G["<code>phi</code> in the source"] --> R["<code>set greek(phi: alt)</code>"] --> P["ϕ"]
+  Y["<code>yo</code>"] --> B["Built outline<br/>U+3088 よ"]
+```
+
+- `mono`, `epi` and `incl` are arrow kinds. A rule picks one of four glyph names: `tail` (`mono` ↣), `twohead` (`epi` ↠), `hook` (`incl` ↪), `plain` (`to` →). Each glyph keeps one name, so the duplicate rule and its tests do not change. The rule works in diagrams.
+- `set greek(phi: alt, pi: up)` puts a style operation in front of each use of the letter. A style operation in the source wins. `alt` works only on the six letters with a second form; the others give an error with the list.
+- `yo` is the only symbol that needs a new glyph. The font has no よ, so the glyph builder draws it from two brush strokes. The width of a stroke follows its direction (vertical parts thick, horizontal parts thin) and the tail gets thinner. The result is a filled outline, so it has a stroke weight near the font, not the fixed weight of built strokes. A typed よ gives the same glyph.
+
+| Principle | Before | Now | Gap |
+|:--|:-:|:-:|:--|
+| Meaning layer | 4 | 5 | Built-in kinds only. Own kinds still wait for `kind`. |
+| Style layer | 4 | 5 | Rules exist for Greek letters and arrows. There is no rule for other symbol forms yet, such as `set le(style: slant)`. |
+| Construction layer | 5 | 5 | No new operations. |
+| Glyph layer | 5 | 5 | `yo` is drawn in code. It is close to the font weight, but it is not from a type designer. |
+| Guidelines, not rules | 5 | 5 | Bad values give an error with a "Did you mean" hint. |
+| Speed | 5 | 5 | The `yo` outline is about 120 points. Symbol bench worst 1.16 ms (gate 5 ms). Reference page 0.41 ms warm (gate 100 ms). |
+| Tight grammar | 4 | 4 | One new name (`yo`) and two new `set` targets. No new syntax. |
+| Personal use | 3 | 3 | No change. |
+
+Total: 37 of 40 (35 before). Diagrams: Style goes from 3 to 4, because one rule now sets the arrow head of each kind. Diagrams total 15 of 20.
+
+### Key hiccups
+
+- The first よ had a small loop and a thick stem, so the counter almost closed. A larger loop and thinner strokes fixed it.
+- `set greek` takes 25 option names. The generated set rules page shows one row for it, not 25.

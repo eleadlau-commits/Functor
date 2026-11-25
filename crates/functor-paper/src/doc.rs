@@ -324,6 +324,25 @@ impl DocParser<'_> {
                         self.diags.error(n, arg_col, format!("`{v}` is not a diagram gap."), Some("Use `small`, `normal` or `large`.".into()));
                     }
                 }
+                (t, "style") if crate::symbols::ARROW_KINDS.contains(&t) => {
+                    if crate::symbols::arrow_style(&v).is_some() {
+                        self.env.kinds.insert(format!("{t}.style"), v);
+                    } else {
+                        let names = crate::symbols::ARROW_STYLES.iter().map(|(s, _, _)| *s);
+                        let hint = did_you_mean(&v, names).map(|s| format!("Did you mean `{s}`?"));
+                        self.diags.error(n, arg_col, format!("`{v}` is not an arrow style."), hint.or(Some("Use `tail` (↣), `twohead` (↠), `hook` (↪) or `plain` (→).".into())));
+                    }
+                }
+                ("greek", letter) => {
+                    let i = crate::symbols::greek_index(letter).unwrap_or(0);
+                    if !crate::symbols::GREEK_STYLES.contains(&v.as_str()) {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a style of a Greek letter."), Some("Use `alt`, `up` or `bold`.".into()));
+                    } else if crate::symbols::styled_greek(&v, i).is_none() {
+                        self.diags.error(n, arg_col, format!("`{letter}` has no other common form."), Some("`alt` works on epsilon, theta, kappa, phi, rho and pi.".into()));
+                    } else {
+                        self.env.kinds.insert(format!("greek.{letter}"), v);
+                    }
+                }
                 ("cases", "word") => {
                     self.env.kinds.insert("cases.word".into(), v);
                 }

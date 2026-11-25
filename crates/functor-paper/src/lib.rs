@@ -133,6 +133,17 @@ mod tests {
     }
 
     #[test]
+    fn set_rules_for_arrow_kinds_and_greek() {
+        let ok = compile("---\nfunctor: 1\n---\n\nset mono(style: hook)\nset epi(style: plain)\nset greek(phi: alt, pi: up)\n\n$f: A mono B$, $phi + pi + yo(A)$\n");
+        assert!(ok.diagnostics.is_empty(), "{:?}", ok.diagnostics);
+        let bad = compile("---\nfunctor: 1\n---\n\nset mono(style: hooks)\nset greek(alpha: alt)\nset greek(phi: script)\nset greek(phy: alt)\n");
+        assert_eq!(bad.errors(), 4, "{:?}", bad.diagnostics);
+        assert!(bad.diagnostics.iter().any(|d| d.hint.as_deref() == Some("Did you mean `hook`?")));
+        assert!(bad.diagnostics.iter().any(|d| d.message == "`alpha` has no other common form."));
+        assert!(bad.diagnostics.iter().any(|d| d.hint.as_deref() == Some("Did you mean `phi`?")));
+    }
+
+    #[test]
     fn document_style_rules() {
         let quiet = compile("---\nfunctor: 1\n---\n\nText.\n");
         assert!(quiet.html.contains("fn-doc fn-style-quiet"));

@@ -127,6 +127,7 @@ impl Glyph {
                 }
                 Some(Glyph { w: dot.w * 3.0 + gap * 2.0, h: dot.h, d: dot.d, items, italic: false })
             }
+            0x3088 => Some(yo_glyph()),
             _ => None,
         }
     }
@@ -346,6 +347,67 @@ impl Glyph {
             body
         )
     }
+}
+
+type Cubic = [(f64, f64); 4];
+
+const YO_BAR: &[Cubic] = &[[(318.0, 442.0), (380.0, 446.0), (450.0, 452.0), (520.0, 462.0)]];
+
+const YO_STEM: &[Cubic] = &[
+    [(300.0, 690.0), (300.0, 520.0), (300.0, 330.0), (300.0, 160.0)],
+    [(300.0, 160.0), (300.0, 60.0), (256.0, 0.0), (180.0, 0.0)],
+    [(180.0, 0.0), (100.0, 0.0), (50.0, 44.0), (50.0, 106.0)],
+    [(50.0, 106.0), (50.0, 190.0), (146.0, 250.0), (284.0, 250.0)],
+    [(284.0, 250.0), (420.0, 250.0), (520.0, 180.0), (590.0, 70.0)],
+];
+
+fn yo_glyph() -> Glyph {
+    let items = [brush(YO_BAR, 0.55), brush(YO_STEM, 0.35)]
+        .into_iter()
+        .map(|p| Item { shape: Shape::Outline(Rc::from(p.as_str())), tf: Affine::ID, bold: false })
+        .collect();
+    Glyph { w: 650.0, h: 690.0, d: 15.0, items, italic: false }
+}
+
+fn brush(curves: &[Cubic], end: f64) -> String {
+    let (thin, thick) = (30.0, 66.0);
+    let steps = 24;
+    let mut pts: Vec<(f64, f64)> = Vec::new();
+    for c in curves {
+        for k in 0..=steps {
+            if k == 0 && !pts.is_empty() {
+                continue;
+            }
+            let t = k as f64 / steps as f64;
+            let u = 1.0 - t;
+            let b = [u * u * u, 3.0 * u * u * t, 3.0 * u * t * t, t * t * t];
+            pts.push((
+                b[0] * c[0].0 + b[1] * c[1].0 + b[2] * c[2].0 + b[3] * c[3].0,
+                b[0] * c[0].1 + b[1] * c[1].1 + b[2] * c[2].1 + b[3] * c[3].1,
+            ));
+        }
+    }
+    let n = pts.len();
+    let mut left = Vec::with_capacity(n);
+    let mut right = Vec::with_capacity(n);
+    for i in 0..n {
+        let (a, b) = (pts[i.saturating_sub(1)], pts[(i + 1).min(n - 1)]);
+        let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+        let len = (dx * dx + dy * dy).sqrt().max(1e-9);
+        let (tx, ty) = (dx / len, dy / len);
+        let s = i as f64 / (n - 1) as f64;
+        let fade = if s > 0.7 { 1.0 - (1.0 - end) * ((s - 0.7) / 0.3).powi(2) } else { 1.0 };
+        let half = (thin + (thick - thin) * ty.abs()) * fade / 2.0;
+        let (p, q) = (pts[i].0, pts[i].1);
+        left.push((p - ty * half, q + tx * half));
+        right.push((p + ty * half, q - tx * half));
+    }
+    let mut out = String::new();
+    for (i, (x, y)) in left.iter().chain(right.iter().rev()).enumerate() {
+        out.push_str(&format!("{}{} {}", if i == 0 { 'M' } else { 'L' }, r(*x), r(*y)));
+    }
+    out.push('Z');
+    out
 }
 
 fn r(x: f64) -> String {

@@ -320,11 +320,15 @@ fn set_rules_page() -> String {
     let mut s = header("All set rules");
     s.push_str("A `set` line changes the look of the whole document. Write it on its own line, before the text it changes.\n\n| Rule | Option | Default |\n|:--|:--|:--|\n");
     for (target, keys) in symbols::SET_OPTIONS {
+        if *target == "greek" {
+            s.push_str("| `set greek(...)` | a lowercase Greek name, such as `phi` | `italic` |\n");
+            continue;
+        }
         for k in keys.iter() {
             s.push_str(&format!("| `set {target}(...)` | `{k}` | `{}` |\n", kind_default(target, k)));
         }
     }
-    s.push_str("\nA `fence` value is a fence operation such as `brack` or `vbar.x2`, the word `none`, or any one symbol, for example a `sym`. A `grow` value is `stretch` or `magnify`.\n");
+    s.push_str(&format!("\nA `fence` value is a fence operation such as `brack` or `vbar.x2`, the word `none`, or any one symbol, for example a `sym`. A `grow` value is `stretch` or `magnify`. An arrow `style` is {}. A Greek value is {}.\n", symbols::ARROW_STYLES.iter().map(|(st, name, _)| format!("`{st}` (${name}$)")).collect::<Vec<_>>().join(", "), symbols::GREEK_STYLES.iter().map(|g| format!("`{g}`")).collect::<Vec<_>>().join(", ")));
     s
 }
 
@@ -438,6 +442,7 @@ mod tests {
             assert!(all.contains(&format!("::: {k}")), "block `{k}` has no example");
         }
         for (t, keys) in symbols::SET_OPTIONS {
+            let keys: &[&str] = if *t == "greek" { &["phi"] } else { keys };
             for k in keys.iter() {
                 assert!(all.contains(&format!("set {t}(")) && all.contains(&format!("{k}:")), "set {t}({k}) is not in the reference");
             }
