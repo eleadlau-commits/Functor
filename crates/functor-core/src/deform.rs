@@ -520,8 +520,7 @@ pub fn fingerprint(g: &Glyph) -> u64 {
         match &it.shape {
             Shape::Font(p) => {
                 0u8.hash(&mut h);
-                (p.as_ptr() as usize).hash(&mut h);
-                p.len().hash(&mut h);
+                p.hash(&mut h);
             }
             Shape::Stroke(p) => {
                 1u8.hash(&mut h);

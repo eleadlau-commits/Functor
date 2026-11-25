@@ -20,12 +20,25 @@ export async function loadFunctor(url) {
   const call = (fn, text, ...extra) => read(callRaw(fn, text, ...extra));
 
   const glyphCache = new Map();
+  const STORE = 'functor.glyphs';
+  try {
+    const saved = localStorage.getItem(STORE);
+    if (saved) callRaw(w.cache_import, saved);
+  } catch {}
+  const persist = () => {
+    const text = read(w.cache_export());
+    if (!text) return;
+    try {
+      localStorage.setItem(STORE, text);
+    } catch {}
+  };
 
   return {
     compile(src, widthPt) {
       const t = performance.now();
       const out = JSON.parse(call(w.compile_width, src, widthPt || 0));
       out.ms = performance.now() - t;
+      persist();
       return out;
     },
     pdf(src) {

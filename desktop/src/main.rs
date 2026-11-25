@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Instant;
 
+use functor_core::glyph;
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -81,17 +82,44 @@ fn load(app: &AppHandle, files: &Files, path: &Path) -> Result<Doc, String> {
     Ok(doc(&path, text))
 }
 
+fn glyph_store(app: &AppHandle) -> Option<PathBuf> {
+    app.path().app_cache_dir().ok().map(|d| d.join("glyphs.txt"))
+}
+
+thread_local! {
+    static CACHE_LOADED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+fn with_glyph_cache<T>(app: &AppHandle, f: impl FnOnce() -> T) -> T {
+    let file = glyph_store(app);
+    if !CACHE_LOADED.with(|c| c.replace(true)) {
+        if let Some(text) = file.as_ref().and_then(|p| std::fs::read_to_string(p).ok()) {
+            glyph::import_cache(&text);
+        }
+    }
+    let out = f();
+    if let Some(file) = file.filter(|_| glyph::take_dirty()) {
+        let tmp = file.with_extension("tmp");
+        let _ = file
+            .parent()
+            .map_or(Ok(()), std::fs::create_dir_all)
+            .and_then(|_| std::fs::write(&tmp, glyph::export_cache()))
+            .and_then(|_| std::fs::rename(&tmp, &file));
+    }
+    out
+}
+
 #[tauri::command]
-fn compile(src: String, width: Option<f64>) -> String {
+fn compile(app: AppHandle, src: String, width: Option<f64>) -> String {
     let t = Instant::now();
-    let out = functor_core::compile_width(&src, width);
+    let out = with_glyph_cache(&app, || functor_core::compile_width(&src, width));
     let json = out.to_json();
     format!("{{\"nativeMs\":{},{}", t.elapsed().as_secs_f64() * 1000.0, &json[1..])
 }
 
 #[tauri::command]
-fn glyph(recipe: String) -> String {
-    functor_core::glyph_svg(&recipe).unwrap_or_default()
+fn glyph(app: AppHandle, recipe: String) -> String {
+    with_glyph_cache(&app, || functor_core::glyph_svg(&recipe)).unwrap_or_default()
 }
 
 #[tauri::command]

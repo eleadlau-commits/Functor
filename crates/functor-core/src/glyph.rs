@@ -413,20 +413,35 @@ pub struct CacheStats {
     pub from_font: usize,
 }
 
+pub type Notes = Vec<(usize, String)>;
+
+struct Entry {
+    glyph: Rc<Glyph>,
+    notes: Rc<Notes>,
+}
+
 thread_local! {
-    static CACHE: RefCell<HashMap<String, Rc<Glyph>>> = RefCell::new(HashMap::new());
+    static CACHE: RefCell<HashMap<String, Entry>> = RefCell::new(HashMap::new());
     static STATS: RefCell<CacheStats> = RefCell::new(CacheStats::default());
+    static DIRTY: RefCell<bool> = const { RefCell::new(false) };
 }
 
 pub fn cached(recipe: &str, build: impl FnOnce() -> Option<Glyph>) -> Option<Rc<Glyph>> {
-    if let Some(g) = CACHE.with(|c| c.borrow().get(recipe).cloned()) {
+    cached_with_notes(recipe, || build().map(|g| (g, Vec::new()))).map(|(g, _)| g)
+}
+
+pub fn cached_with_notes(recipe: &str, build: impl FnOnce() -> Option<(Glyph, Notes)>) -> Option<(Rc<Glyph>, Rc<Notes>)> {
+    if let Some(hit) = CACHE.with(|c| c.borrow().get(recipe).map(|e| (e.glyph.clone(), e.notes.clone()))) {
         STATS.with(|s| s.borrow_mut().hits += 1);
-        return Some(g);
+        return Some(hit);
     }
-    let g = Rc::new(build()?);
+    let (g, notes) = build()?;
+    let entry = Entry { glyph: Rc::new(g), notes: Rc::new(notes) };
+    let out = (entry.glyph.clone(), entry.notes.clone());
     STATS.with(|s| s.borrow_mut().built += 1);
-    CACHE.with(|c| c.borrow_mut().insert(recipe.to_string(), g.clone()));
-    Some(g)
+    CACHE.with(|c| c.borrow_mut().insert(recipe.to_string(), entry));
+    DIRTY.with(|d| *d.borrow_mut() = true);
+    Some(out)
 }
 
 pub fn note_font_glyph() {
@@ -439,6 +454,120 @@ pub fn take_stats() -> CacheStats {
 
 pub fn clear_cache() {
     CACHE.with(|c| c.borrow_mut().clear());
+    DIRTY.with(|d| *d.borrow_mut() = false);
+}
+
+pub fn cache_len() -> usize {
+    CACHE.with(|c| c.borrow().len())
+}
+
+pub fn take_dirty() -> bool {
+    DIRTY.with(|d| std::mem::take(&mut *d.borrow_mut()))
+}
+
+pub fn cache_key() -> &'static str {
+    env!("FUNCTOR_GLYPH_KEY")
+}
+
+const MAGIC: &str = "functor-glyphs 1";
+
+fn font_ids() -> &'static HashMap<usize, (bool, u32)> {
+    static IDS: OnceLock<HashMap<usize, (bool, u32)>> = OnceLock::new();
+    IDS.get_or_init(|| table().iter().map(|(k, g)| (g.path.as_ptr() as usize, *k)).collect())
+}
+
+fn tf_text(tf: Affine) -> String {
+    tf.0.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(" ")
+}
+
+fn clean(s: &str) -> String {
+    s.replace(['\t', '\n', '\r'], " ")
+}
+
+fn write_entry(out: &mut String, recipe: &str, e: &Entry) -> Option<()> {
+    let g = &e.glyph;
+    let mut body = format!("R\t{}\t{}\t{}\t{}\t{}\n", clean(recipe), g.w, g.h, g.d, g.italic as u8);
+    for (i, msg) in e.notes.iter() {
+        body.push_str(&format!("N\t{i}\t{}\n", clean(msg)));
+    }
+    for it in &g.items {
+        let bold = it.bold as u8;
+        match &it.shape {
+            Shape::Font(p) => {
+                let (large, cp) = font_ids().get(&(p.as_ptr() as usize))?;
+                body.push_str(&format!("F\t{}\t{cp:x}\t{}\t{bold}\n", if *large { 'L' } else { 'S' }, tf_text(it.tf)));
+            }
+            Shape::Stroke(p) => body.push_str(&format!("S\t{}\t{bold}\t{}\n", tf_text(it.tf), clean(p))),
+            Shape::Outline(p) => body.push_str(&format!("O\t{}\t{bold}\t{}\n", tf_text(it.tf), clean(p))),
+        }
+    }
+    out.push_str(&body);
+    Some(())
+}
+
+pub fn export_cache() -> String {
+    let mut out = format!("{MAGIC} {}\n", cache_key());
+    CACHE.with(|c| {
+        let c = c.borrow();
+        let mut keys: Vec<&String> = c.keys().collect();
+        keys.sort();
+        for k in keys {
+            write_entry(&mut out, k, &c[k]);
+        }
+    });
+    out
+}
+
+fn parse_tf(s: &str) -> Option<Affine> {
+    let v: Vec<f64> = s.split(' ').map(|x| x.parse().ok()).collect::<Option<_>>()?;
+    Some(Affine(v.try_into().ok()?))
+}
+
+fn parse_cache(text: &str) -> Option<Vec<(String, Entry)>> {
+    let mut lines = text.lines();
+    if lines.next()? != format!("{MAGIC} {}", cache_key()) {
+        return None;
+    }
+    let mut out: Vec<(String, Glyph, Notes)> = Vec::new();
+    for line in lines {
+        let f: Vec<&str> = line.split('\t').collect();
+        match (f[0], out.last_mut()) {
+            ("R", _) if f.len() == 6 => {
+                let n = |s: &str| s.parse::<f64>().ok();
+                let mut g = Glyph::empty(n(f[2])?);
+                g.h = n(f[3])?;
+                g.d = n(f[4])?;
+                g.italic = f[5] == "1";
+                out.push((f[1].to_string(), g, Vec::new()));
+            }
+            ("N", Some(last)) if f.len() == 3 => last.2.push((f[1].parse().ok()?, f[2].to_string())),
+            ("F", Some(last)) if f.len() == 5 => {
+                let cp = u32::from_str_radix(f[2], 16).ok()?;
+                let path = table().get(&(f[1] == "L", cp))?.path;
+                last.1.items.push(Item { shape: Shape::Font(path), tf: parse_tf(f[3])?, bold: f[4] == "1" });
+            }
+            ("S", Some(last)) if f.len() == 4 => {
+                last.1.items.push(Item { shape: Shape::Stroke(f[3].to_string()), tf: parse_tf(f[1])?, bold: f[2] == "1" });
+            }
+            ("O", Some(last)) if f.len() == 4 => {
+                last.1.items.push(Item { shape: Shape::Outline(Rc::from(f[3])), tf: parse_tf(f[1])?, bold: f[2] == "1" });
+            }
+            _ => return None,
+        }
+    }
+    Some(out.into_iter().map(|(k, g, n)| (k, Entry { glyph: Rc::new(g), notes: Rc::new(n) })).collect())
+}
+
+pub fn import_cache(text: &str) -> usize {
+    let Some(entries) = parse_cache(text) else { return 0 };
+    let n = entries.len();
+    CACHE.with(|c| {
+        let mut c = c.borrow_mut();
+        for (k, e) in entries {
+            c.entry(k).or_insert(e);
+        }
+    });
+    n
 }
 
 #[cfg(test)]

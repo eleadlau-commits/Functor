@@ -790,16 +790,16 @@ impl Parser<'_, '_, '_> {
     }
 
     fn apply_ops(&mut self, base: Rc<Glyph>, ops: &[(String, usize)], recipe: &str, large: bool, letter: Option<char>) -> Option<Rc<Glyph>> {
-        let mut errors: Vec<(usize, String)> = Vec::new();
-        let built = glyph::cached(recipe, || {
+        let built = glyph::cached_with_notes(recipe, || {
+            let mut errors: glyph::Notes = Vec::new();
             let mut g = (*base).clone();
-            for (i, (o, at)) in ops.iter().enumerate() {
+            for (i, (o, _)) in ops.iter().enumerate() {
                 let def = symbols::op_def(o)?;
                 g = match def.kind {
                     OpKind::Decorate => match g.decorate(def.mark, o == "under") {
                         Some(x) => x,
                         None => {
-                            errors.push((*at, format!("The font has no mark for `{o}`.")));
+                            errors.push((i, format!("The font has no mark for `{o}`.")));
                             g
                         }
                     },
@@ -823,23 +823,24 @@ impl Parser<'_, '_, '_> {
                             }
                             (None, "bold") => g.emboldened(),
                             (None, "bb") => {
-                                errors.push((*at, "`bb` works only on a single capital letter.".into()));
+                                errors.push((i, "`bb` works only on a single capital letter.".into()));
                                 g
                             }
                             (None, _) => {
-                                errors.push((*at, format!("`{o}` works only on a single letter, as the first operation.")));
+                                errors.push((i, format!("`{o}` works only on a single letter, as the first operation.")));
                                 g
                             }
                         }
                     }
                 };
             }
-            Some(g)
+            Some((g, errors))
         });
-        for (at, e) in errors {
-            self.err(at, e, None);
+        let (g, notes) = built?;
+        for (i, e) in notes.iter() {
+            self.err(ops[*i].1, e.clone(), None);
         }
-        built
+        Some(g)
     }
 }
 
@@ -1432,6 +1433,56 @@ mod tests {
         let _ = run("sum.circle + sum.circle", false);
         let s = glyph::take_stats();
         assert_eq!((s.built, s.hits), (1, 1));
+    }
+
+    #[test]
+    fn cached_recipe_keeps_its_errors() {
+        glyph::clear_cache();
+        let (_, d) = run("x.bb + x.bb", false);
+        let cols: Vec<usize> = d.iter().map(|d| d.col).collect();
+        assert_eq!(cols, vec![3, 10]);
+        let (_, d) = run("x.bb", false);
+        assert_eq!(d.len(), 1);
+        assert!(d[0].message.contains("bb"));
+    }
+
+    #[test]
+    fn preview_refuses_bad_recipe_twice() {
+        glyph::clear_cache();
+        let env = MathEnv::new();
+        assert!(glyph_preview("x.bb", &env).is_none());
+        assert!(glyph_preview("x.bb", &env).is_none());
+    }
+
+    #[test]
+    fn disk_cache_round_trip() {
+        glyph::clear_cache();
+        let (a, _) = run("sum.circle + x.hat.box + x.bb + x.tall", false);
+        let before = render(&a, false, "x");
+        let text = glyph::export_cache();
+        assert!(text.contains("\nO\t"));
+        assert!(glyph::take_dirty());
+        glyph::clear_cache();
+        assert_eq!(glyph::import_cache(&text), 4);
+        assert!(!glyph::take_dirty());
+        glyph::take_stats();
+        let (b, d) = run("sum.circle + x.hat.box + x.bb + x.tall", false);
+        let s = glyph::take_stats();
+        assert_eq!((s.built, s.hits), (0, 4));
+        assert_eq!(d.len(), 1);
+        assert_eq!(render(&b, false, "x"), before);
+        assert_eq!(glyph::export_cache(), text);
+    }
+
+    #[test]
+    fn disk_cache_refuses_other_versions() {
+        glyph::clear_cache();
+        let _ = run("sum.circle", false);
+        let text = glyph::export_cache().replacen(glyph::cache_key(), "0000000000000000", 1);
+        glyph::clear_cache();
+        assert_eq!(glyph::import_cache(&text), 0);
+        assert_eq!(glyph::import_cache("garbage"), 0);
+        assert_eq!(glyph::cache_len(), 0);
     }
 
     #[test]
