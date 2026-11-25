@@ -8,6 +8,8 @@ date: 24 November 2026
 object vec: F, v, u
 sym csum = sum.circle
 sym dint = integral.x2
+set mat(fence: brack)
+set cases(word: "if")
 let n = 3
 
 # Symbols are built, not memorised {#sec:symbols}
@@ -32,6 +34,27 @@ The line `object vec: F, v, u` makes $F$, $v$ and $u$ vectors. Their look comes 
 $$
 F = frac(d, d t) (m v)
 $$ {#eq:newton}
+
+# Structures {#sec:structures}
+
+A matrix is a grid in a fence. A comma ends a cell and a semicolon ends a row. The rule `set mat(fence: brack)` gives every matrix square brackets.
+
+$$
+A = mat(1, 2; 3, 4),   w = vec(w_1, w_2, w_3),   abs(x) + norm(w) + inner(u, w)
+$$
+
+A fence is an operation, so $(a + b).angle$ and $(x).vbar.x2$ work on any group. Any glyph can be a fence: $wrap(L.script, f)$.
+
+$$
+abs(x) = cases(x, x ge 0; -x, x lt 0)
+$$
+
+A new line in display math starts a new row. The rows align at the first relation.
+
+$$
+(a + b)^2 = (a + b)(a + b)
+          = a^2 + 2 a b + b^2
+$$ {#eq:square}
 
 # Results {#sec:results}
 
