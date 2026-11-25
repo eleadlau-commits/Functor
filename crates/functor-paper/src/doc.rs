@@ -327,6 +327,13 @@ impl DocParser<'_> {
                 ("cases", "word") => {
                     self.env.kinds.insert("cases.word".into(), v);
                 }
+                ("lint", "notation") => {
+                    if v == "on" || v == "off" {
+                        self.env.kinds.insert("lint.notation".into(), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a value for `notation`."), Some("Use `on` or `off`.".into()));
+                    }
+                }
                 ("document", "style") => {
                     if DOC_STYLES.contains(&v.as_str()) {
                         self.settings.style = v;

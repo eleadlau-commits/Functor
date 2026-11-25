@@ -375,6 +375,7 @@ pub const KIND_DEFAULTS: &[(&str, &str, &str)] = &[
     ("floor", "fence", "floor"),
     ("ceil", "fence", "ceil"),
     ("wrap", "grow", "stretch"),
+    ("lint", "notation", "on"),
 ];
 
 pub const SET_OPTIONS: &[(&str, &[&str])] = &[
@@ -390,6 +391,7 @@ pub const SET_OPTIONS: &[(&str, &[&str])] = &[
     ("wrap", &["grow"]),
     ("diagram", &["gap", "inline"]),
     ("document", &["style", "accent"]),
+    ("lint", &["notation"]),
     ("heading", &["numbering"]),
     ("page", &["size", "margin"]),
     ("text", &["size", "font"]),

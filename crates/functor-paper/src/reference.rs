@@ -32,6 +32,7 @@ pub const HAND_PAGES: &[(&str, &str, &str)] = &[
     ("structures/fences", "Fences and wrap", "Structures"),
     ("structures/diagrams", "Diagrams and labelled arrows", "Structures"),
     ("help/errors", "Common errors", "Help"),
+    ("help/notation", "Notation check and trace", "Help"),
 ];
 
 pub const GEN_DIR: &str = "gen";
@@ -216,6 +217,7 @@ pub fn op_page(def: &symbols::OpDef) -> String {
 
 fn operations_page() -> String {
     let mut s = header("Operations");
+    s.push_str("set lint(notation: off)\n\n");
     s.push_str(&format!(
         "Functor has {} operations in {} families. Write an operation after a dot: `theta.hat`. Each operation has a meaning. The meaning is a guideline, not a rule.\n\n",
         symbols::OPS.len(),

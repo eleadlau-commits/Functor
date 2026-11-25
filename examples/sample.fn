@@ -43,7 +43,7 @@ $$
 A = mat(1, 2; 3, 4),   w = vec(w_1, w_2, w_3),   abs(x) + norm(w) + inner(u, w)
 $$
 
-A fence is an operation, so $(a + b).angle$ and $(x).vbar.x2$ work on any group. Any glyph can be a fence: $wrap(L.script, f)$.
+A fence is an operation, so $(a + b).angle$ and $(M).brack.x2$ work on any group. Any glyph can be a fence: $wrap(L.script, f)$.
 
 $$
 abs(x) = cases(x, x ge 0; -x, x lt 0)

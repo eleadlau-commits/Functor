@@ -1,0 +1,66 @@
+---
+functor: 1
+title: Notation check and trace
+---
+
+set heading(numbering: none)
+
+The compiler keeps a trace for each symbol. The trace shows the four layers of the symbol: meaning, style, construction and glyph. The inspector and the notation check use the same trace.
+
+# The trace of one symbol
+
+| Layer | Question | Example for `v` after `object vec: v` |
+|:--|:--|:--|
+| Meaning | What is it? | `v` is a vector, from `object vec: v`. |
+| Style | Which rule sets its look? | `set vec(style: arrow)`, the default |
+| Construction | Which recipe makes it? | `v.arrow`, and the meaning of each operation |
+| Glyph | Where does the outline come from? | a font glyph, a font composite, or a built glyph from the cache |
+
+# See a trace
+
+In the editor and the desktop app, put the cursor on a symbol. The **Inspector** under the editor shows its four layers and the glyph.
+
+In a terminal, `functor trace file.fn` prints the trace of each symbol. Add a line, or a line and a column, to see one place:
+
+```text
+$ functor trace paper.fn 9:7
+9:7  norm(v)
+  meaning       The kind `norm`: a norm.
+  style         `set norm(fence: vbar.x2)`, the default
+  construction  fence: vbar.x2
+  glyph         Fence glyphs from the font. They grow to fit the body.
+```
+
+# The notation check
+
+The check compares the traces of all symbols in the document. It finds two problems: one look with two meanings, and one meaning with two looks. Each finding is a warning with a hint. `functor check` shows the same warnings.
+
+| Check | You wrote | Hint |
+|:--|:--|:--|
+| A hand form looks the same as a meaning form | `norm(v)` and `(v).vbar.x2` | Write `norm(v)`. |
+| A hand fence looks the same as a meaning name | `abs(x)` and `(y).vbar` | Write `abs(y)`. |
+| A recipe looks the same as a `sym` | `sym csum = sum.circle`, then `sum.circle` | Write `csum`. |
+| A hand style on a declared vector | `object vec: v`, then `v.bold` | Remove `.bold`, or change the rule for all vectors. |
+| A hand style that the rule already gives | `object vec: v`, then `v.arrow` | Remove `.arrow`. |
+| One letter with two vector looks | `u.arrow` and `u.bold` | Write `object vec: u` and one `set vec` rule. |
+| Two meanings with one look | `set abs(fence: vbar.x2)`, then `abs(x)` and `norm(v)` | Give one of them its own look. |
+
+A meaning form is an `object`, a `sym` or a kind call such as `norm(...)`. A hand form is a recipe or a fence that you write in place.
+
+```fn
+object vec: v
+
+$norm(v) = (v).vbar.x2$
+```
+
+This example compiles, and the check gives a warning on `(v).vbar.x2`.
+
+# Turn the check off
+
+These are guidelines, not rules, so the check gives warnings only. A page that compares notations on purpose can turn the check off:
+
+```fn
+set lint(notation: off)
+
+$abs(x) = (x).vbar$
+```

@@ -4,6 +4,7 @@ title: Fences and wrap
 ---
 
 set heading(numbering: none)
+set lint(notation: off)
 
 Brackets are operations. A fence wraps a group or a symbol, and grows with the content.
 
@@ -30,7 +31,9 @@ Write `x2` after a fence to double it. Write `left` or `right` after a fence to 
 
 # Meaning names
 
-These calls give the meaning, and a rule gives the fence.
+These calls give the meaning, and a rule gives the fence. Use them when the fence has a meaning. `norm(v)` tells the reader that this is a norm. `(v).vbar.x2` gives the same look, but it does not tell the reader what it is.
+
+The notation check gives a warning when a hand fence looks the same as a meaning name in the same document. It says which name to write. This page shows both forms on purpose, so it turns the check off with `set lint(notation: off)`. See [Notation check](help/notation.html).
 
 | Call | Default fence | Example | Result |
 |:--|:--|:--|:-:|

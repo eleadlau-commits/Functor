@@ -5,6 +5,7 @@ use crate::diag::{did_you_mean, Diagnostics};
 use crate::deform;
 use crate::glyph::{self, Affine, Glyph};
 use crate::symbols::{self, Class, Limits, OpKind};
+use crate::trace::{self, Form, Source};
 
 pub const MAX_OPS: usize = 3;
 
@@ -309,6 +310,15 @@ impl Parser<'_, '_, '_> {
 
     fn atom(&mut self) -> Option<Node> {
         let start = self.i;
+        let frame = trace::Frame::new();
+        let node = self.atom_inner()?;
+        let (a, b) = ((self.ctx.pos)(self.base + start), (self.ctx.pos)(self.base + self.i));
+        frame.finish(a, b, &self.s[start..self.i], &node);
+        Some(node)
+    }
+
+    fn atom_inner(&mut self) -> Option<Node> {
+        let start = self.i;
         let c = self.peek()?;
         if c.is_ascii_digit() {
             let mut glyphs = Vec::new();
@@ -403,11 +413,14 @@ impl Parser<'_, '_, '_> {
                     return None;
                 }
                 let ops = self.ops();
+                trace::meaning(Form::Name, false, || (format!("char {cp}"), format!("The typed character `{c}`, a {}.", trace::class_text(class))));
                 if ops.is_empty() {
+                    trace_build(&c.to_string(), &ops, Source::Font(cp));
                     return Some(font_atom(cp, class));
                 }
                 let base = Rc::new(Glyph::from_font(cp, false)?);
                 let recipe = format!("{c}{}", join_ops(&ops));
+                trace_build(&recipe, &ops, Source::Built);
                 let g = self.apply_ops(base, &ops, &recipe, false, None, None)?;
                 Some(Node::Glyph { g, class, limits: Limits::Never, italic: false, large: false })
             }
@@ -599,6 +612,13 @@ impl Parser<'_, '_, '_> {
                 self.skip_ws();
                 if self.peek() == Some(')') {
                     self.bump();
+                    trace::meaning(Form::Kind, false, || (format!("vec {word}"), format!("`{word}` is a vector, from `vec({word})`.")));
+                    let rule = rule_text(self.ctx.env, "vec", "style");
+                    trace::edit(|t| {
+                        t.style.push(rule);
+                        t.subject = word.clone();
+                        t.hand = ops.iter().filter(|(o, _)| style_like(o)).map(|(o, _)| o.clone()).collect();
+                    });
                     let mut all = vec![(self.ctx.env.vec_style.clone(), at)];
                     all.extend(ops);
                     return Some(self.resolve_base(&word, &all, at));
@@ -829,7 +849,18 @@ impl Parser<'_, '_, '_> {
     }
 
     fn fenced(&self, kind: &str, body: Node) -> Node {
-        let (open, close) = self.fence_pair(&self.ctx.env.opt(kind, "fence"));
+        let spec = self.ctx.env.opt(kind, "fence");
+        trace::meaning(Form::Kind, false, || (format!("kind {kind}"), format!("The kind `{kind}`: {}.", trace::kind_text(kind))));
+        trace::edit(|t| {
+            if t.form == Form::Kind {
+                t.structure = !matches!(kind, "abs" | "norm" | "floor" | "ceil");
+                t.subject = kind.to_string();
+                t.recipe = format!("fence: {spec}");
+                t.glyph = Source::Fence;
+            }
+            t.style.push(rule_text(self.ctx.env, kind, "fence"));
+        });
+        let (open, close) = trace::paused(|| self.fence_pair(&spec));
         Node::Fenced { open, close, body: Box::new(body), grow: self.ctx.env.grow(kind) }
     }
 
@@ -866,6 +897,14 @@ impl Parser<'_, '_, '_> {
                     i += 1;
                 }
                 let (open, close) = builtin_fence(f, &mods);
+                let spec: String = std::iter::once(o.as_str()).chain(mods.iter().map(String::as_str)).collect::<Vec<_>>().join(".");
+                trace::meaning(Form::Hand, true, || ("fence".into(), format!("No meaning in the source: fences `.{spec}` written by hand.")));
+                trace::edit(|t| {
+                    t.recipe = format!("fences .{spec} around the group");
+                    t.ops = std::iter::once(o).chain(mods.iter()).cloned().collect();
+                    t.glyph = Source::Fence;
+                    t.style.clear();
+                });
                 node = Node::Fenced { open, close, body: Box::new(node), grow: Grow::Stretch };
                 continue;
             }
@@ -901,6 +940,11 @@ impl Parser<'_, '_, '_> {
             return Node::Row(args);
         }
         let g = Rc::new(glyphs[0].join(&glyphs[1]));
+        trace::meaning(Form::Hand, false, || ("join".into(), "No meaning in the source: two symbols joined by hand with `join`.".into()));
+        trace::edit(|t| {
+            t.recipe = "join(a, b)".into();
+            t.glyph = Source::Joined;
+        });
         Node::Glyph { g, class: Class::Ord, limits: Limits::Never, italic: false, large: false }
     }
 
@@ -917,6 +961,11 @@ impl Parser<'_, '_, '_> {
             if let Some(cp) = symbols::stack_glyph(a, b) {
                 if glyph::font_glyph(cp, false).is_some() {
                     glyph::note_font_glyph();
+                    trace::meaning(Form::Hand, false, || (format!("stack {a} {b}"), "No meaning in the source: two symbols stacked by hand with `stack`.".into()));
+                    trace::edit(|t| {
+                        t.recipe = format!("stack({a}, {b})");
+                        t.glyph = Source::Composite(cp);
+                    });
                     return glyph_node(cp, class, Limits::Never, false, false);
                 }
             }
@@ -936,6 +985,11 @@ impl Parser<'_, '_, '_> {
             return Node::Row(args);
         }
         let g = Rc::new(glyphs[0].stack(&glyphs[1]));
+        trace::meaning(Form::Hand, false, || (format!("stack {}", texts.join(" ")), "No meaning in the source: two symbols stacked by hand with `stack`.".into()));
+        trace::edit(|t| {
+            t.recipe = format!("stack({})", texts.join(", "));
+            t.glyph = Source::Joined;
+        });
         Node::Glyph { g, class, limits: Limits::Never, italic: false, large: false }
     }
 
@@ -958,6 +1012,8 @@ impl Parser<'_, '_, '_> {
         let mut h = std::collections::hash_map::DefaultHasher::new();
         std::hash::Hash::hash(&format!("{:?}", base.items), &mut h);
         let recipe = format!("group:{:x}{}", std::hash::Hasher::finish(&h), join_ops(ops));
+        trace::meaning(Form::Hand, true, || (format!("group{}", join_ops(ops)), "No meaning in the source: operations on a group, written by hand.".into()));
+        trace_build(&format!("(group){}", join_ops(ops)), ops, Source::Built);
         let g = self.apply_ops(base, ops, &recipe, false, None, None)?;
         Some(Node::Glyph { g, class: Class::Ord, limits: Limits::Never, italic: false, large: false })
     }
@@ -967,13 +1023,29 @@ impl Parser<'_, '_, '_> {
             self.err(start, format!("`{word}` refers to itself."), Some("A `sym` cannot use its own name.".into()));
             return Node::Row(vec![]);
         }
+        if depth == 0 {
+            trace::edit(|t| {
+                t.subject = word.to_string();
+                t.hand = ops.iter().filter(|(o, _)| style_like(o)).map(|(o, _)| o.clone()).collect();
+            });
+        }
         if let Some(recipe) = self.ctx.env.syms.get(word).cloned() {
+            trace::meaning(Form::Sym, false, || (format!("sym {word}"), format!("Your symbol `{word}`, from `sym {word} = {recipe}`.")));
             let (base_word, mut base_ops) = split_recipe(&recipe);
             base_ops.extend(ops.iter().map(|(o, _)| o.clone()));
             let with_pos: Vec<(String, usize)> = base_ops.into_iter().map(|o| (o, start)).collect();
             return self.resolve(&base_word, &with_pos, start, depth + 1);
         }
         if let Some(kind) = self.ctx.env.objects.get(word).cloned() {
+            trace::meaning(Form::Object, false, || (format!("{kind} {word}"), format!("`{word}` is {}, from `object {kind}: {word}`.", trace::kind_text(&kind))));
+            if kind == "vec" {
+                let s = rule_text(self.ctx.env, "vec", "style");
+                let hand: Vec<&str> = ops.iter().map(|(o, _)| o.as_str()).filter(|o| *o == "arrow" || *o == "bold").collect();
+                trace::edit(|t| {
+                    t.subject = word.to_string();
+                    t.style.push(if hand.is_empty() { s } else { format!("{s}: not used, because `.{}` is written by hand", hand.join("`, `.")) });
+                });
+            }
             if kind == "vec" && !ops.iter().any(|(o, _)| o == "arrow" || o == "bold") {
                 let mut all = vec![(self.ctx.env.vec_style.clone(), start)];
                 all.extend(ops.iter().cloned());
@@ -998,10 +1070,14 @@ impl Parser<'_, '_, '_> {
         let ops_text = join_ops(ops);
         let display = self.ctx.display;
         let (base_cp, mut class, mut limits, italic, mut large) = if let Some(n) = symbols::named(word) {
+            trace::meaning(Form::Name, false, || (format!("name {word}"), format!("The built-in symbol `{word}`, a {}.", trace::class_text(n.class))));
             (n.cp, n.class, n.limits, false, n.large && display)
         } else if let Some(cp) = symbols::greek(word) {
+            trace::meaning(Form::Name, false, || (format!("name {word}"), format!("The Greek letter `{word}`.")));
             (cp, Class::Ord, Limits::Never, true, false)
         } else if let Some(lim) = symbols::function(word) {
+            trace::meaning(Form::Name, false, || (format!("name {word}"), format!("The function name `{word}`.")));
+            trace_build(word, &[], Source::Word);
             if let Some((o, at)) = ops.first() {
                 self.err(*at, format!("`{word}` is a function name; it takes no operation `.{o}`."), None);
             }
@@ -1014,6 +1090,7 @@ impl Parser<'_, '_, '_> {
                 c = char::from_u32(canon).unwrap_or(c);
             }
             let cp = symbols::italic_letter(c).unwrap_or(c as u32);
+            trace::meaning(Form::Name, false, || (format!("letter {c}"), format!("The letter `{c}`.")));
             (cp, Class::Ord, Limits::Never, cp != c as u32, false)
         } else {
             let names = symbols::all_names();
@@ -1048,6 +1125,7 @@ impl Parser<'_, '_, '_> {
             }
         }
         if ops.is_empty() {
+            trace_build(word, ops, Source::Font(base_cp));
             return glyph_node(base_cp, class, limits, italic, large);
         }
         if ops.iter().any(|(o, _)| o == "big") {
@@ -1058,6 +1136,7 @@ impl Parser<'_, '_, '_> {
         if let Some(cp) = symbols::composite(word, &ops_text[1..]) {
             if glyph::font_glyph(cp, large).is_some() {
                 glyph::note_font_glyph();
+                trace_build(&format!("{word}{ops_text}"), ops, Source::Composite(cp));
                 return glyph_node(cp, class, limits, false, large);
             }
         }
@@ -1067,6 +1146,7 @@ impl Parser<'_, '_, '_> {
         let mut base = base;
         base.italic = italic;
         let recipe = format!("{word}{ops_text}{}", if large { ":L" } else { "" });
+        trace_build(&format!("{word}{ops_text}"), ops, Source::Built);
         let letter = (word.chars().count() == 1).then(|| word.chars().next()).flatten();
         match self.apply_ops(Rc::new(base), ops, &recipe, large, letter, symbols::greek_index(word)) {
             Some(g) => Node::Glyph { g, class, limits, italic, large },
@@ -1137,6 +1217,24 @@ impl Parser<'_, '_, '_> {
     }
 }
 
+fn trace_build(recipe: &str, ops: &[(String, usize)], glyph: Source) {
+    trace::edit(|t| {
+        t.recipe = recipe.to_string();
+        t.ops = ops.iter().map(|(o, _)| o.clone()).collect();
+        t.glyph = glyph;
+    });
+}
+
+fn style_like(op: &str) -> bool {
+    op == "arrow" || symbols::op_def(op).is_some_and(|d| d.kind == OpKind::Style)
+}
+
+fn rule_text(env: &MathEnv, kind: &str, key: &str) -> String {
+    let value = if (kind, key) == ("vec", "style") { env.vec_style.clone() } else { env.opt(kind, key) };
+    let set = if (kind, key) == ("vec", "style") { value != "arrow" } else { env.kinds.contains_key(&format!("{kind}.{key}")) };
+    format!("`set {kind}({key}: {value})`{}", if set { "" } else { ", the default" })
+}
+
 fn norm(t: &str) -> String {
     t.split_whitespace().collect::<Vec<_>>().join(" ")
 }
@@ -1177,7 +1275,7 @@ pub fn fence_pair(spec: &str, env: &MathEnv) -> (Option<Rc<Glyph>>, Option<Rc<Gl
     let mut diags = Diagnostics::default();
     let pos = |_: usize| (0, 0);
     let mut ctx = Ctx { env, diags: &mut diags, pos: &pos, display: false };
-    let node = parse(spec, &mut ctx);
+    let node = trace::paused(|| parse(spec, &mut ctx));
     match single_glyph(&node) {
         Some(g) => {
             let close = Rc::new(g.reflect("flip"));

@@ -31,6 +31,8 @@ Change `arrow` to `bold`, and every vector in the document changes. You do not e
 
 `F.arrow` in each place is construction in the source. When you want bold vectors later, you must change each one. With `object vec: F` the source says what F is, and one rule says how all vectors look.
 
+The notation check gives a warning when you mix the two: `F.bold` by hand on a declared vector, `F.arrow` when the rule already gives the arrow, or `u.arrow` in one place and `u.bold` in another. The editor inspector shows the four layers of the symbol at the cursor. See [Notation check and trace](help/notation.html).
+
 The same idea works for structures: `mat(...)` is a matrix, and `set mat(fence: brack)` gives every matrix square brackets. See [Grids, matrices, vectors, cases](structures/grids.html).
 
 # Style operations
