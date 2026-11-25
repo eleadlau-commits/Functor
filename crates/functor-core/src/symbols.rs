@@ -136,7 +136,7 @@ pub fn space(name: &str) -> Option<f64> {
     SPACES.iter().find(|(n, _)| *n == name).map(|(_, w)| *w)
 }
 
-pub const CALLS: &[&str] = &["frac", "sqrt", "vec", "text", "join"];
+pub const CALLS: &[&str] = &["frac", "sqrt", "vec", "text", "join", "grid", "mat", "cases", "binom", "abs", "norm", "inner", "floor", "ceil", "wrap"];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OpKind {
@@ -147,6 +147,7 @@ pub enum OpKind {
     Reflect,
     Style,
     Magnify,
+    Fence,
 }
 
 pub struct OpDef {
@@ -187,13 +188,77 @@ pub const OPS: &[OpDef] = &[
     op("script", OpKind::Style, 0, "style: a family, a category or a transform"),
     op("up", OpKind::Style, 0, "style: a constant, a unit or a name"),
     op("small", OpKind::Magnify, 80, "magnify: a smaller version, about four fifths"),
+    op("paren", OpKind::Fence, 0, "fence: round brackets, a group or a tuple"),
+    op("brack", OpKind::Fence, 0, "fence: square brackets, a group or a matrix"),
+    op("brace", OpKind::Fence, 0, "fence: curly brackets, a set"),
+    op("angle", OpKind::Fence, 0, "fence: angle brackets, a pairing or an average"),
+    op("vbar", OpKind::Fence, 0, "fence: bars, a size or a determinant"),
+    op("floor", OpKind::Fence, 0, "fence: round down"),
+    op("ceil", OpKind::Fence, 0, "fence: round up"),
+];
+
+pub struct FenceDef {
+    pub name: &'static str,
+    pub open: u32,
+    pub close: u32,
+    pub double: Option<(u32, u32)>,
+}
+
+const fn fence(name: &'static str, open: u32, close: u32, double: Option<(u32, u32)>) -> FenceDef {
+    FenceDef { name, open, close, double }
+}
+
+pub const FENCES: &[FenceDef] = &[
+    fence("paren", 0x28, 0x29, None),
+    fence("brack", 0x5B, 0x5D, Some((0x27E6, 0x27E7))),
+    fence("brace", 0x7B, 0x7D, None),
+    fence("angle", 0x27E8, 0x27E9, None),
+    fence("vbar", 0x7C, 0x7C, Some((0x2225, 0x2225))),
+    fence("floor", 0x230A, 0x230B, None),
+    fence("ceil", 0x2308, 0x2309, None),
+];
+
+pub const FENCE_MODIFIERS: &[&str] = &["x2", "left", "right"];
+
+pub fn fence_def(name: &str) -> Option<&'static FenceDef> {
+    FENCES.iter().find(|f| f.name == name)
+}
+
+pub const KIND_DEFAULTS: &[(&str, &str, &str)] = &[
+    ("vec", "fence", "paren"),
+    ("vec", "body", "column"),
+    ("mat", "fence", "paren"),
+    ("cases", "fence", "brace.left"),
+    ("cases", "word", ""),
+    ("binom", "fence", "paren"),
+    ("abs", "fence", "vbar"),
+    ("norm", "fence", "vbar.x2"),
+    ("inner", "fence", "angle"),
+    ("floor", "fence", "floor"),
+    ("ceil", "fence", "ceil"),
+    ("wrap", "grow", "stretch"),
+];
+
+pub const SET_OPTIONS: &[(&str, &[&str])] = &[
+    ("vec", &["style", "fence", "body", "grow"]),
+    ("mat", &["fence", "grow"]),
+    ("cases", &["fence", "word", "grow"]),
+    ("binom", &["fence", "grow"]),
+    ("abs", &["fence", "grow"]),
+    ("norm", &["fence", "grow"]),
+    ("inner", &["fence", "grow"]),
+    ("floor", &["fence", "grow"]),
+    ("ceil", &["fence", "grow"]),
+    ("wrap", &["grow"]),
+    ("heading", &["numbering"]),
+    ("page", &["size", "margin"]),
+    ("text", &["size", "font"]),
 ];
 
 pub const LATER_OPS: &[(&str, &str)] = &[
     ("deform", "phase 1"),
     ("fuse", "phase 1"),
     ("stretch", "phase 1"),
-    ("column", "phase 1"),
 ];
 
 pub const COMPOSITES: &[(&str, &str, u32)] = &[

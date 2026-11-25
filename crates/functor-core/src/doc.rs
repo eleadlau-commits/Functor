@@ -256,15 +256,10 @@ impl DocParser<'_> {
             return;
         };
         let args = &rest[open + 1..close];
-        let allowed: &[(&str, &[&str])] = &[
-            ("vec", &["style"]),
-            ("heading", &["numbering"]),
-            ("page", &["size", "margin"]),
-            ("text", &["size", "font"]),
-        ];
+        let allowed = crate::symbols::SET_OPTIONS;
         let Some((_, keys)) = allowed.iter().find(|(t, _)| *t == target) else {
             let hint = did_you_mean(target, allowed.iter().map(|(t, _)| *t)).map(|s| format!("Did you mean `{s}`?"));
-            self.diags.error(n, col, format!("`set {target}` is not known."), hint.or(Some("Phase 0 has `set vec`, `set heading`, `set page` and `set text`.".into())));
+            self.diags.error(n, col, format!("`set {target}` is not known."), hint.or(Some(format!("Targets: {}.", allowed.iter().map(|(t, _)| *t).collect::<Vec<_>>().join(", ")))));
             return;
         };
         for arg in args.split(',').map(str::trim).filter(|a| !a.is_empty()) {
@@ -284,10 +279,35 @@ impl DocParser<'_> {
                     if v == "arrow" || v == "bold" {
                         self.env.vec_style = v;
                     } else if v == "column" {
-                        self.diags.error(n, arg_col, "The style `column` comes in phase 1.", Some("Use `arrow` or `bold`.".into()));
+                        self.diags.error(n, arg_col, "`column` is not a style of a named vector.", Some("For vectors with components, write `set vec(body: column)`.".into()));
                     } else {
                         self.diags.error(n, arg_col, format!("`{v}` is not a vector style."), Some("Use `arrow` or `bold`.".into()));
                     }
+                }
+                (_, "fence") => {
+                    let (open, close) = math::fence_pair(&v, &self.env);
+                    if v != "none" && open.is_none() && close.is_none() {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a fence."), Some("Use a fence such as `paren`, `brack`, `angle`, `vbar.x2`, `none`, or one symbol such as `L.script`.".into()));
+                    } else {
+                        self.env.kinds.insert(format!("{target}.fence"), v);
+                    }
+                }
+                (_, "grow") => {
+                    if v == "stretch" || v == "magnify" {
+                        self.env.kinds.insert(format!("{target}.grow"), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a way to grow."), Some("Use `stretch` or `magnify`.".into()));
+                    }
+                }
+                ("vec", "body") => {
+                    if v == "column" || v == "row" {
+                        self.env.kinds.insert("vec.body".into(), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a vector body."), Some("Use `column` or `row`.".into()));
+                    }
+                }
+                ("cases", "word") => {
+                    self.env.kinds.insert("cases.word".into(), v);
                 }
                 ("heading", "numbering") => self.settings.numbering = v != "none",
                 ("page", "size") => {

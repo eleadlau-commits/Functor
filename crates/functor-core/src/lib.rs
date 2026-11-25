@@ -104,6 +104,15 @@ mod tests {
     }
 
     #[test]
+    fn set_rules_for_structures() {
+        let ok = compile("---\nfunctor: 1\n---\n\nsym lsf = L.script\nset vec(fence: angle, body: row, grow: magnify)\nset mat(fence: brack)\nset cases(word: \"if\")\nset norm(fence: lsf)\n\n$vec(1, 2) + mat(1; 2) + norm(x) + cases(1, x gt 0)$\n");
+        assert!(ok.diagnostics.is_empty(), "{:?}", ok.diagnostics);
+        let bad = compile("---\nfunctor: 1\n---\n\nset abs(fence: nope.x)\nset vec(body: diagonal)\nset wrap(grow: big)\nset vec(style: column)\n");
+        assert_eq!(bad.errors(), 4, "{:?}", bad.diagnostics);
+        assert!(bad.diagnostics.iter().any(|d| d.hint.as_deref() == Some("For vectors with components, write `set vec(body: column)`.")));
+    }
+
+    #[test]
     fn symbols_list_is_json() {
         let s = symbols_json();
         assert!(s.contains("\"circle\"") && s.contains("\"theorem\""));
