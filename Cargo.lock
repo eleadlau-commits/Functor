@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "adler2"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
+
+[[package]]
 name = "bitflags"
 version = "2.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -35,6 +41,8 @@ name = "functor-core"
 version = "0.1.0"
 dependencies = [
  "hypher",
+ "miniz_oxide",
+ "pdf-writer",
  "rustybuzz",
 ]
 
@@ -52,6 +60,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "45f2b4f6b5da34d400d4c112eadcc14512cc5d04307a8eee182586d9bebd7ce6"
 
 [[package]]
+name = "itoa"
+version = "1.0.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bd1574e617a9a6c1f8f8181bd7e841e1f20e4277607ef28945765188d6284d4"
+
+[[package]]
 name = "libm"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -62,6 +76,33 @@ name = "log"
 version = "0.4.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
+
+[[package]]
+name = "memchr"
+version = "2.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+
+[[package]]
+name = "miniz_oxide"
+version = "0.8.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
+dependencies = [
+ "adler2",
+]
+
+[[package]]
+name = "pdf-writer"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92a79477295a713c2ed425aa82a8b5d20cec3fdee203706cbe6f3854880c1c81"
+dependencies = [
+ "bitflags",
+ "itoa",
+ "memchr",
+ "ryu",
+]
 
 [[package]]
 name = "rustybuzz"
@@ -80,6 +121,12 @@ dependencies = [
  "unicode-properties",
  "unicode-script",
 ]
+
+[[package]]
+name = "ryu"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
 name = "smallvec"

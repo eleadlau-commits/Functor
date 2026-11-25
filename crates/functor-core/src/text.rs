@@ -4,6 +4,7 @@ use std::rc::Rc;
 use std::sync::OnceLock;
 
 use crate::linebreak::{self, BItem, Kind};
+use crate::math::LBox;
 use crate::render::escape;
 
 const FONT_DATA: [&[u8]; 5] = [
@@ -84,19 +85,66 @@ pub fn covered(s: &str, style: Style) -> bool {
     s.chars().all(|c| c.is_whitespace() || face.glyph_index(c).is_some())
 }
 
+pub enum PItem {
+    Text { x: f64, s: String, style: Style, scale: f64, link: bool },
+    Math { x: f64, lbox: Rc<LBox>, link: bool },
+}
+
+pub struct PLine {
+    pub items: Vec<PItem>,
+}
+
+pub fn shape(s: &str, style: Style) -> Vec<(u16, f64, f64)> {
+    let face = &faces()[style.font()];
+    let mut buf = rustybuzz::UnicodeBuffer::new();
+    buf.push_str(s);
+    let out = rustybuzz::shape(face, &[], buf);
+    let upem = face.units_per_em() as f64;
+    out.glyph_infos()
+        .iter()
+        .zip(out.glyph_positions())
+        .map(|(i, p)| (i.glyph_id as u16, p.x_advance as f64 / upem, p.x_offset as f64 / upem))
+        .collect()
+}
+
+pub fn font_data(style: Style) -> &'static [u8] {
+    FONT_DATA[style.font()]
+}
+
+pub fn font_index(style: Style) -> usize {
+    style.font()
+}
+
+pub fn glyph_advance(font: usize, gid: u16) -> f64 {
+    let face = &faces()[font];
+    face.glyph_hor_advance(rustybuzz::ttf_parser::GlyphId(gid)).unwrap_or(0) as f64 / face.units_per_em() as f64
+}
+
+pub fn glyph_count(font: usize) -> u16 {
+    faces()[font].number_of_glyphs()
+}
+
+pub fn shape_clusters(s: &str, style: Style) -> Vec<(u16, u32)> {
+    let face = &faces()[style.font()];
+    let mut buf = rustybuzz::UnicodeBuffer::new();
+    buf.push_str(s);
+    let out = rustybuzz::shape(face, &[], buf);
+    out.glyph_infos().iter().map(|i| (i.glyph_id as u16, i.cluster)).collect()
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Wrap {
     pub open: String,
     pub close: &'static str,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 enum Content {
     Text(String),
-    Raw(String),
+    Math(String, Rc<LBox>),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 enum Item {
     Box { w: f64, content: Content, style: Style, wraps: Rc<Vec<Wrap>> },
     Glue { w: f64, stretch: f64, shrink: f64, style: Style, wraps: Rc<Vec<Wrap>>, nbsp: bool },
@@ -193,9 +241,9 @@ impl Builder {
         }
     }
 
-    pub fn raw_box(&mut self, w: f64, html: String) {
+    pub fn math_box(&mut self, w: f64, html: String, lbox: Rc<LBox>) {
         let style = self.style();
-        self.items.push(Item::Box { w, content: Content::Raw(html), style, wraps: self.cur_wraps() });
+        self.items.push(Item::Box { w, content: Content::Math(html, lbox), style, wraps: self.cur_wraps() });
         self.last = None;
         self.prev_last = None;
     }
@@ -295,11 +343,11 @@ impl Builder {
         self.items.is_empty()
     }
 
-    pub fn finish(mut self, measure: f64, base: Style, protrude: bool, expand: bool) -> String {
+    fn breaks(&mut self, measure: f64, protrude: bool, expand: bool) -> (Vec<BItem>, Vec<linebreak::Line>) {
         while matches!(self.items.last(), Some(Item::Glue { .. })) {
             self.items.pop();
         }
-        let items = self.items;
+        let items = &self.items;
         let mut b: Vec<BItem> = items
             .iter()
             .map(|it| match it {
@@ -331,6 +379,81 @@ impl Builder {
             }
         }
         let lines = linebreak::break_lines(&b, measure, &margins);
+        (b, lines)
+    }
+
+    pub fn place(mut self, measure: f64, protrude: bool, expand: bool) -> Vec<PLine> {
+        let (b, lines) = self.breaks(measure, protrude, expand);
+        let items = self.items;
+        let mut out = Vec::new();
+        let mut start = 0;
+        for line in &lines {
+            let end = line.end;
+            let mut s = start;
+            while s < end && !matches!(b[s].kind, Kind::Box) {
+                s += 1;
+            }
+            let (r, e) = split_ratio(line);
+            let mut x = -line.protrude.0;
+            let mut placed = Vec::new();
+            let mut last: Option<(Style, bool)> = None;
+            for it in items.iter().take(end.min(items.len())).skip(s) {
+                match it {
+                    Item::Box { w, content, style, wraps } => {
+                        let link = wraps.iter().any(|w| w.open.starts_with("<a"));
+                        match content {
+                            Content::Text(t) => {
+                                let scale = if expands(content, style) { e } else { 1.0 };
+                                placed.push(PItem::Text { x, s: t.clone(), style: *style, scale, link });
+                                x += w * scale;
+                            }
+                            Content::Math(_, lb) => {
+                                placed.push(PItem::Math { x, lbox: lb.clone(), link });
+                                x += w;
+                            }
+                        }
+                        last = Some((*style, link));
+                    }
+                    Item::Glue { w, stretch, shrink, .. } => x += adjust(*w, *stretch, *shrink, r),
+                    Item::Penalty { .. } => {}
+                }
+            }
+            if let Some(Item::Penalty { discretionary: true, style, .. }) = items.get(end) {
+                let link = last.is_some_and(|l| l.1);
+                placed.push(PItem::Text { x, s: "-".into(), style: *style, scale: e, link });
+            }
+            out.push(PLine { items: placed });
+            start = end;
+        }
+        out
+    }
+
+    pub fn natural(mut self) -> (Vec<PItem>, f64) {
+        while matches!(self.items.last(), Some(Item::Glue { .. })) {
+            self.items.pop();
+        }
+        let mut x = 0.0;
+        let mut placed = Vec::new();
+        for it in &self.items {
+            match it {
+                Item::Box { w, content, style, wraps } => {
+                    let link = wraps.iter().any(|w| w.open.starts_with("<a"));
+                    match content {
+                        Content::Text(t) => placed.push(PItem::Text { x, s: t.clone(), style: *style, scale: 1.0, link }),
+                        Content::Math(_, lb) => placed.push(PItem::Math { x, lbox: lb.clone(), link }),
+                    }
+                    x += w;
+                }
+                Item::Glue { w, .. } => x += w,
+                Item::Penalty { .. } => {}
+            }
+        }
+        (placed, x)
+    }
+
+    pub fn finish(mut self, measure: f64, base: Style, protrude: bool, expand: bool) -> String {
+        let (b, lines) = self.breaks(measure, protrude, expand);
+        let items = self.items;
         let base_space = width(" ", base);
         let mut out = String::from("<p class=\"fn-par\">");
         let mut start = 0;
@@ -358,12 +481,12 @@ impl Builder {
                         sync(&mut out, &mut open, wraps);
                         let inner = match content {
                             Content::Text(t) => escape(t),
-                            Content::Raw(h) => h.clone(),
+                            Content::Math(h, _) => h.clone(),
                         };
                         if (e - 1.0).abs() > 1e-5 && !expands(content, style) {
                             out.push_str(&format!(
                                 "<span class=\"fn-keep\" style=\"width:{}em;transform:scaleX({})\">{inner}</span>",
-                                num(w / e),
+                                num(w / e / style.scale()),
                                 num(1.0 / e)
                             ));
                         } else {

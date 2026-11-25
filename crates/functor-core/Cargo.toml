@@ -8,3 +8,5 @@ license.workspace = true
 [dependencies]
 rustybuzz = "0.20"
 hypher = { version = "0.1", default-features = false, features = ["english"] }
+pdf-writer = "0.14"
+miniz_oxide = "0.8"

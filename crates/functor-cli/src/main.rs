@@ -2,9 +2,11 @@ use std::process::ExitCode;
 use std::time::Instant;
 
 use functor_core::diag::Diagnostic;
-use functor_core::{compile, glyph, glyph_svg};
+use functor_core::diag::Severity;
+use functor_core::{compile, compile_pdf, glyph, glyph_svg};
 
 const USAGE: &str = "functor compile <file.fn> [-o out.html]
+functor pdf <file.fn> [-o out.pdf]
 functor check <file.fn>
 functor glyph <recipe>
 functor bench [file.fn]";
@@ -161,6 +163,19 @@ fn run(args: &[String]) -> Result<bool, String> {
                 println!("wrote {dest}");
             }
             Ok(out.errors() == 0)
+        }
+        "pdf" => {
+            let path = args.get(1).ok_or(USAGE)?;
+            let src = read(path)?;
+            let out = compile_pdf(&src);
+            print_diags(path, &out.diagnostics);
+            let dest = match args.iter().position(|a| a == "-o") {
+                Some(i) => args.get(i + 1).cloned().ok_or(USAGE)?,
+                None => path.trim_end_matches(".fn").to_string() + ".pdf",
+            };
+            std::fs::write(&dest, &out.pdf).map_err(|e| format!("Cannot write {dest}: {e}"))?;
+            println!("wrote {dest} ({} pages)", out.pages);
+            Ok(!out.diagnostics.iter().any(|d| d.severity == Severity::Error))
         }
         "glyph" => {
             let recipe = args.get(1).ok_or(USAGE)?;

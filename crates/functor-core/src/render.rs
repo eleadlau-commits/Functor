@@ -32,7 +32,7 @@ fn safe_url(url: &str) -> String {
     }
 }
 
-fn label_id(label: &str) -> String {
+pub(crate) fn label_id(label: &str) -> String {
     format!("fn-{}", label.replace(|c: char| !c.is_alphanumeric() && c != '-' && c != '_', "-"))
 }
 
@@ -49,16 +49,16 @@ pub fn math_pos(src: &str, line: usize, col: usize) -> impl Fn(usize) -> (usize,
     }
 }
 
-struct R<'a> {
-    env: &'a MathEnv,
-    labels: &'a HashMap<String, Target>,
-    diags: &'a mut Diagnostics,
-    out: String,
-    measure: Option<f64>,
-    base: Style,
-    indent: f64,
-    in_figure: bool,
-    quiet: bool,
+pub(crate) struct R<'a> {
+    pub(crate) env: &'a MathEnv,
+    pub(crate) labels: &'a HashMap<String, Target>,
+    pub(crate) diags: &'a mut Diagnostics,
+    pub(crate) out: String,
+    pub(crate) measure: Option<f64>,
+    pub(crate) base: Style,
+    pub(crate) indent: f64,
+    pub(crate) in_figure: bool,
+    pub(crate) quiet: bool,
 }
 
 pub fn length_pt(s: &str) -> Option<f64> {
@@ -343,7 +343,7 @@ impl R<'_> {
         true
     }
 
-    fn build(&mut self, b: &mut Builder, v: &[Inline]) {
+    pub(crate) fn build(&mut self, b: &mut Builder, v: &[Inline]) {
         for i in v {
             match i {
                 Inline::Text(t) => b.text(t),
@@ -375,7 +375,7 @@ impl R<'_> {
                     };
                     let label = src.split_whitespace().collect::<Vec<_>>().join(" ");
                     for p in math::inline_pieces(&node, &label) {
-                        b.raw_box(p.w, p.svg);
+                        b.math_box(p.w, p.svg, p.lbox);
                         if let Some((w, st, sh, pen)) = p.gap {
                             b.math_gap(w, st, sh, pen);
                         }
@@ -470,7 +470,7 @@ impl R<'_> {
     }
 }
 
-fn capital(s: &str) -> String {
+pub(crate) fn capital(s: &str) -> String {
     let mut c = s.chars();
     match c.next() {
         Some(f) => f.to_uppercase().chain(c).collect(),
