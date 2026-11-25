@@ -50,3 +50,5 @@ jobs:
         working-directory: web
       - run: npm run smoke
         working-directory: web
+      - run: npm run smoke:desktop
+        working-directory: web
