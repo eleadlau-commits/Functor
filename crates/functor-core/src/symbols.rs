@@ -103,7 +103,86 @@ pub const NAMES: &[Named] = &[
     n("Phi", 0x3A6, Ord),
     n("Psi", 0x3A8, Ord),
     n("Omega", 0x3A9, Ord),
+    n("ltimes", 0x22C9, Bin),
+    n("rtimes", 0x22CA, Bin),
+    n("sqcup", 0x2294, Bin),
+    n("sqcap", 0x2293, Bin),
+    n("uplus", 0x228E, Bin),
+    n("wr", 0x2240, Bin),
+    n("bullet", 0x2219, Bin),
+    n("smash", 0x2A33, Bin),
+    n("semi", 0x2A3E, Bin),
+    n("par", 0x214B, Bin),
+    n("prec", 0x227A, Rel),
+    n("succ", 0x227B, Rel),
+    n("cong", 0x2245, Rel),
+    n("simeq", 0x2243, Rel),
+    n("asymp", 0x224D, Rel),
+    n("bowtie", 0x22C8, Rel),
+    n("pitchfork", 0x22D4, Rel),
+    n("indep", 0x2AEB, Rel),
+    n("between", 0x226C, Rel),
+    n("normal", 0x22B2, Rel),
+    n("proves", 0x22A2, Rel),
+    n("models", 0x22A8, Rel),
+    n("forces", 0x22A9, Rel),
+    n("lollipop", 0x22B8, Rel),
+    n("therefore", 0x2234, Rel),
+    n("because", 0x2235, Rel),
+    n("tofro", 0x2194, Rel),
+    n("equil", 0x21CC, Rel),
+    n("mono", 0x21A3, Rel),
+    n("epi", 0x21A0, Rel),
+    n("incl", 0x21AA, Rel),
+    n("bot", 0x22A5, Ord),
+    n("neg", 0xAC, Ord),
+    n("complement", 0x2201, Ord),
+    n("diamond", 0x25C7, Ord),
+    n("wp", 0x2118, Ord),
+    n("beth", 0x2136, Ord),
+    n("gimel", 0x2137, Ord),
+    n("daleth", 0x2138, Ord),
+    n("digamma", 0x3DD, Ord),
+    n("imath", 0x1D6A4, Ord),
+    n("jmath", 0x1D6A5, Ord),
+    n("vdots", 0x22EE, Ord),
+    n("ddots", 0x22F1, Ord),
+    n("udots", 0x22F0, Ord),
+    n("degree", 0xB0, Ord),
+    n("permille", 0x2030, Ord),
+    n("dagger", 0x2020, Ord),
+    n("ddagger", 0x2021, Ord),
+    n("qed", 0x220E, Ord),
+    n("corner", 0x231F, Ord),
+    n("lightning", 0x21AF, Ord),
+    n("plimsoll", 0x29B5, Ord),
+    n("diameter", 0x2300, Ord),
+    n("blackstar", 0x2605, Ord),
+    n("checkmark", 0x2713, Ord),
+    n("flat", 0x266D, Ord),
+    n("natural", 0x266E, Ord),
+    n("sharp", 0x266F, Ord),
+    n("clubs", 0x2663, Ord),
 ];
+
+pub const SAME_GLYPH: &[(&str, &str)] = &[("perp", "bot")];
+
+pub const CAL_BASE: u32 = 0xF0000;
+
+pub const DUPLICATES: &[(u32, u32, &str)] = &[
+    (0x2126, 0x3A9, "Omega.up"),
+    (0x212B, 0xC5, "A.up.ring"),
+    (0xB5, 0x3BC, "mu.up"),
+    (0x2206, 0x394, "Delta"),
+    (0x212A, 0x4B, "K.up"),
+    (0x2A2F, 0xD7, "times"),
+    (0x2A3F, 0x2210, "coprod"),
+    (0x27C2, 0x22A5, "perp"),
+];
+
+pub fn duplicate_of(cp: u32) -> Option<(u32, &'static str)> {
+    DUPLICATES.iter().find(|(d, _, _)| *d == cp).map(|(_, c, n)| (*c, *n))
+}
 
 pub const GREEK: &[&str] = &[
     "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi",
@@ -128,6 +207,52 @@ pub const FUNCTIONS: &[(&str, Limits)] = &[
     ("min", Limits::Display),
     ("sup", Limits::Display),
     ("inf", Limits::Display),
+    ("sinh", Limits::Never),
+    ("cosh", Limits::Never),
+    ("tanh", Limits::Never),
+    ("coth", Limits::Never),
+    ("sec", Limits::Never),
+    ("csc", Limits::Never),
+    ("cot", Limits::Never),
+    ("arcsin", Limits::Never),
+    ("arccos", Limits::Never),
+    ("arctan", Limits::Never),
+    ("lg", Limits::Never),
+    ("limsup", Limits::Display),
+    ("liminf", Limits::Display),
+    ("argmax", Limits::Display),
+    ("argmin", Limits::Display),
+    ("colim", Limits::Display),
+    ("rank", Limits::Never),
+    ("tr", Limits::Never),
+    ("Tr", Limits::Never),
+    ("sgn", Limits::Never),
+    ("lcm", Limits::Display),
+    ("span", Limits::Never),
+    ("diag", Limits::Never),
+    ("id", Limits::Never),
+    ("im", Limits::Never),
+    ("coker", Limits::Never),
+    ("Aut", Limits::Never),
+    ("End", Limits::Never),
+    ("Hom", Limits::Never),
+    ("Ext", Limits::Never),
+    ("Tor", Limits::Never),
+    ("Spec", Limits::Never),
+    ("Gal", Limits::Never),
+    ("Re", Limits::Never),
+    ("Im", Limits::Never),
+    ("supp", Limits::Never),
+    ("vol", Limits::Never),
+    ("erf", Limits::Never),
+    ("res", Limits::Never),
+    ("Pr", Limits::Display),
+    ("Var", Limits::Never),
+    ("Cov", Limits::Never),
+    ("Corr", Limits::Never),
+    ("grad", Limits::Never),
+    ("curl", Limits::Never),
+    ("mod", Limits::Never),
 ];
 
 pub const SPACES: &[(&str, f64)] = &[("neg", -83.0), ("thin", 167.0), ("med", 222.0), ("thick", 278.0), ("quad", 1000.0), ("qquad", 2000.0)];
@@ -136,7 +261,7 @@ pub fn space(name: &str) -> Option<f64> {
     SPACES.iter().find(|(n, _)| *n == name).map(|(_, w)| *w)
 }
 
-pub const CALLS: &[&str] = &["frac", "sqrt", "vec", "text", "join", "grid", "mat", "cases", "binom", "abs", "norm", "inner", "floor", "ceil", "wrap"];
+pub const CALLS: &[&str] = &["frac", "sqrt", "vec", "text", "join", "grid", "mat", "cases", "binom", "abs", "norm", "inner", "floor", "ceil", "wrap", "stack"];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OpKind {
@@ -172,6 +297,8 @@ pub const OPS: &[OpDef] = &[
     op("breve", OpKind::Decorate, 0x2D8, "decorate: a related object"),
     op("arrow", OpKind::Decorate, 0x20D7, "decorate: a vector"),
     op("under", OpKind::Decorate, 0xAF, "decorate below: a related object"),
+    op("ring", OpKind::Decorate, 0x2DA, "decorate: a ring above, such as the ring in Å or ≗"),
+    op("harpoon", OpKind::Decorate, 0x20D1, "decorate: a half arrow head; on an arrow it makes a harpoon"),
     op("circle", OpKind::Enclose, 0, "enclose: a closed or restricted version"),
     op("box", OpKind::Enclose, 0, "enclose: a restricted or boxed version"),
     op("square", OpKind::Enclose, 0, "enclose: a boxed version with equal sides"),
@@ -183,12 +310,16 @@ pub const OPS: &[OpDef] = &[
     op("flip", OpKind::Reflect, 0, "reflect left to right: a dual or opposite"),
     op("flipv", OpKind::Reflect, 0, "reflect top to bottom: a dual or opposite"),
     op("turn", OpKind::Reflect, 0, "turn half a circle: a dual or opposite"),
+    op("rot", OpKind::Reflect, 0, "turn a quarter circle to the left: the same thing in a new direction, such as an arrow up"),
     op("bold", OpKind::Style, 0, "style: a new kind of object, often a vector"),
     op("bb", OpKind::Style, 0, "style: a number set"),
     op("frak", OpKind::Style, 0, "style: an ideal, an algebra or a structure"),
     op("script", OpKind::Style, 0, "style: a family, a category or a transform"),
     op("up", OpKind::Style, 0, "style: a constant, a unit or a name"),
+    op("cal", OpKind::Style, 0, "style: calligraphic capitals, a second family next to script"),
+    op("alt", OpKind::Style, 0, "style: the other common form of the same symbol, such as ϕ for φ"),
     op("small", OpKind::Magnify, 80, "magnify: a smaller version, about four fifths"),
+    op("big", OpKind::Magnify, 140, "magnify: the n-ary version, a large operator with limits"),
     op("tall", OpKind::Deform, 150, "deform: a taller version; the straight parts grow and the ends keep their shape"),
     op("wide", OpKind::Deform, 160, "deform: a wider version, such as a long arrow; the ends keep their shape"),
     op("paren", OpKind::Fence, 0, "fence: round brackets, a group or a tuple"),
@@ -302,7 +433,113 @@ pub const COMPOSITES: &[(&str, &str, u32)] = &[
     ("h", "cross", 0x210F),
     ("to", "flip", 0x2190),
     ("implies", "flip", 0x21D0),
+    ("integral", "x4", 0x2A0C),
+    ("integral", "cross", 0x2A0D),
+    ("div", "circle", 0x2298),
+    ("ast", "circle", 0x229B),
+    ("circ", "circle", 0x229A),
+    ("eq", "circle", 0x229C),
+    ("plus", "dot", 0x2214),
+    ("minus", "dot", 0x2238),
+    ("vee", "under", 0x22BB),
+    ("wedge", "bar", 0x22BC),
+    ("vee", "bar", 0x22BD),
+    ("lt", "x2", 0x226A),
+    ("gt", "x2", 0x226B),
+    ("lt", "x3", 0x22D8),
+    ("gt", "x3", 0x22D9),
+    ("subset", "x2", 0x22D0),
+    ("supset", "x2", 0x22D1),
+    ("cup", "x2", 0x22D3),
+    ("cap", "x2", 0x22D2),
+    ("subset", "square", 0x228F),
+    ("supset", "square", 0x2290),
+    ("subseteq", "square", 0x2291),
+    ("supseteq", "square", 0x2292),
+    ("eq", "dot", 0x2250),
+    ("eq", "ring", 0x2257),
+    ("prec", "not", 0x2280),
+    ("succ", "not", 0x2281),
+    ("cong", "not", 0x2247),
+    ("simeq", "not", 0x2244),
+    ("proves", "not", 0x22AC),
+    ("models", "not", 0x22AD),
+    ("bot", "flipv", 0x22A4),
+    ("proves", "flip", 0x22A3),
+    ("models", "flip", 0x2AE4),
+    ("corner", "flip", 0x231E),
+    ("to", "not", 0x219B),
+    ("to", "flip.not", 0x219A),
+    ("implies", "not", 0x21CF),
+    ("iff", "not", 0x21CE),
+    ("tofro", "not", 0x21AE),
+    ("to", "rot", 0x2191),
+    ("to", "flip.rot", 0x2193),
+    ("implies", "rot", 0x21D1),
+    ("implies", "flip.rot", 0x21D3),
+    ("tofro", "rot", 0x2195),
+    ("iff", "rot", 0x21D5),
+    ("to", "harpoon", 0x21C0),
+    ("to", "flip.harpoon", 0x21BC),
+    ("implies", "x3", 0x21DB),
+    ("mapsto", "flip", 0x21A4),
+    ("to", "wide", 0x27F6),
+    ("to", "flip.wide", 0x27F5),
+    ("tofro", "wide", 0x27F7),
+    ("implies", "wide", 0x27F9),
+    ("implies", "flip.wide", 0x27F8),
+    ("iff", "wide", 0x27FA),
+    ("mapsto", "wide", 0x27FC),
+    ("prime", "x2", 0x2033),
+    ("prime", "x3", 0x2034),
+    ("prime", "x4", 0x2057),
+    ("F", "turn", 0x2132),
+    ("G", "turn", 0x2141),
+    ("L", "turn", 0x2142),
+    ("Y", "turn", 0x2144),
+    ("Omega", "turn", 0x2127),
+    ("lambda", "cross", 0x19B),
+    ("in", "small", 0x220A),
+    ("ni", "small", 0x220D),
+    ("le", "alt", 0x2A7D),
+    ("ge", "alt", 0x2A7E),
+    ("wedge", "big", 0x22C0),
+    ("vee", "big", 0x22C1),
+    ("cup", "big", 0x22C3),
+    ("cap", "big", 0x22C2),
+    ("plus", "circle.big", 0x2A01),
+    ("times", "circle.big", 0x2A02),
+    ("cdot", "circle.big", 0x2A00),
+    ("uplus", "big", 0x2A04),
+    ("sqcup", "big", 0x2A06),
+    ("sqcap", "big", 0x2A05),
+    ("times", "big", 0x2A09),
 ];
+
+pub const STACKS: &[(&str, &str, u32)] = &[
+    ("lt", "eq", 0x2266),
+    ("gt", "eq", 0x2267),
+    ("lt", "sim", 0x2272),
+    ("gt", "sim", 0x2273),
+    ("lt", "gt", 0x2276),
+    ("gt", "lt", 0x2277),
+    ("prec", "eq", 0x2AAF),
+    ("succ", "eq", 0x2AB0),
+    ("prec", "sim", 0x227E),
+    ("succ", "sim", 0x227F),
+    ("approx", "eq", 0x224A),
+    ("triangle", "eq", 0x225C),
+    ("subset", "eq.not", 0x228A),
+    ("supset", "eq.not", 0x228B),
+    ("to", "to", 0x21C9),
+    ("to.flip", "to.flip", 0x21C7),
+    ("to", "to.flip", 0x21C4),
+    ("to.flip", "to", 0x21C6),
+];
+
+pub fn stack_glyph(top: &str, bottom: &str) -> Option<u32> {
+    STACKS.iter().find(|(a, b, _)| *a == top && *b == bottom).map(|(_, _, cp)| *cp)
+}
 
 pub fn named(name: &str) -> Option<&'static Named> {
     NAMES.iter().find(|s| s.name == name)
@@ -352,6 +589,8 @@ pub fn double_struck(c: char) -> Option<u32> {
         'R' => Some(0x211D),
         'Z' => Some(0x2124),
         'A'..='Z' => Some(0x1D538 + (c as u32 - 'A' as u32)),
+        'a'..='z' => Some(0x1D552 + (c as u32 - 'a' as u32)),
+        '0'..='9' => Some(0x1D7D8 + (c as u32 - '0' as u32)),
         _ => None,
     }
 }
@@ -395,19 +634,49 @@ pub fn styled_letter(style: &str, c: char) -> Option<u32> {
         "frak" => fraktur_letter(c),
         "script" => script_letter(c),
         "up" => c.is_ascii_alphabetic().then_some(c as u32),
+        "cal" => c.is_ascii_uppercase().then_some(CAL_BASE + c as u32),
         _ => None,
     }
 }
 
 pub fn char_class(c: char) -> Class {
     match c {
-        '+' | '\u{2212}' | '*' | '\u{B1}' | '\u{D7}' | '\u{22C5}' => Bin,
-        '=' | '<' | '>' | ':' | '\u{2264}' | '\u{2265}' | '\u{2208}' | '\u{2192}' => Rel,
-        '(' | '[' | '{' => Open,
-        ')' | ']' | '}' => Close,
-        ',' | ';' => Punct,
-        _ => Ord,
+        '+' | '\u{2212}' | '*' | '\u{B1}' | '\u{D7}' | '\u{22C5}' => return Bin,
+        '=' | '<' | '>' | ':' | '\u{2264}' | '\u{2265}' | '\u{2208}' | '\u{2192}' => return Rel,
+        '(' | '[' | '{' => return Open,
+        ')' | ']' | '}' => return Close,
+        ',' | ';' => return Punct,
+        _ => {}
     }
+    let cp = c as u32;
+    if let Some(n) = NAMES.iter().find(|n| n.cp == cp) {
+        return if n.large { Op } else { n.class };
+    }
+    unicode_class(cp).unwrap_or(Ord)
+}
+
+const CLASS_DATA: &str = include_str!("../data/classes.tsv");
+
+pub fn unicode_class(cp: u32) -> Option<Class> {
+    static TABLE: std::sync::OnceLock<std::collections::HashMap<u32, Class>> = std::sync::OnceLock::new();
+    let t = TABLE.get_or_init(|| {
+        CLASS_DATA
+            .lines()
+            .filter_map(|l| {
+                let (cp, c) = l.split_once('\t')?;
+                let class = match c {
+                    "B" => Bin,
+                    "R" => Rel,
+                    "O" => Op,
+                    "L" => Open,
+                    "C" => Close,
+                    _ => return None,
+                };
+                Some((u32::from_str_radix(cp, 16).ok()?, class))
+            })
+            .collect()
+    });
+    t.get(&cp).copied()
 }
 
 pub fn all_names() -> Vec<&'static str> {
@@ -431,9 +700,98 @@ mod tests {
     }
 
     #[test]
+    fn every_recipe_glyph_is_in_the_font() {
+        let missing: Vec<String> = COMPOSITES
+            .iter()
+            .map(|(b, o, cp)| (format!("{b}.{o}"), *cp))
+            .chain(STACKS.iter().map(|(a, b, cp)| (format!("stack({a}, {b})"), *cp)))
+            .filter(|(_, cp)| Glyph::from_font(*cp, false).is_none())
+            .map(|(r, _)| r)
+            .collect();
+        assert!(missing.is_empty(), "no glyph for {missing:?}");
+    }
+
+    #[test]
+    fn no_two_names_share_a_glyph() {
+        let mut seen: std::collections::HashMap<u32, &str> = std::collections::HashMap::new();
+        for n in NAMES {
+            if let Some(other) = seen.insert(n.cp, n.name) {
+                let allowed = SAME_GLYPH.iter().any(|(a, b)| (*a == other && *b == n.name) || (*b == other && *a == n.name));
+                assert!(allowed, "`{other}` and `{}` are the same glyph", n.name);
+            }
+        }
+    }
+
+    #[test]
+    fn no_two_recipes_share_a_glyph() {
+        let mut seen: std::collections::HashMap<u32, String> = std::collections::HashMap::new();
+        let recipes = COMPOSITES.iter().map(|(b, o, cp)| (format!("{b}.{o}"), *cp)).chain(STACKS.iter().map(|(a, b, cp)| (format!("stack({a}, {b})"), *cp)));
+        for (r, cp) in recipes {
+            if let Some(other) = seen.insert(cp, r.clone()) {
+                panic!("`{other}` and `{r}` make the same glyph");
+            }
+        }
+    }
+
+    #[test]
+    fn duplicates_point_to_a_glyph_functor_has() {
+        for (dup, canon, _) in DUPLICATES {
+            assert!(Glyph::from_font(*canon, false).is_some(), "{dup:x}");
+        }
+    }
+
+    #[test]
+    fn typed_unicode_gets_a_math_class() {
+        assert_eq!(char_class('\u{2297}'), Bin);
+        assert_eq!(char_class('\u{226A}'), Rel);
+        assert_eq!(char_class('\u{27E8}'), Open);
+        assert_eq!(char_class('\u{221E}'), Ord);
+    }
+
+    #[test]
+    fn greek_styles() {
+        assert_eq!(styled_greek("alt", greek_index("phi").unwrap()), Some(0x1D719));
+        assert_eq!(styled_greek("up", greek_index("mu").unwrap()), Some(0x3BC));
+        assert_eq!(styled_greek("alt", greek_index("alpha").unwrap()), None);
+        assert_eq!(function_text("limsup"), "lim sup");
+    }
+
+    #[test]
     fn dots_is_built_from_three_periods() {
         let dots = Glyph::from_font(0x2026, false).unwrap();
         let period = Glyph::from_font(0x2E, false).unwrap();
         assert!((dots.w - (3.0 * period.w + 2.0 * 1000.0 * 3.0 / 18.0)).abs() < 1e-6);
+    }
+}
+
+pub fn styled_greek(style: &str, index: usize) -> Option<u32> {
+    let i = index as u32;
+    match style {
+        "up" => Some(0x3B1 + i),
+        "bold" => Some(0x1D736 + i),
+        "alt" => match GREEK.get(index).copied()? {
+            "epsilon" => Some(0x1D716),
+            "theta" => Some(0x1D717),
+            "kappa" => Some(0x1D718),
+            "phi" => Some(0x1D719),
+            "rho" => Some(0x1D71A),
+            "pi" => Some(0x1D71B),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+pub fn greek_index(name: &str) -> Option<usize> {
+    GREEK.iter().position(|g| *g == name)
+}
+
+pub fn function_text(name: &str) -> &str {
+    match name {
+        "limsup" => "lim sup",
+        "liminf" => "lim inf",
+        "argmax" => "arg max",
+        "argmin" => "arg min",
+        _ => name,
     }
 }

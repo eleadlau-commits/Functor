@@ -371,6 +371,13 @@ impl Parser<'_, '_, '_> {
                     '*' => (0x2217, Class::Bin),
                     _ => (c as u32, symbols::char_class(c)),
                 };
+                let (cp, class) = match symbols::duplicate_of(cp) {
+                    Some((canon, name)) => {
+                        self.warn(start, format!("`{c}` is a second code for a symbol that Functor already has."), Some(format!("Write `{name}`. Functor keeps one form for each symbol.")));
+                        (canon, char::from_u32(canon).map_or(class, symbols::char_class))
+                    }
+                    None => (cp, class),
+                };
                 if glyph::font_glyph(cp, false).is_none() {
                     self.err(start, format!("The font has no glyph for `{c}`."), Some("Use a named symbol instead, or build it from a base and operations.".into()));
                     return None;
@@ -381,7 +388,7 @@ impl Parser<'_, '_, '_> {
                 }
                 let base = Rc::new(Glyph::from_font(cp, false)?);
                 let recipe = format!("{c}{}", join_ops(&ops));
-                let g = self.apply_ops(base, &ops, &recipe, false, None)?;
+                let g = self.apply_ops(base, &ops, &recipe, false, None, None)?;
                 Some(Node::Glyph { g, class, limits: Limits::Never, italic: false, large: false })
             }
         }
@@ -414,8 +421,11 @@ impl Parser<'_, '_, '_> {
     fn call(&mut self, name: &str, start: usize) -> Option<Node> {
         self.bump();
         let mut args = Vec::new();
+        let mut texts: Vec<String> = Vec::new();
         loop {
+            let a0 = self.i;
             let row = self.row(&[',', ')']);
+            texts.push(self.s[a0..self.i].trim().to_string());
             args.push(Node::Row(row));
             match self.peek() {
                 Some(',') => {
@@ -432,7 +442,7 @@ impl Parser<'_, '_, '_> {
             }
         }
         let want = match name {
-            "frac" | "join" | "binom" | "inner" => 2,
+            "frac" | "join" | "binom" | "inner" | "stack" => 2,
             "wrap" if args.len() == 3 => 3,
             "wrap" => 2,
             _ => 1,
@@ -444,6 +454,7 @@ impl Parser<'_, '_, '_> {
                 Some(match name {
                     "frac" => "Write `frac(top, bottom)`.".into(),
                     "join" => "Write `join(a, b)`.".into(),
+                    "stack" => "Write `stack(top, bottom)`.".into(),
                     "binom" => "Write `binom(n, k)`.".into(),
                     "inner" => "Write `inner(u, v)`.".into(),
                     "wrap" => "Write `wrap(glyph, body)` or `wrap(left, right, body)`.".into(),
@@ -453,6 +464,9 @@ impl Parser<'_, '_, '_> {
         }
         if name == "join" {
             return Some(self.join(args, start));
+        }
+        if name == "stack" {
+            return Some(self.stack(args, &texts, start));
         }
         if name == "wrap" {
             return Some(self.wrap(args, start));
@@ -663,6 +677,41 @@ impl Parser<'_, '_, '_> {
         Node::Glyph { g, class: Class::Ord, limits: Limits::Never, italic: false, large: false }
     }
 
+    fn stack(&mut self, args: Vec<Node>, texts: &[String], start: usize) -> Node {
+        let classes: Vec<Class> = args.iter().filter_map(node_class).collect();
+        let class = if classes.contains(&Class::Rel) {
+            Class::Rel
+        } else if classes.contains(&Class::Bin) {
+            Class::Bin
+        } else {
+            Class::Ord
+        };
+        if let (Some(a), Some(b)) = (texts.first(), texts.get(1)) {
+            if let Some(cp) = symbols::stack_glyph(a, b) {
+                if glyph::font_glyph(cp, false).is_some() {
+                    glyph::note_font_glyph();
+                    return glyph_node(cp, class, Limits::Never, false, false);
+                }
+            }
+        }
+        let mut glyphs = Vec::new();
+        for (a, t) in args.iter().zip(texts) {
+            match single_glyph(a) {
+                Some(g) if t.starts_with('"') => glyphs.push(Rc::new(g.magnified(0.7))),
+                Some(g) => glyphs.push(g),
+                None => {
+                    self.err(start, "`stack` takes two single symbols.", Some("Write `stack(lt, sim)` or `stack(eq, \"def\")`. Build each part first.".into()));
+                    return Node::Row(args);
+                }
+            }
+        }
+        if glyphs.len() != 2 {
+            return Node::Row(args);
+        }
+        let g = Rc::new(glyphs[0].stack(&glyphs[1]));
+        Node::Glyph { g, class, limits: Limits::Never, italic: false, large: false }
+    }
+
     fn group_ops(&mut self, body: Node, ops: &[(String, usize)], start: usize) -> Option<Node> {
         if ops.len() > MAX_OPS {
             self.warn(start, format!("This group has {} operations. Symbols with more than {MAX_OPS} are hard to read.", ops.len()), Some("Use fewer operations, or define a `sym` with a clear name.".into()));
@@ -682,7 +731,7 @@ impl Parser<'_, '_, '_> {
         let mut h = std::collections::hash_map::DefaultHasher::new();
         std::hash::Hash::hash(&format!("{:?}", base.items), &mut h);
         let recipe = format!("group:{:x}{}", std::hash::Hasher::finish(&h), join_ops(ops));
-        let g = self.apply_ops(base, ops, &recipe, false, None)?;
+        let g = self.apply_ops(base, ops, &recipe, false, None, None)?;
         Some(Node::Glyph { g, class: Class::Ord, limits: Limits::Never, italic: false, large: false })
     }
 
@@ -721,7 +770,7 @@ impl Parser<'_, '_, '_> {
         }
         let ops_text = join_ops(ops);
         let display = self.ctx.display;
-        let (base_cp, class, limits, italic, large) = if let Some(n) = symbols::named(word) {
+        let (base_cp, mut class, mut limits, italic, mut large) = if let Some(n) = symbols::named(word) {
             (n.cp, n.class, n.limits, false, n.large && display)
         } else if let Some(cp) = symbols::greek(word) {
             (cp, Class::Ord, Limits::Never, true, false)
@@ -729,10 +778,14 @@ impl Parser<'_, '_, '_> {
             if let Some((o, at)) = ops.first() {
                 self.err(*at, format!("`{word}` is a function name; it takes no operation `.{o}`."), None);
             }
-            let cps: Vec<u32> = word.chars().map(|c| c as u32).collect();
+            let cps: Vec<u32> = symbols::function_text(word).chars().map(|c| c as u32).collect();
             return Node::Glyph { g: word_glyph(&cps, "fn"), class: Class::Op, limits: lim, italic: false, large: false };
         } else if word.chars().count() == 1 {
-            let c = word.chars().next().unwrap_or('x');
+            let mut c = word.chars().next().unwrap_or('x');
+            if let Some((canon, name)) = symbols::duplicate_of(c as u32) {
+                self.warn(start, format!("`{c}` is a second code for a symbol that Functor already has."), Some(format!("Write `{name}`. Functor keeps one form for each symbol.")));
+                c = char::from_u32(canon).unwrap_or(c);
+            }
             let cp = symbols::italic_letter(c).unwrap_or(c as u32);
             (cp, Class::Ord, Limits::Never, cp != c as u32, false)
         } else {
@@ -770,6 +823,11 @@ impl Parser<'_, '_, '_> {
         if ops.is_empty() {
             return glyph_node(base_cp, class, limits, italic, large);
         }
+        if ops.iter().any(|(o, _)| o == "big") {
+            class = Class::Op;
+            limits = Limits::Display;
+            large = display;
+        }
         if let Some(cp) = symbols::composite(word, &ops_text[1..]) {
             if glyph::font_glyph(cp, large).is_some() {
                 glyph::note_font_glyph();
@@ -783,13 +841,13 @@ impl Parser<'_, '_, '_> {
         base.italic = italic;
         let recipe = format!("{word}{ops_text}{}", if large { ":L" } else { "" });
         let letter = (word.chars().count() == 1).then(|| word.chars().next()).flatten();
-        match self.apply_ops(Rc::new(base), ops, &recipe, large, letter) {
+        match self.apply_ops(Rc::new(base), ops, &recipe, large, letter, symbols::greek_index(word)) {
             Some(g) => Node::Glyph { g, class, limits, italic, large },
             None => glyph_node(base_cp, class, limits, italic, large),
         }
     }
 
-    fn apply_ops(&mut self, base: Rc<Glyph>, ops: &[(String, usize)], recipe: &str, large: bool, letter: Option<char>) -> Option<Rc<Glyph>> {
+    fn apply_ops(&mut self, base: Rc<Glyph>, ops: &[(String, usize)], recipe: &str, large: bool, letter: Option<char>, greek: Option<usize>) -> Option<Rc<Glyph>> {
         let built = glyph::cached_with_notes(recipe, || {
             let mut errors: glyph::Notes = Vec::new();
             let mut g = (*base).clone();
@@ -815,15 +873,23 @@ impl Parser<'_, '_, '_> {
                     }
                     OpKind::Fence => g,
                     OpKind::Style => {
-                        let swap = if i == 0 { letter.and_then(|c| symbols::styled_letter(o, c)) } else { None };
+                        let swap = if i == 0 { letter.and_then(|c| symbols::styled_letter(o, c)).or_else(|| greek.and_then(|g| symbols::styled_greek(o, g))) } else { None };
                         match (swap.and_then(|cp| Glyph::from_font(cp, large)), o.as_str()) {
                             (Some(mut x), _) => {
-                                x.italic = o == "bold";
+                                x.italic = o == "bold" || (o == "alt" && greek.is_some());
                                 x
                             }
                             (None, "bold") => g.emboldened(),
                             (None, "bb") => {
-                                errors.push((i, "`bb` works only on a single capital letter.".into()));
+                                errors.push((i, "`bb` works only on a single letter or digit.".into()));
+                                g
+                            }
+                            (None, "cal") => {
+                                errors.push((i, "`cal` works only on a single capital letter.".into()));
+                                g
+                            }
+                            (None, "alt") => {
+                                errors.push((i, "This symbol has no other common form.".into()));
                                 g
                             }
                             (None, _) => {
@@ -906,6 +972,14 @@ fn font_glyph_rc(cp: u32) -> Rc<Glyph> {
 
 fn font_atom(cp: u32, class: Class) -> Node {
     Node::Glyph { g: font_glyph_rc(cp), class, limits: Limits::Never, italic: false, large: false }
+}
+
+fn node_class(n: &Node) -> Option<Class> {
+    match n {
+        Node::Glyph { class, .. } => Some(*class),
+        Node::Row(v) if v.len() == 1 => node_class(&v[0]),
+        _ => None,
+    }
 }
 
 fn single_glyph(n: &Node) -> Option<Rc<Glyph>> {
@@ -1427,6 +1501,46 @@ mod tests {
     }
 
     #[test]
+    fn big_makes_a_large_operator_from_the_font() {
+        glyph::take_stats();
+        let (n, d) = run("plus.circle.big_(i = 1)^n V_i", true);
+        assert!(d.is_empty(), "{d:?}");
+        assert_eq!(glyph::take_stats().from_font, 1);
+        let Node::Row(v) = n else { panic!() };
+        assert!(v.iter().any(|x| matches!(x, Node::Scripts { .. }) || matches!(x, Node::Glyph { class: Class::Op, .. })));
+    }
+
+    #[test]
+    fn new_operations_build_without_errors() {
+        for src in ["to.rot", "to.flip.rot", "x.ring", "v.harpoon", "L.cal", "phi.alt", "mu.up", "alpha.bold", "k.bb", "le.alt", "lt.x2", "bot.flipv", "stack(lt, sim)", "stack(\"def\", eq)", "stack(sum, plus)", "x.rot", "limsup_(n to infty) a_n", "Hom(A, B)"] {
+            let (_, d) = run(src, false);
+            assert!(d.is_empty(), "{src}: {d:?}");
+        }
+    }
+
+    #[test]
+    fn stack_and_rot_use_the_font_when_they_can() {
+        glyph::take_stats();
+        let _ = run("stack(lt, sim) + to.rot", false);
+        assert_eq!(glyph::take_stats().from_font, 2);
+    }
+
+    #[test]
+    fn style_errors_explain_themselves() {
+        let (_, d) = run("alpha.alt", false);
+        assert!(d[0].message.contains("no other common form"), "{d:?}");
+        let (_, d) = run("x.cal", false);
+        assert!(d[0].message.contains("capital"), "{d:?}");
+    }
+
+    #[test]
+    fn duplicate_codes_give_a_warning() {
+        let (_, d) = run("\u{2126}", false);
+        assert_eq!(d.len(), 1);
+        assert!(d[0].hint.as_deref().unwrap_or("").contains("Omega.up"));
+    }
+
+    #[test]
     fn built_glyph_is_cached() {
         glyph::clear_cache();
         glyph::take_stats();
@@ -1438,26 +1552,26 @@ mod tests {
     #[test]
     fn cached_recipe_keeps_its_errors() {
         glyph::clear_cache();
-        let (_, d) = run("x.bb + x.bb", false);
+        let (_, d) = run("x.cal + x.cal", false);
         let cols: Vec<usize> = d.iter().map(|d| d.col).collect();
-        assert_eq!(cols, vec![3, 10]);
-        let (_, d) = run("x.bb", false);
+        assert_eq!(cols, vec![3, 11]);
+        let (_, d) = run("x.cal", false);
         assert_eq!(d.len(), 1);
-        assert!(d[0].message.contains("bb"));
+        assert!(d[0].message.contains("cal"));
     }
 
     #[test]
     fn preview_refuses_bad_recipe_twice() {
         glyph::clear_cache();
         let env = MathEnv::new();
-        assert!(glyph_preview("x.bb", &env).is_none());
-        assert!(glyph_preview("x.bb", &env).is_none());
+        assert!(glyph_preview("x.cal", &env).is_none());
+        assert!(glyph_preview("x.cal", &env).is_none());
     }
 
     #[test]
     fn disk_cache_round_trip() {
         glyph::clear_cache();
-        let (a, _) = run("sum.circle + x.hat.box + x.bb + x.tall", false);
+        let (a, _) = run("sum.circle + x.hat.box + x.cal + x.tall", false);
         let before = render(&a, false, "x");
         let text = glyph::export_cache();
         assert!(text.contains("\nO\t"));
@@ -1466,7 +1580,7 @@ mod tests {
         assert_eq!(glyph::import_cache(&text), 4);
         assert!(!glyph::take_dirty());
         glyph::take_stats();
-        let (b, d) = run("sum.circle + x.hat.box + x.bb + x.tall", false);
+        let (b, d) = run("sum.circle + x.hat.box + x.cal + x.tall", false);
         let s = glyph::take_stats();
         assert_eq!((s.built, s.hits), (0, 4));
         assert_eq!(d.len(), 1);

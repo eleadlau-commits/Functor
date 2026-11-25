@@ -1,0 +1,38 @@
+---
+functor: 1
+title: harpoon
+---
+
+set heading(numbering: none)
+
+`harpoon` · decorate · a half arrow head; on an arrow it makes a harpoon.
+
+# Form
+
+`x.harpoon` on a symbol, `(a + b).harpoon` on a group. A recipe has one base and up to three operations.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | A half arrow head; on an arrow it makes a harpoon. A guideline, not a rule. |
+| Style | Use a `sym` to give a recipe a short name. |
+| Construction | A mark above or below the base. The mark follows the slant of an italic letter. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- More than three operations on one base gives a warning.
+
+# From LaTeX
+
+no LaTeX command.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)

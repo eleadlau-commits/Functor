@@ -7,6 +7,7 @@ const DATA: &str = include_str!("../data/glyphs.tsv");
 
 pub const STROKE: f64 = 40.0;
 pub const JOIN_OVERLAP: f64 = 45.0;
+pub const AXIS: f64 = 250.0;
 
 #[derive(Clone, Copy)]
 pub struct FontGlyph {
@@ -246,6 +247,16 @@ impl Glyph {
 
     pub fn reflect(&self, kind: &str) -> Glyph {
         let (x0, y0, x1, y1) = self.ink_box();
+        if kind == "rot" {
+            let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+            let half_w = (y1 - y0) / 2.0;
+            let side = x0.max(0.0);
+            let nx = side + half_w;
+            let tf = Affine([0.0, 1.0, -1.0, 0.0, nx + cy, cy - cx]);
+            let ny0 = cy - (x1 - x0) / 2.0;
+            let ny1 = cy + (x1 - x0) / 2.0;
+            return Glyph { w: nx + half_w + side, h: ny1.max(0.0), d: (-ny0).max(0.0), items: self.transformed(tf), italic: false };
+        }
         let tf = match kind {
             "flip" => Affine([-1.0, 0.0, 0.0, 1.0, x0 + x1, 0.0]),
             "flipv" => Affine([1.0, 0.0, 0.0, -1.0, 0.0, y0 + y1]),
@@ -267,6 +278,23 @@ impl Glyph {
             items,
             italic: other.italic,
         }
+    }
+
+    pub fn stack(&self, below: &Glyph) -> Glyph {
+        let (ax0, ay0, ax1, ay1) = self.ink_box();
+        let (bx0, by0, bx1, by1) = below.ink_box();
+        let width = (ax1 - ax0).max(bx1 - bx0);
+        let side = 40.0;
+        let mid = side + width / 2.0;
+        let gap = 60.0;
+        let total = (ay1 - ay0) + gap + (by1 - by0);
+        let bottom = AXIS - total / 2.0;
+        let b_dy = bottom - by0;
+        let a_dy = bottom + (by1 - by0) + gap - ay0;
+        let mut items = self.transformed(Affine::translate(mid - (ax0 + ax1) / 2.0, a_dy));
+        items.extend(below.transformed(Affine::translate(mid - (bx0 + bx1) / 2.0, b_dy)));
+        let top = bottom + total;
+        Glyph { w: width + 2.0 * side, h: top.max(0.0), d: (-bottom).max(0.0), items, italic: false }
     }
 
     pub fn magnified(&self, s: f64) -> Glyph {
