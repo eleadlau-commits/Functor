@@ -6,7 +6,7 @@
     "tauri": "tauri",
     "dev": "tauri dev",
     "build": "tauri build",
-    "icons": "tauri icon icon.svg -o icons && rm -rf icons/android icons/ios icons/Square* icons/StoreLogo.png"
+    "icons": "tauri icon ../docs/logo/icon.svg -o icons && rm -rf icons/android icons/ios icons/Square* icons/StoreLogo.png"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.6"
