@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of the release, for example v0.1.0
+        required: true
+        default: v0.1.0
+      publish:
+        description: Publish the draft that a past run made. Builds nothing.
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  cli:
+    if: ${{ !inputs.publish }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+          - { os: macos-latest, target: x86_64-apple-darwin }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - run: cargo build --release --locked -p functor-cli --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        run: |
+          name="functor-${{ inputs.tag }}-${{ matrix.target }}"
+          mkdir -p "pkg/$name"
+          cp LICENSE NOTICE README.md "pkg/$name/"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cp "target/${{ matrix.target }}/release/functor.exe" "pkg/$name/"
+            (cd pkg && 7z a "$name.zip" "$name" > /dev/null)
+          else
+            cp "target/${{ matrix.target }}/release/functor" "pkg/$name/"
+            tar -C pkg -czf "pkg/$name.tar.gz" "$name"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: |
+            pkg/*.tar.gz
+            pkg/*.zip
+
+  desktop:
+    if: ${{ !inputs.publish }}
+    uses: ./.github/workflows/desktop.yml
+
+  extension:
+    if: ${{ !inputs.publish }}
+    uses: ./.github/workflows/extension.yml
+
+  draft:
+    needs: [cli, desktop, extension]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: art
+      - name: Collect assets
+        run: |
+          mkdir out
+          find art/cli-* -type f -exec cp {} out/ \;
+          find art/functor-desktop-* -type f \( -name '*.deb' -o -name '*.AppImage' -o -name '*.dmg' -o -name '*.msi' -o -name '*-setup.exe' \) -exec cp {} out/ \;
+          (cd art/functor-extension && zip -qr "../../out/functor-extension-$TAG.zip" .)
+          (cd out && sha256sum * > SHA256SUMS.txt)
+          ls -l out
+      - name: Make or update the draft
+        run: |
+          notes="docs/releases/$TAG.md"
+          title="Functor ${TAG#v}"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            [ "$(gh release view "$TAG" --json isDraft -q .isDraft)" = true ] || { echo "::error::$TAG is already published"; exit 1; }
+            gh release edit "$TAG" --title "$title" --notes-file "$notes" --target "$GITHUB_SHA" --prerelease
+            gh release upload "$TAG" out/* --clobber
+          else
+            gh release create "$TAG" out/* --draft --prerelease --title "$title" --notes-file "$notes" --target "$GITHUB_SHA"
+          fi
+
+  publish:
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: gh release edit "${{ inputs.tag }}" --draft=false --prerelease

@@ -47,4 +47,5 @@ A file states its language version. When the language changes in a way that brea
 | `functor compile file.fn` | An HTML file |
 | `functor pdf file.fn` | A PDF file that Functor sets itself |
 | `functor glyph theta.hat` | The SVG of one recipe |
+| `functor --version` | The version of the compiler, for example `functor 0.1.0` |
 | `functor trace file.fn 12:5` | The four layers of each symbol: meaning, style, construction, glyph. The line and column are optional. See [Notation check and trace](help/notation.html). |

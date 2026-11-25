@@ -14,7 +14,9 @@ $$
 
 ## Status
 
-Phase 0. The compiler, the glyph builder and the compile website work. Phase 1 has started: `deform` works (`tall`, `wide`, and fences that grow). Some parts come later: own kinds, `fuse`, labels on single rows of an aligned chain, packages and page layout for print.
+Version 0.1.0 is a pre-release. The language still changes, so old files can stop working in a new version.
+
+Download the command line tool, the desktop app and the Chrome extension from [Releases](https://github.com/eleadlau-commits/Functor/releases). Or use the [website](https://eleadlau-commits.github.io/Functor/) with no install.
 
 ## Use the website
 

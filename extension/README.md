@@ -7,6 +7,7 @@ A Chrome extension. It shows Functor code blocks in Claude chats (claude.ai) as 
 ## Install
 
 1. Get the extension folder:
+   - From a release: download `functor-extension-<version>.zip` from [Releases](https://github.com/eleadlau-commits/Functor/releases) and unzip it.
    - From CI: open the latest **Browser extension** run in the Actions tab, download the `functor-extension` artifact, and unzip it.
    - Or build it: `node scripts/build-extension.mjs` (needs Rust with the `wasm32-unknown-unknown` target). The result is in `extension/dist`.
 2. Open `chrome://extensions` and turn on **Developer mode**.

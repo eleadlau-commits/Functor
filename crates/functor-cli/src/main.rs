@@ -14,6 +14,7 @@ functor glyph <recipe>
 functor bench [file.fn]
 functor ref gen [docs/reference]
 functor ref build <out-dir> [docs/reference]
+functor --version
 
 Built glyphs are kept in a disk cache. Set FUNCTOR_CACHE_DIR to move it, or pass --no-cache.";
 
@@ -202,6 +203,10 @@ fn run(args: &[String]) -> Result<bool, String> {
 fn run_cmd(args: &[String]) -> Result<bool, String> {
     let cmd = args.first().map(String::as_str).unwrap_or("");
     match cmd {
+        "--version" | "-V" | "version" => {
+            println!("functor {}", env!("CARGO_PKG_VERSION"));
+            Ok(true)
+        }
         "compile" | "check" => {
             let path = args.get(1).ok_or(USAGE)?;
             let src = read(path)?;
