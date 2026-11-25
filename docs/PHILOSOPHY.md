@@ -262,3 +262,49 @@ Total: 37 of 40 (35 before). Diagrams: Style goes from 3 to 4, because one rule 
 
 - The first よ had a small loop and a thick stem, so the counter almost closed. A larger loop and thinner strokes fixed it.
 - `set greek` takes 25 option names. The generated set rules page shows one row for it, not 25.
+
+## Deform kinds and diagrams v2
+
+Deform now has one general tool: move each point of the outline with a map. Each new kind is only a map.
+
+```mermaid
+flowchart LR
+  O["Glyph outline"] --> S["Split lines and curves<br/>into short pieces"]
+  S --> M["Move each point with the map<br/>bend, taper"]
+  M --> T["Turn each control point<br/>with the local slope"]
+  T --> C["New outline<br/>in the recipe cache"]
+  O --> A["slant: one shear<br/>no new outline"]
+```
+
+| Operation | Map | Use |
+|:--|:--|:--|
+| `bend` | the long axis goes on an arc of 60 degrees; the cross axis goes along the radius, so strokes keep their width | `to.wide.bend`, curved arrows |
+| `slant` | a shear of 12 degrees | `A.slant` |
+| `taper` | the cross axis scales from one third at the start to full size at the end | `to.wide.taper` |
+| (internal) `cut` | removes the ink in a band and closes the outline along the cut | the gap at a crossing |
+
+Diagrams v2 uses the same tools. Each arrow is one glyph: the arrow is grown with `wide`, then `cut` at each crossing, then bent with `bend`, then turned to the angle.
+
+- Curved arrow: `f: A to.bend B`. `to.bend.flipv` curves to the right. The same `bend` as on one symbol, so there is no new syntax.
+- 2-cell: `alpha: f implies g`. An arrow between two arrow names is a 2-cell. It goes from the middle of one arc to the middle of the other.
+- Crossing: automatic. The arrow written first gets a gap. `set diagram(cross: plain)` turns it off.
+
+| Principle | Score | What it does now | Gap |
+|:--|:-:|:--|:--|
+| Deform is the most general operation | 5 (was 3) | Five deform operations from two tools (bands, point map). Curved arrows and crossings are deforms. | None for v1. |
+| Existing symbols only (v1) | 5 | All five take any glyph. | None. |
+| Speed | 5 | A bent or cut arrow is about 0.1 ms. Symbol bench worst 2.1 ms, gate 5 ms. | Diagram edge glyphs are not in the disk cache. |
+
+| Diagram layer | Score | What it does now | Gap |
+|:--|:-:|:--|:--|
+| Meaning | 5 (was 4) | A 2-cell is a map between maps: `alpha: f implies g`. | None. |
+| Style | 4 | `set diagram(cross: gap or plain)`, and the arrow kind rules from the change above. | The bend angle is fixed at 30 degrees at each end. |
+| Construction | 5 (was 4) | Curved arrows and 2-cells use `bend` and font glyphs, no own drawing code. | None. |
+| Layout | 4 (was 3) | Crossings get a gap. Gaps grow for curved arrows. | Loops, and a curved arrow can touch an arrow next to it. |
+
+Total for diagrams: 18 of 20 (was 15).
+
+### Key hiccups
+
+- The first 2-cell between two curved arrows had no room for the double arrow. A curved arrow now makes the gap between its cells larger.
+- The first test for 2-cells found no error for `f implies B`, because B is a cell. The check now looks at each end alone.

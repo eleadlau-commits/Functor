@@ -1,0 +1,11 @@
+[package]
+name = "functor-stress"
+description = "Random maths stress tester for the Functor compiler"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+functor-paper = { path = "../functor-paper" }
+miniz_oxide = "0.8"

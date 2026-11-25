@@ -1,0 +1,41 @@
+---
+functor: 1
+title: bend
+---
+
+set heading(numbering: none)
+
+`bend` · deform · bend the long axis into an arc, such as a curved arrow; the strokes keep their width.
+
+# Form
+
+`x.bend` on a symbol, `(a + b).bend` on a group. A recipe has one base and up to three operations.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `to.wide.bend` | $to.wide.bend$ | built and cached |
+| `to.wide.bend.flipv` | $to.wide.bend.flipv$ | built and cached |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | Bend the long axis into an arc, such as a curved arrow; the strokes keep their width. A guideline, not a rule. |
+| Style | Use a `sym` to give a recipe a short name. |
+| Construction | A changed outline of the base. The compiler moves each point of the outline, and the strokes keep their shape and width. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- More than three operations on one base gives a warning.
+- Bends the long axis into an arc of 60 degrees, with the middle up. Add `flipv` after it to bend down. In a `diagram`, it makes a curved arrow.
+
+# From LaTeX
+
+tikz-cd `bend left` and `bend right` in a `diagram`.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)
