@@ -322,6 +322,9 @@ pub const OPS: &[OpDef] = &[
     op("big", OpKind::Magnify, 140, "magnify: the n-ary version, a large operator with limits"),
     op("tall", OpKind::Deform, 150, "deform: a taller version; the straight parts grow and the ends keep their shape"),
     op("wide", OpKind::Deform, 160, "deform: a wider version, such as a long arrow; the ends keep their shape"),
+    op("bend", OpKind::Deform, 30, "deform: bend the long axis into an arc, such as a curved arrow; the strokes keep their width"),
+    op("slant", OpKind::Deform, 12, "deform: lean to the right, a slanted variant"),
+    op("taper", OpKind::Deform, 35, "deform: make the start of the long axis thin, a tapered variant"),
     op("paren", OpKind::Fence, 0, "fence: round brackets, a group or a tuple"),
     op("brack", OpKind::Fence, 0, "fence: square brackets, a group or a matrix"),
     op("brace", OpKind::Fence, 0, "fence: curly brackets, a set"),
@@ -366,6 +369,7 @@ pub const KIND_DEFAULTS: &[(&str, &str, &str)] = &[
     ("vec", "inline", "small"),
     ("diagram", "inline", "small"),
     ("diagram", "gap", "normal"),
+    ("diagram", "cross", "gap"),
     ("cases", "fence", "brace.left"),
     ("cases", "word", ""),
     ("binom", "fence", "paren"),
@@ -388,7 +392,7 @@ pub const SET_OPTIONS: &[(&str, &[&str])] = &[
     ("floor", &["fence", "grow"]),
     ("ceil", &["fence", "grow"]),
     ("wrap", &["grow"]),
-    ("diagram", &["gap", "inline"]),
+    ("diagram", &["gap", "inline", "cross"]),
     ("document", &["style", "accent"]),
     ("heading", &["numbering"]),
     ("page", &["size", "margin"]),
@@ -396,8 +400,10 @@ pub const SET_OPTIONS: &[(&str, &[&str])] = &[
 ];
 
 pub const LATER_OPS: &[(&str, &str)] = &[
-    ("deform", "Deform has two operations: `tall` and `wide`. For example `integral.tall` or `to.wide`."),
+    ("deform", "Deform has five operations: `tall`, `wide`, `bend`, `slant` and `taper`. For example `integral.tall` or `to.bend`."),
     ("stretch", "Write `tall` or `wide`. They stretch the straight parts and keep the ends."),
+    ("curve", "Write `bend`, for example `to.bend`."),
+    ("italic", "Write `slant`, for example `x.slant`."),
     ("fuse", "`fuse` comes in a later phase. Use `join(a, b)` for now."),
 ];
 

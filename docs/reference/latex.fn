@@ -134,6 +134,9 @@ The n-th root, `\sqrt[n]{x}`, has no form yet.
 | `\xrightarrow{f}`, `\xleftarrow[g]{}` | `to^f`, `gets_g` |
 | `\overset{\text{def}}{=}`, `\stackrel{?}{=}` | `=^"def"`, `=^"?"` |
 | tikz-cd: `A \arrow[r, "f"] \arrow[d, "g"'] & B \\ C` | `diagram(...)`: see [Diagrams](structures/diagrams.html) |
+| tikz-cd: `\arrow[r, bend left]`, `bend right` | `A to.bend B`, `A to.bend.flipv B` in a `diagram` |
+| tikz-cd: `\arrow[Rightarrow, from=1, to=2]` (a 2-cell) | `alpha: f implies g` in a `diagram` |
+| tikz-cd: `crossing over` | automatic: the arrow written first gets a gap |
 | `\begin{cases} x & x \ge 0 \\ -x & x < 0 \end{cases}` | `cases(x, x ge 0; -x, x lt 0)` |
 | `\begin{align} a &= b \\ &= c \end{align}` | `$$`, then `a = b`, then `  = c` on the next line |
 | `\begin{theorem}[Name] \label{thm:a}` | `::: theorem {#thm:a title="Name"}` |

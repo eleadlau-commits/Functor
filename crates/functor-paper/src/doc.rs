@@ -324,6 +324,13 @@ impl DocParser<'_> {
                         self.diags.error(n, arg_col, format!("`{v}` is not a diagram gap."), Some("Use `small`, `normal` or `large`.".into()));
                     }
                 }
+                ("diagram", "cross") => {
+                    if v == "gap" || v == "plain" {
+                        self.env.kinds.insert("diagram.cross".into(), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a diagram crossing."), Some("Use `gap` or `plain`.".into()));
+                    }
+                }
                 ("cases", "word") => {
                     self.env.kinds.insert("cases.word".into(), v);
                 }

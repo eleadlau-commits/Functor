@@ -24,7 +24,7 @@ set heading(numbering: none)
 |:--|:--|
 | Meaning | A wider version, such as a long arrow; the ends keep their shape. A guideline, not a rule. |
 | Style | Use a `sym` to give a recipe a short name. |
-| Construction | A changed outline of the base. The straight parts grow and the ends and thin strokes keep their shape. |
+| Construction | A changed outline of the base. The compiler moves each point of the outline, and the strokes keep their shape and width. |
 | Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
 
 # Rules
