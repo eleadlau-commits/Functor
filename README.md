@@ -14,7 +14,7 @@ $$
 
 ## Status
 
-Phase 0. The compiler, the glyph builder and the compile website work. Some parts come in phase 1: own kinds, `deform`, `fuse`, `stretch`, packages and page layout for print.
+Phase 0. The compiler, the glyph builder and the compile website work. Some parts come in phase 1: own kinds, `deform`, `fuse`, `stretch`, labels on single rows of an aligned chain, packages and page layout for print.
 
 ## Use the website
 
@@ -120,6 +120,49 @@ Use @eq:work.
 
 Math uses names, not backslashes: `alpha`, `sum`, `integral`, `in`, `to`, `infty`. Groups use round brackets: `x_(i + 1)`, `frac(a, b)`, `sqrt(x)`. Spaces separate symbols: `d x` is two symbols. `thin`, `med`, `thick` and `quad` add space, and `neg` takes back one twelfth of an em. `join(a, b)` sets two symbols so that they touch and become one glyph, for example `join(o.up, r.up)`.
 
+## Structures
+
+A matrix, a vector and cases are grids in a fence. In a grid, a comma ends a cell and a semicolon ends a row. New lines are free space.
+
+```text
+mat(1, 0; 0, 1)            matrix
+vec(1, 2, 3)               vector with components (vec(x) is still a named vector)
+cases(x, x ge 0; -x, x lt 0)
+binom(n, k)   abs(x)   norm(v)   inner(u, v)   floor(x)   ceil(x)
+grid(a, b; c, d)           a grid with no fence
+```
+
+```mermaid
+flowchart LR
+  K["Meaning<br/><code>mat(1, 0; 0, 1)</code>"] --> S["Style<br/><code>set mat(fence: brack)</code>"]
+  S --> C["Construction<br/><code>grid</code> + fence"]
+  C --> L["Layout<br/>cells in columns, fence grows"]
+```
+
+The look comes from one rule for each kind, not from the source:
+
+| Rule | Options |
+|:--|:--|
+| `set mat(...)`, `set binom(...)`, `set abs(...)`, `set norm(...)`, `set inner(...)`, `set floor(...)`, `set ceil(...)` | `fence`, `grow` |
+| `set vec(...)` | `style` (named vectors: `arrow`, `bold`), `fence`, `body` (`column`, `row`), `grow` |
+| `set cases(...)` | `fence`, `word` (for example `"if"`), `grow` |
+| `set wrap(...)` | `grow` (`stretch` or `magnify`) |
+
+A `fence` value is a fence operation (`brack`, `vbar.x2`, `brace.left`), `none`, or any one symbol, for example a `sym`.
+
+**Fences are operations.** `(a + b).angle` gives ⟨a + b⟩. `x2` doubles a fence: `(v).vbar.x2` gives ‖v‖ and `(M).brack.x2` gives ⟦M⟧. `left` and `right` keep one side: `(x).brace.left`.
+
+**Any glyph can be a fence.** `wrap(L.script, x + y)` puts L at the left and L turned left to right at the right. `wrap(T.frak, S.frak, a)` gives two different sides. The fence grows with the content: `stretch` makes only the height larger, and `magnify` makes the whole glyph larger.
+
+**Aligned equations.** In display math, a new line starts a new row. The rows align at the first relation. A line that starts with a relation continues the left side. New lines inside brackets do not start a row.
+
+```text
+$$
+(a + b)^2 = (a + b)(a + b)
+          = a^2 + 2 a b + b^2
+$$ {#eq:square}
+```
+
 ## Symbol operations
 
 A recipe is a base and up to three operations: `base.op1.op2.op3`. Operations also work on a group: `(F_T).box` boxes F with its index. More than three gives a warning, because the symbol becomes hard to read.
@@ -152,6 +195,13 @@ A recipe is a base and up to three operations: `base.op1.op2.op3`. Operations al
 | `script` | style | a family, a category or a transform |
 | `up` | style | a constant, a unit or a name |
 | `small` | magnify | a smaller version, about four fifths |
+| `paren` | fence | round brackets, a group or a tuple |
+| `brack` | fence | square brackets, a group or a matrix |
+| `brace` | fence | curly brackets, a set |
+| `angle` | fence | angle brackets, a pairing or an average |
+| `vbar` | fence | bars, a size or a determinant |
+| `floor` | fence | round down |
+| `ceil` | fence | round up |
 
 When the font has the result, the compiler uses the font glyph. `integral.circle` gives ∮, `in.not` gives ∉ and `E.flip` gives ∃. When the font does not have it, the compiler builds the glyph and keeps it in a cache.
 
