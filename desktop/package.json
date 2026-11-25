@@ -1,0 +1,14 @@
+{
+  "name": "functor-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "icons": "tauri icon ../docs/logo/icon.svg -o icons && rm -rf icons/android icons/ios icons/Square* icons/StoreLogo.png"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.6"
+  }
+}

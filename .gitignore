@@ -3,3 +3,5 @@ node_modules
 web/dist
 web/public/functor.wasm
 *.html.out
+desktop/target
+desktop/gen

@@ -80,8 +80,8 @@ function inMath(state, pos) {
 }
 
 function preview(fn, recipe) {
-  return () => {
-    const svg = fn.glyph(recipe);
+  return async () => {
+    const svg = await fn.glyph(recipe);
     if (!svg) return null;
     const el = document.createElement('div');
     el.className = 'cm-glyph-preview';
@@ -120,8 +120,8 @@ export function functorCompletion(fn, info) {
               label: o.name,
               type: 'method',
               detail: o.meaning.split(':')[0],
-              info: () => {
-                const el = preview(fn, `${base}.${o.name}`)();
+              info: async () => {
+                const el = await preview(fn, `${base}.${o.name}`)();
                 const m = document.createElement('div');
                 m.className = 'cm-op-meaning';
                 m.textContent = o.meaning;
