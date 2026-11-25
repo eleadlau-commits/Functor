@@ -59,7 +59,7 @@ await p.waitForFunction(
   null,
   { timeout: 15000 },
 ).catch(() => fail('blocks have no math svg'));
-await p.waitForFunction(() => document.querySelectorAll('.functor-inline svg').length === 2, null, { timeout: 15000 }).catch(() => fail('expected 2 inline math'));
+await p.waitForFunction(() => [...document.querySelectorAll('.functor-inline')].filter((s) => s.shadowRoot?.querySelector('svg')).length === 2, null, { timeout: 15000 }).catch(() => fail('expected 2 inline math'));
 
 await p.waitForFunction(
   (t) => document.querySelector('#stream .functor-host')?.shadowRoot.querySelector('svg.fn-math')?.getAttribute('aria-label') === t,

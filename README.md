@@ -68,6 +68,16 @@ npm run dev
 
 The browser extension in [`extension/`](extension/README.md) shows `fn` code blocks in claude.ai chats as typeset math. It runs the WebAssembly compiler in the browser. The **Browser extension** workflow on GitHub builds it as the `functor-extension` artifact. Load it with **Load unpacked** in `chrome://extensions`.
 
+## Use Functor on web pages
+
+[`functor.js`](js/README.md) typesets Functor on any web page and in Claude artifacts, like KaTeX auto-render. Add one line, then write `<fn-math>x^2</fn-math>`:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/functor-js@0.1.0/functor.js"></script>
+```
+
+It also renders Markdown `fn` code blocks and `fn:` inline code. The Chrome extension uses the same code. See the [demo](https://eleadlau-commits.github.io/Functor/js/demo/) and [Math on web pages](docs/reference/help/web.fn).
+
 ## Reference
 
 The language reference is at [eleadlau-commits.github.io/Functor/reference](https://eleadlau-commits.github.io/Functor/reference/). It has one page for each construct and each operation.

@@ -1,0 +1,18 @@
+{
+  "name": "functor-js",
+  "version": "0.0.0",
+  "description": "Typeset Functor math on any web page. The Functor compiler runs in the browser as WebAssembly.",
+  "license": "MIT",
+  "homepage": "https://eleadlau-commits.github.io/Functor/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eleadlau-commits/Functor.git",
+    "directory": "js"
+  },
+  "keywords": ["functor", "math", "typesetting", "wasm", "katex", "mathjax"],
+  "main": "functor.js",
+  "browser": "functor.js",
+  "jsdelivr": "functor.js",
+  "unpkg": "functor.js",
+  "files": ["functor.js", "functor.wasm", "functor-wasm.js", "README.md", "LICENSE", "GUST-FONT-LICENSE.txt"]
+}

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>functor.js demo</title>
+<style>
+:root { --bg: #faf9f5; --ink: #1f1e1d; --muted: #6b6a66; --box: #f0eee6; --accent: #4a6a85; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #1f1e1d; --ink: #e8e6dc; --muted: #a3a29c; --box: #2b2a27; --accent: #9db5cc; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #1f1e1d; --ink: #e8e6dc; --muted: #a3a29c; --box: #2b2a27; --accent: #9db5cc; color-scheme: dark; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 system-ui, sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 1.8em; margin: 0 0 .2em; }
+h2 { font-size: 1.15em; margin: 2em 0 .5em; }
+p.lead { color: var(--muted); margin-top: 0; }
+pre { background: var(--box); padding: 12px 14px; border-radius: 8px; overflow-x: auto; font: 13.5px/1.5 ui-monospace, monospace; }
+code { font: .88em ui-monospace, monospace; }
+.card { background: var(--box); border-radius: 10px; padding: 14px 18px; }
+button { font: inherit; font-size: 14px; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 6px; padding: 2px 10px; cursor: pointer; }
+.top { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+a { color: var(--accent); }
+</style>
+<script src="../dist/functor.js"></script>
+</head>
+<body>
+<main>
+<div class="top">
+  <div>
+    <h1>functor.js</h1>
+    <p class="lead">Functor math on any web page. The compiler runs in your browser.</p>
+  </div>
+  <button id="theme" type="button">Dark</button>
+</div>
+
+<h2>Add it to a page</h2>
+<pre id="snippet"></pre>
+
+<h2>Inline math</h2>
+<p class="card">For each <fn-math>epsilon gt 0</fn-math> there is <fn-math>delta gt 0</fn-math> so that <fn-math>abs(f(x) - f(y)) lt epsilon</fn-math> when <fn-math>abs(x - y) lt delta</fn-math>. The field <fn-math>R.bb</fn-math>, the hat <fn-math>theta.hat</fn-math> and the operator <fn-math>sum.circle</fn-math> are recipes.</p>
+
+<h2>Display math</h2>
+<div class="card">
+<fn-math display>integral_0^infty e^(-x^2) dd x = frac(sqrt(pi), 2)</fn-math>
+<fn-math display>diagram(A, B; C, D | f: A to B, g: A to C, h: B to D, k: C to D)</fn-math>
+</div>
+
+<h2>A small document</h2>
+<div class="card">
+<fn-doc>set mat(fence: brack)
+
+Let $A = mat(1, 2; 3, 4)$ and $x in R.bb^2$. Then $A x = b$ has one solution, because $det A = -2 eq.not 0$.
+
+$$
+(a + b)^2 = (a + b)(a + b)
+          = a^2 + 2 a b + b^2
+$$</fn-doc>
+</div>
+
+<h2>Markdown code blocks</h2>
+<p>A <code>fn</code> code block from Markdown becomes math. So does inline code that starts with <code>fn:</code>, such as <code>fn: x.bar</code>.</p>
+<pre><code class="language-fn">sum_(k = 1)^n k = frac(n(n + 1), 2)</code></pre>
+
+<h2>Changes after load</h2>
+<p class="card">Live: <fn-math id="live">x^1</fn-math> <button id="more" type="button">Next power</button></p>
+
+<h2>Errors</h2>
+<p class="card">A wrong formula shows its source in red: <fn-math>frac(a, </fn-math>. Hover it to see the message.</p>
+
+<h2>JavaScript</h2>
+<p class="card" id="api">…</p>
+</main>
+<script>
+document.getElementById('snippet').textContent = '<script src="https://cdn.jsdelivr.net/npm/functor-js@' + Functor.version + '/functor.js"></' + 'script>\n\n<p>Inline <fn-math>x^2 + y^2</fn-math>.</p>\n<fn-math display>sum_(k = 1)^n k = frac(n(n + 1), 2)</fn-math>';
+const theme = document.getElementById('theme');
+const dark = () => document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+const paint = () => { theme.textContent = dark() ? 'Light' : 'Dark'; };
+theme.onclick = () => { document.documentElement.dataset.theme = dark() ? 'light' : 'dark'; paint(); };
+paint();
+let n = 1;
+document.getElementById('more').onclick = () => { document.getElementById('live').textContent = 'x^' + (++n); };
+Functor.render('phi.alt: V to W').then((svg) => { document.getElementById('api').innerHTML = '<code>await Functor.render("phi.alt: V to W")</code> gives: ' + svg; });
+</script>
+</body>
+</html>
