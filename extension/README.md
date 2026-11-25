@@ -32,6 +32,10 @@ Each block has a **Show source** button. The toolbar icon turns the extension of
 
 Claude does not know Functor. Paste the "Short version for instructions" block from the [cheat sheet](https://eleadlau-commits.github.io/Functor/reference/cheatsheet.html) into your Claude project instructions or your profile preferences. When Claude needs more, give it the whole cheat sheet ([source](https://eleadlau-commits.github.io/Functor/reference/cheatsheet.fn)).
 
+## Same code as functor.js
+
+The extension and [functor.js](../js/README.md) share one renderer: `js/src/core.js`. The build puts it into `content.js`. A fix there fixes both.
+
 ## Limits
 
 - Other people see the rendered math only when they also have the extension.

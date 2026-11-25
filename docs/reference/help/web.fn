@@ -1,0 +1,61 @@
+---
+functor: 1
+title: Math on web pages
+---
+
+set heading(numbering: none)
+
+The file `functor.js` typesets Functor on any web page. The Functor compiler runs in the browser as WebAssembly. Nothing goes to a server. The Chrome extension uses the same code.
+
+# Add it to a page
+
+Put one line in the page. Then write math in `fn-math` and `fn-doc` elements.
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/functor-js@0.1.0/functor.js"></script>
+
+<p>Each <fn-math>x in R.bb</fn-math> has a square <fn-math>x^2 ge 0</fn-math>.</p>
+<fn-math display>sum_(k = 1)^n k = frac(n(n + 1), 2)</fn-math>
+```
+
+| You write | You see |
+|:--|:--|
+| `<fn-math>x^2</fn-math>` | inline math |
+| `<fn-math display>...</fn-math>` | display math. Each line is a row. |
+| `<fn-doc>...</fn-doc>` | a small document: text with `$...$` and `$$` math, headings and lists |
+| a Markdown code block with the language `fn` or `functor` | a rendered block, as in a chat |
+| a code block with the language `fnmath` | display math, always |
+| inline code that starts with `fn:` | inline math |
+
+Lines at the top of a block that start with `set`, `sym`, `object`, `let` or `use` stay as rules. The script adds the `functor: 1` header when the block has none.
+
+In HTML, write `<` as `&lt;` when a letter follows it. Better: use the names `lt`, `le`, `gt` and `ge`.
+
+# Look
+
+The math takes the colour and the size of the text around it. So dark mode works with no change. The script brings its own text fonts. Errors show the source in red. Hover it to see the message.
+
+# Pages that change
+
+The script watches the page. When a script, React for example, adds or changes a `fn-math` element or a code block, the math updates. The math is in a shadow root, so React keeps control of the text.
+
+# JavaScript
+
+| Call | Result |
+|:--|:--|
+| `await Functor.render("x^2")` | the HTML of inline math |
+| `await Functor.render(src, { display: true })` | the HTML of display math |
+| `await Functor.render(src, { doc: true })` | the HTML of a small document |
+| `await Functor.compile(src, widthPt)` | the compiler output: `html` and `diagnostics` |
+| `Functor.renderAll(element)` | scans an element now |
+| `Functor.version` | the version of the script |
+
+Each element sends the event `functor:render` with its diagnostics. Add `data-auto="false"` to the script tag to stop the scan of code blocks.
+
+# Strict pages
+
+The script first loads `functor.wasm` from its own folder. When the page blocks that, it loads `functor-wasm.js` from the same folder as a script. The fonts are in `functor.js`. So the script also works in pages that load scripts only from a CDN, such as Claude artifacts. The page must allow WebAssembly (`wasm-unsafe-eval`).
+
+# Size
+
+`functor.js` is about 230 KB with the fonts. The compiler is about 3 MB, or 1.2 MB with gzip. The browser keeps it in its cache.
