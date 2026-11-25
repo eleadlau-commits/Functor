@@ -11,7 +11,7 @@ pub const ENV_KINDS: &[&str] = &[
     "theorem", "lemma", "corollary", "proposition", "definition", "example", "remark", "proof", "note", "figure", "quote",
 ];
 
-pub const DOC_STYLES: &[&str] = &["quiet", "classic"];
+pub const DOC_STYLES: &[&str] = &["quiet", "classic", "lecture", "compact", "board"];
 
 const NUMBERED: &[&str] = &["theorem", "lemma", "corollary", "proposition", "definition", "example", "remark"];
 
@@ -329,6 +329,13 @@ impl DocParser<'_> {
                         self.env.kinds.insert("diagram.cross".into(), v);
                     } else {
                         self.diags.error(n, arg_col, format!("`{v}` is not a diagram crossing."), Some("Use `gap` or `plain`.".into()));
+                    }
+                }
+                ("dd", "style") => {
+                    if v == "italic" || v == "up" {
+                        self.env.kinds.insert("dd.style".into(), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a style of `dd`."), Some("Use `italic` or `up`.".into()));
                     }
                 }
                 ("cases", "word") => {

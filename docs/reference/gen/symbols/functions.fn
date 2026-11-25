@@ -87,3 +87,11 @@ For another upright name, write text in quotes: `"tr" A`.
 | `thick` | 0.278 em | $a thick b$ |
 | `quad` | 1.000 em | $a quad b$ |
 | `qquad` | 2.000 em | $a qquad b$ |
+
+# Differentials
+
+| Name | Example | Result |
+|:--|:--|:-:|
+| `dd` | `f(x) dd x` | $f(x) dd x$ |
+
+`dd` is the letter d with a thin space before it. There is no space at the start of a group, so `frac(dd y, dd x)` is correct. `set dd(style: up)` makes it upright.

@@ -65,6 +65,10 @@ pub enum Node {
     Sqrt(Box<Node>),
     Fenced { open: Option<Rc<Glyph>>, close: Option<Rc<Glyph>>, body: Box<Node>, grow: Grow },
     Grid { rows: Vec<Vec<Node>>, aligns: Vec<CellAlign>, col_gap: f64, row_gap: f64, display: bool },
+    Text(Box<Node>),
+    Conds(Vec<Node>),
+    Prime(Box<Node>),
+    Diff(Box<Node>),
     Over { g: Rc<Glyph>, class: Class, above: Option<Box<Node>>, below: Option<Box<Node>> },
     Small(Box<Node>),
     Diagram { rows: Vec<Vec<Node>>, edges: Vec<Edge>, gap: f64, cross: bool },
@@ -264,7 +268,7 @@ impl Parser<'_, '_, '_> {
                         self.bump();
                         primes += 1;
                     }
-                    let g = font_atom(0x2032 + (primes.min(3) as u32 - 1), Class::Ord);
+                    let g = Node::Prime(Box::new(font_atom(0x2032 + (primes.min(3) as u32 - 1), Class::Ord)));
                     sup = Some(match sup {
                         None => g,
                         Some(Node::Row(mut v)) => {
@@ -281,13 +285,17 @@ impl Parser<'_, '_, '_> {
                     let arg = match self.peek() {
                         Some('(') => {
                             self.bump();
-                            let inner = self.row(&[')']);
+                            let mut rows = vec![Node::Row(self.row(&[')', ';']))];
+                            while self.peek() == Some(';') {
+                                self.bump();
+                                rows.push(Node::Row(self.row(&[')', ';'])));
+                            }
                             if self.peek() == Some(')') {
                                 self.bump();
                             } else {
                                 self.err(at, "This script group has no closing `)`.", Some("Add `)` where the script ends.".into()));
                             }
-                            Some(Node::Row(inner))
+                            Some(if rows.len() == 1 { rows.pop().unwrap() } else { Node::Conds(rows) })
                         }
                         Some(_) => self.atom(),
                         None => None,
@@ -346,6 +354,10 @@ impl Parser<'_, '_, '_> {
             }
             let ops = self.ops();
             if ops.is_empty() {
+                if symbols::DIFFERENTIALS.contains(&word.as_str()) {
+                    let d = if self.ctx.env.opt("dd", "style") == "up" { font_atom('d' as u32, Class::Ord) } else { italic_atom(symbols::italic_letter('d').unwrap_or('d' as u32)) };
+                    return Some(Node::Diff(Box::new(d)));
+                }
                 if let Some(w) = symbols::space(&word) {
                     return Some(Node::Glyph { g: Rc::new(Glyph::empty(w)), class: Class::Ord, limits: Limits::Never, italic: false, large: false });
                 }
@@ -392,7 +404,7 @@ impl Parser<'_, '_, '_> {
                 let text = &self.s[text_start..end];
                 self.i = end + 1;
                 let cps: Vec<u32> = text.chars().map(|ch| ch as u32).collect();
-                Some(Node::Glyph { g: word_glyph(&cps, "text"), class: Class::Ord, limits: Limits::Never, italic: false, large: false })
+                Some(Node::Text(Box::new(Node::Glyph { g: word_glyph(&cps, "text"), class: Class::Ord, limits: Limits::Never, italic: false, large: false })))
             }
             _ => {
                 self.bump();
@@ -1287,6 +1299,7 @@ fn node_class(n: &Node) -> Option<Class> {
     match n {
         Node::Glyph { class, .. } => Some(*class),
         Node::Row(v) if v.len() == 1 => node_class(&v[0]),
+        Node::Text(t) => node_class(t),
         _ => None,
     }
 }
@@ -1295,6 +1308,7 @@ fn single_glyph(n: &Node) -> Option<Rc<Glyph>> {
     match n {
         Node::Glyph { g, .. } => Some(g.clone()),
         Node::Row(v) if v.len() == 1 => single_glyph(&v[0]),
+        Node::Text(t) => single_glyph(t),
         _ => None,
     }
 }
@@ -1388,24 +1402,127 @@ fn space(a: Class, b: Class, st: St) -> f64 {
     mu * MU * st.scale
 }
 
-fn layout_row(nodes: &[Node], st: St) -> LBox {
+fn layout_stack(rows: &[Node], st: St) -> LBox {
+    let boxes: Vec<LBox> = rows.iter().map(|r| layout(r, st)).collect();
+    let gap = 90.0 * st.scale;
+    let w = boxes.iter().map(|b| b.w).fold(0.0, f64::max);
     let mut out = LBox::empty();
+    out.w = w;
+    let mut y = 0.0;
+    for (i, b) in boxes.into_iter().enumerate() {
+        if i == 0 {
+            out.h = b.h;
+        } else {
+            y -= b.h + gap;
+        }
+        let (bw, bd) = (b.w, b.d);
+        out.place(b, (w - bw) / 2.0, y);
+        out.d = -y + bd;
+        y -= bd;
+    }
+    out
+}
+
+fn is_text(n: &Node) -> bool {
+    matches!(n, Node::Text(_))
+}
+
+fn is_diff(n: &Node) -> bool {
+    match n {
+        Node::Diff(_) => true,
+        Node::Scripts { base, .. } => is_diff(base),
+        _ => false,
+    }
+}
+
+struct Bands {
+    lo: Option<f64>,
+    hi: Option<f64>,
+    over: f64,
+}
+
+fn bands(n: &Node, st: St) -> Option<Bands> {
+    let Node::Scripts { base, sub, sup } = n else { return None };
+    let Node::Glyph { g, limits: Limits::Display, .. } = base.as_ref() else { return None };
+    if !st.display {
+        return None;
+    }
+    let s = st.scale;
+    let gap = 120.0 * s;
+    Some(Bands {
+        lo: sub.as_ref().map(|_| g.d * s + gap),
+        hi: sup.as_ref().map(|_| g.h * s + gap),
+        over: 0.0,
+    })
+}
+
+fn layout_row(nodes: &[Node], st: St) -> LBox {
+    let mut items: Vec<(LBox, f64, Option<Bands>)> = Vec::new();
     let mut prev: Option<Class> = None;
+    let mut prev_text = false;
     for n in nodes {
         let mut class = n.class();
         if class == Class::Bin && matches!(prev, None | Some(Class::Bin | Class::Rel | Class::Open | Class::Op | Class::Punct)) {
             class = Class::Ord;
         }
+        let mut sp = prev.map_or(0.0, |p| space(p, class, st));
+        let text = is_text(n);
         if let Some(p) = prev {
-            out.w += space(p, class, st);
+            if (text || prev_text) && !matches!(p, Class::Punct | Class::Open) && !matches!(class, Class::Punct | Class::Close) {
+                sp = sp.max(278.0 * st.scale);
+            }
+        }
+        if prev.is_some_and(|p| !matches!(p, Class::Open | Class::Punct)) && is_diff(n) {
+            sp = sp.max(167.0 * st.scale);
         }
         let b = layout(n, st);
-        let x = out.w;
+        let mut bd = bands(n, st);
+        if let Some(x) = bd.as_mut() {
+            let base_w = match n {
+                Node::Scripts { base, .. } => layout(base, st).w,
+                _ => b.w,
+            };
+            x.over = ((b.w - base_w) / 2.0).max(0.0);
+        }
+        items.push((b, sp, bd));
+        prev = Some(class);
+        prev_text = text;
+    }
+    let pad = 60.0 * st.scale;
+    let clear = |b: &LBox, bd: &Bands| bd.lo.map_or(true, |lo| b.d + pad <= lo) && bd.hi.map_or(true, |hi| b.h + pad <= hi);
+    let n = items.len();
+    let mut cut = vec![(0.0f64, 0.0f64); n];
+    for k in 0..n {
+        let Some(bd) = &items[k].2 else { continue };
+        if bd.over <= 0.0 {
+            continue;
+        }
+        let mut room = 0.0;
+        let mut j = k + 1;
+        while j < n && room < bd.over && clear(&items[j].0, bd) && items[j].2.is_none() {
+            room += items[j].1 + items[j].0.w;
+            j += 1;
+        }
+        let right = room.min(bd.over);
+        let mut room = 0.0;
+        let mut j = k;
+        while j > 0 && room < bd.over && clear(&items[j - 1].0, bd) && items[j - 1].2.is_none() {
+            room += items[j].1 + items[j - 1].0.w;
+            j -= 1;
+        }
+        let left = room.min(bd.over);
+        let keep = 2.0 * pad;
+        cut[k] = ((left - keep).max(0.0).min(bd.over), (right - keep).max(0.0).min(bd.over));
+    }
+    let mut out = LBox::empty();
+    for (k, (b, sp, _)) in items.into_iter().enumerate() {
+        let (l, r) = cut[k];
+        out.w += sp;
+        let x = out.w - l;
         out.h = out.h.max(b.h);
         out.d = out.d.max(b.d);
-        out.w += b.w;
+        out.w += b.w - l - r;
         out.place(b, x, 0.0);
-        prev = Some(class);
     }
     out
 }
@@ -1427,8 +1544,20 @@ fn layout(node: &Node, st: St) -> LBox {
                 _ => (false, false, false),
             };
             let ss = st.script();
-            let sub_b = sub.as_ref().map(|n| layout(n, ss));
-            let sup_b = sup.as_ref().map(|n| layout(n, ss));
+            let lay = |n: &Node| match n {
+                Node::Conds(rows) if limits => layout_stack(rows, ss),
+                _ => layout(n, ss),
+            };
+            let (prime, rest) = match sup.as_deref() {
+                Some(Node::Prime(_)) if !limits => (sup.as_deref(), None),
+                Some(Node::Row(v)) if !limits && matches!(v.first(), Some(Node::Prime(_))) => {
+                    (v.first(), if v.len() > 1 { Some(Node::Row(v[1..].to_vec())) } else { None })
+                }
+                _ => (None, sup.as_deref().cloned()),
+            };
+            let sub_b = sub.as_deref().map(lay);
+            let sup_b = rest.as_ref().map(lay);
+            let prime_b = prime.map(|n| layout(n, st));
             let mut out = LBox::empty();
             if limits {
                 let w = b.w.max(sub_b.as_ref().map_or(0.0, |x| x.w)).max(sup_b.as_ref().map_or(0.0, |x| x.w));
@@ -1475,10 +1604,18 @@ fn layout(node: &Node, st: St) -> LBox {
             let sub_dx = if large { -0.28 * bw } else { 10.0 * s };
             out.place(b, 0.0, 0.0);
             out.w = bw;
+            let mut sup_x = bw + sup_dx;
+            if let Some(x) = prime_b {
+                let px = bw + if italic { 40.0 * s } else { 10.0 * s };
+                out.h = out.h.max(x.h);
+                out.w = out.w.max(px + x.w);
+                sup_x = px + x.w + 20.0 * s;
+                out.place(x, px, 0.0);
+            }
             if let Some(x) = sup_b {
                 out.h = out.h.max(u + x.h);
-                out.w = out.w.max(bw + sup_dx + x.w);
-                out.place(x, bw + sup_dx, u);
+                out.w = out.w.max(sup_x + x.w);
+                out.place(x, sup_x, u);
             }
             if let Some(x) = sub_b {
                 out.d = out.d.max(v + x.d);
@@ -1487,6 +1624,17 @@ fn layout(node: &Node, st: St) -> LBox {
             }
             out.w += 30.0 * s;
             out
+        }
+        Node::Text(inner) | Node::Prime(inner) | Node::Diff(inner) => layout(inner, st),
+        Node::Conds(rows) => {
+            let mut v = Vec::new();
+            for (i, r) in rows.iter().enumerate() {
+                if i > 0 {
+                    v.push(font_atom(',' as u32, Class::Punct));
+                }
+                v.push(r.clone());
+            }
+            layout_row(&v, st)
         }
         Node::Frac(num, den) => {
             let cs = if st.display { St { display: false, ..st } } else { st.script() };
@@ -2595,4 +2743,53 @@ mod tests {
         assert_eq!(d.len(), 1);
         assert!(d[0].message.contains("different numbers of cells"));
     }
+
+    fn wide(src: &str) -> f64 {
+        let (n, d) = run(src, true);
+        assert!(d.is_empty(), "{src}: {d:?}");
+        display_box(&n).w
+    }
+
+    #[test]
+    fn text_in_math_gets_a_word_space() {
+        assert!(wide("p \"prime\"") > wide("p") + wide("\"prime\"") + 200.0);
+        assert!((wide("(\"prime\")") - (wide("(x)") - wide("x") + wide("\"prime\""))).abs() < 1.0);
+    }
+
+    #[test]
+    fn semicolons_in_a_limit_stack_in_display_and_join_in_text() {
+        let (n, d) = run("sum_(p \"prime\"; p le n) 1/p", true);
+        assert!(d.is_empty(), "{d:?}");
+        let one = display_box(&run("sum_(p le n) 1/p", true).0);
+        assert!(display_box(&n).d > one.d + 300.0);
+        let text = St { scale: 1.0, display: false, level: 0 };
+        let (t, d) = run("sum_(p \"prime\"; p le n) 1/p", false);
+        assert!(d.is_empty(), "{d:?}");
+        let (u, _) = run("sum_(p le n) 1/p", false);
+        assert!(layout(&t, text).d < layout(&u, text).d + 50.0);
+    }
+
+    #[test]
+    fn a_wide_limit_hangs_under_clear_neighbours_only() {
+        let full = wide("x = sum_(1 le i lt j le n) a_i b_j") - wide("x =") - wide("a_i b_j");
+        let lone = wide("sum_(1 le i lt j le n)");
+        assert!(full < lone - 200.0, "{full} {lone}");
+        let deep = wide("sum_(1 le i lt j le n) frac(a_i, b_j)") - wide("frac(a_i, b_j)");
+        assert!(deep > lone - 50.0, "{deep} {lone}");
+    }
+
+    #[test]
+    fn a_prime_is_full_size_at_font_height() {
+        let a = display_box(&run("f'", true).0);
+        let b = display_box(&run("f^2", true).0);
+        assert!(a.h < b.h, "{} {}", a.h, b.h);
+        assert!(wide("f'_n") < wide("f'") + wide("n"));
+    }
+
+    #[test]
+    fn dd_has_a_thin_space_before_it_but_not_at_the_start() {
+        assert!(wide("f dd x") > wide("f d x") + 100.0);
+        assert!((wide("dd x") - wide("d x")).abs() < 1.0);
+    }
+
 }

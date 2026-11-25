@@ -36,6 +36,7 @@ A `set` line changes the look of the whole document. Write it on its own line, b
 | `set diagram(...)` | `gap` | `normal` |
 | `set diagram(...)` | `inline` | `small` |
 | `set diagram(...)` | `cross` | `gap` |
+| `set dd(...)` | `style` | `italic` |
 | `set document(...)` | `style` | `quiet` |
 | `set document(...)` | `accent` | `none` |
 | `set heading(...)` | `numbering` | `on` |
