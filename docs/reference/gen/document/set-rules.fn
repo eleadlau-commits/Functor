@@ -36,6 +36,10 @@ A `set` line changes the look of the whole document. Write it on its own line, b
 | `set diagram(...)` | `gap` | `normal` |
 | `set diagram(...)` | `inline` | `small` |
 | `set diagram(...)` | `cross` | `gap` |
+| `set mono(...)` | `style` | `tail` |
+| `set epi(...)` | `style` | `twohead` |
+| `set incl(...)` | `style` | `hook` |
+| `set greek(...)` | a lowercase Greek name, such as `phi` | `italic` |
 | `set dd(...)` | `style` | `italic` |
 | `set document(...)` | `style` | `quiet` |
 | `set document(...)` | `accent` | `none` |
@@ -45,4 +49,4 @@ A `set` line changes the look of the whole document. Write it on its own line, b
 | `set text(...)` | `size` | `11pt` |
 | `set text(...)` | `font` | `Functor LM` |
 
-A `fence` value is a fence operation such as `brack` or `vbar.x2`, the word `none`, or any one symbol, for example a `sym`. A `grow` value is `stretch` or `magnify`.
+A `fence` value is a fence operation such as `brack` or `vbar.x2`, the word `none`, or any one symbol, for example a `sym`. A `grow` value is `stretch` or `magnify`. An arrow `style` is `tail` ($mono$), `twohead` ($epi$), `hook` ($incl$), `plain` ($to$). A Greek value is `alt`, `up`, `bold`.

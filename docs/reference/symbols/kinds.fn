@@ -37,6 +37,37 @@ The same idea works for structures: `mat(...)` is a matrix, and `set mat(fence: 
 
 `bold`, `bb`, `frak`, `script` and `up` change the alphabet of a letter. Use them for fixed notation: `R.bb` for the real numbers, `g.frak` for a Lie algebra, `d.up` for the differential. For a kind of object that can change its look, use `object` and a `set` rule.
 
+# Arrow kinds
+
+`mono`, `epi` and `incl` say what a map is: a monomorphism, an epimorphism, an inclusion. A rule picks the arrow for each kind.
+
+```fn
+set mono(style: hook)
+
+$f: A mono B$, $p: B epi C$, $i: U incl X$
+```
+
+| Style | Arrow |
+|:--|:-:|
+| `tail` | $mono$ |
+| `twohead` | $epi$ |
+| `hook` | $incl$ |
+| `plain` | $to$ |
+
+The defaults are `tail` for `mono`, `twohead` for `epi` and `hook` for `incl`. The rules also work in a diagram: `diagram(A, B | f: A mono B)`.
+
+# Greek letters in the whole file
+
+Some authors use ϕ for each φ, or an upright π. Write the plain name in the source, and one rule for the look.
+
+```fn
+set greek(phi: alt, epsilon: alt, pi: up)
+
+$phi(x) = epsilon pi$
+```
+
+The value is `alt` (the other common form), `up` (upright) or `bold`. `alt` works on `epsilon`, `theta`, `kappa`, `phi`, `rho` and `pi`. A style operation in one place wins over the rule: `phi.up` stays upright.
+
 # Own kinds
 
 `kind` comes in phase 1. Then you can declare a kind, for example `kind tensor`, and give it a style rule.

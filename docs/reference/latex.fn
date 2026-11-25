@@ -36,6 +36,7 @@ Functor is not compatible with LaTeX, and it does not try to be. This page maps 
 | `\mathcal{L}` | `L.cal` | $L.cal$ |
 | `\mathscr{L}` | `L.script` | $L.script$ |
 | `\varphi`, `\epsilon`, `\vartheta` | `phi.alt`, `epsilon.alt`, `theta.alt` (the other form of `phi`, `epsilon`, `theta`) | $phi.alt + epsilon.alt + theta.alt$ |
+| `\varphi` in the whole file | `set greek(phi: alt)`, then plain `phi` | $phi.alt$ |
 | `\mathring{x}`, `\overrightharpoon{x}` | `x.ring`, `x.harpoon` | $x.ring + x.harpoon$ |
 | `\mathbb{1}`, `\Bbbk` | `1.bb`, `k.bb` | $k.bb$ |
 | `\upmu` | `mu.up` | $mu.up$ |
@@ -81,6 +82,7 @@ Functor is not compatible with LaTeX, and it does not try to be. This page maps 
 | `\Uparrow`, `\Downarrow`, `\updownarrow` | `implies.rot`, `implies.flip.rot`, `tofro.rot` | $implies.rot, implies.flip.rot, tofro.rot$ |
 | `\longrightarrow`, `\Longrightarrow`, `\longmapsto` | `to.wide`, `implies.wide`, `mapsto.wide` | $to.wide, implies.wide, mapsto.wide$ |
 | `\hookrightarrow`, `\rightarrowtail`, `\twoheadrightarrow` | `incl`, `mono`, `epi` | $incl, mono, epi$ |
+| `\yo` (Yoneda embedding) | `yo` | $yo(A)$ |
 | `\rightleftharpoons`, `\rightharpoonup` | `equil`, `to.harpoon` | $equil, to.harpoon$ |
 | `\rightrightarrows`, `\rightleftarrows` | `stack(to, to)`, `stack(to, to.flip)` | $stack(to, to), stack(to, to.flip)$ |
 | `\nrightarrow`, `\nRightarrow` | `to.not`, `implies.not` | $to.not, implies.not$ |
