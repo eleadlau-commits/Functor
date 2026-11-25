@@ -516,6 +516,9 @@ impl<'a> Gen<'a> {
                 .collect();
             cells.push(row);
         }
+        if cells[0][0].is_empty() {
+            cells[0][0] = self.letter();
+        }
         let mut arrows = Vec::new();
         for _ in 0..self.r.range(1, rows * cols + 1) {
             let (a, b) = (

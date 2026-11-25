@@ -19,3 +19,6 @@ collision: grid cell/cell (inline)
 collision: grid cell/cell (display)
 # No nesting limit: about 1000 nested brackets overflow a 1 MB stack, as in the browser.
 crash: stack overflow
+# A symbol with an enclosure has ink outside its box, so the root sign touches it, as in sqrt(w.circle.cross).
+collision: sqrt radical/body (inline)
+collision: sqrt radical/body (display)
