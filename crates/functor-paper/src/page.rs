@@ -64,10 +64,117 @@ enum V {
     Close,
 }
 
+#[derive(Clone)]
 struct Side {
-    top: f64,
-    bottom: f64,
-    draws: Vec<Draw>,
+    lines: Vec<Vec<Draw>>,
+    fs: f64,
+    num: usize,
+    x: f64,
+    left: bool,
+    bar: Option<[f32; 3]>,
+    color: [f32; 3],
+}
+
+impl Side {
+    fn asc(&self) -> f64 {
+        ASCENT * self.fs
+    }
+
+    fn pitch(&self) -> f64 {
+        LEADING * self.fs
+    }
+
+    fn height(&self, k: usize) -> f64 {
+        self.asc() + (k.max(1) - 1) as f64 * self.pitch() + DESCENT * self.fs
+    }
+
+    fn fit(&self, room: f64) -> usize {
+        let free = room - self.asc() - DESCENT * self.fs;
+        if free < 0.0 {
+            0
+        } else {
+            ((free / self.pitch() + 1e-6).floor() as usize + 1).min(self.lines.len())
+        }
+    }
+
+    fn label(&self) -> Vec<Draw> {
+        let s = format!("{} continued", self.num);
+        let style = Style { italic: true, ..Style::default() };
+        let x = if self.left { -NOTE_GAP - text::width(&s, style) * self.fs } else { self.x };
+        vec![Draw::Text { x, y: 0.0, s, style, size: self.fs, scale: 1.0, color: self.color }]
+    }
+
+    fn split(mut self, k: usize) -> (Side, Side) {
+        let rest = self.lines.split_off(k);
+        let mut tail = Side { lines: rest, ..self.clone() };
+        tail.lines.insert(0, self.label());
+        (self, tail)
+    }
+
+    fn draws(&self, top: f64, out: &mut Vec<Draw>) {
+        let base = top - self.asc();
+        for (j, l) in self.lines.iter().enumerate() {
+            out.extend(l.iter().map(|d| d.shifted(0.0, base - j as f64 * self.pitch())));
+        }
+        if let Some(color) = self.bar {
+            let h = self.height(self.lines.len());
+            out.push(Draw::Rect { x: -NOTE_GAP + 6.0, y: top - h, w: 1.5, h, color });
+        }
+    }
+}
+
+struct Piece {
+    want: f64,
+    side: Side,
+}
+
+fn place_sides(pieces: Vec<Piece>, hi: f64, lo: f64, gap: f64, out: &mut Vec<Draw>) -> Vec<Piece> {
+    let mut pieces = pieces;
+    let mut carry = Vec::new();
+    let span = |ps: &[Piece]| -> f64 { ps.iter().map(|p| p.side.height(p.side.lines.len()) + gap).sum::<f64>() - gap };
+    while !pieces.is_empty() && span(&pieces) > hi - lo + 0.01 {
+        let excess = span(&pieces) - (hi - lo);
+        let i = (0..pieces.len()).max_by_key(|&i| pieces[i].side.lines.len()).unwrap_or(0);
+        let side = &pieces[i].side;
+        let total = side.lines.len();
+        let mut k = side.fit(side.height(total) - excess);
+        if total - k < 2 {
+            k = total.saturating_sub(2);
+        }
+        if k < 2 {
+            k = if pieces.len() == 1 && carry.is_empty() { side.fit(hi - lo).max(1) } else { 0 };
+        }
+        let p = pieces.remove(i);
+        if k == 0 || k >= total {
+            carry.push(Piece { want: f64::INFINITY, side: p.side });
+        } else {
+            let (head, tail) = p.side.split(k);
+            pieces.insert(i, Piece { want: p.want, side: head });
+            carry.push(Piece { want: f64::INFINITY, side: tail });
+        }
+    }
+    let n = pieces.len();
+    let h: Vec<f64> = pieces.iter().map(|p| p.side.height(p.side.lines.len())).collect();
+    let mut pos = vec![0.0; n];
+    let mut ceil = hi;
+    for i in 0..n {
+        pos[i] = pieces[i].want.min(ceil);
+        ceil = pos[i] - h[i] - gap;
+    }
+    let mut floor = lo;
+    for i in (0..n).rev() {
+        if pos[i] - h[i] < floor {
+            pos[i] = floor + h[i];
+        }
+        floor = pos[i] + gap;
+    }
+    let mut ceil = hi;
+    for i in 0..n {
+        pos[i] = pos[i].min(ceil);
+        ceil = pos[i] - h[i] - gap;
+        pieces[i].side.draws(pos[i], out);
+    }
+    carry
 }
 
 #[derive(Clone, Copy)]
@@ -366,18 +473,14 @@ impl P<'_> {
             let key = n.to_string();
             let at = lines.iter().position(|l| l.items.iter().any(|it| matches!(it, PItem::Mark { s, .. } if *s == key))).unwrap_or(0);
             let nl = self.note_lines(*n, v, (NOTE_COLUMN_PT - NOTE_GAP) / fs);
-            let mut draws = Vec::new();
-            for (j, l) in nl.iter().enumerate() {
+            let mut out = Vec::new();
+            for l in &nl {
                 let x = if side == Notes::Right { self.measure + NOTE_GAP } else { -NOTE_GAP - line_width(l) * fs };
-                let (_, _, d) = self.line_box(l, fs, x, self.c.muted);
-                draws.extend(d.into_iter().map(|x| x.shifted(0.0, -(j as f64) * LEADING * fs)));
+                out.push(self.line_box(l, fs, x, self.c.muted).2);
             }
-            let top = ASCENT * fs;
-            let bottom = -((nl.len().max(1) - 1) as f64) * LEADING * fs - DESCENT * fs;
-            if side == Notes::Left {
-                draws.push(Draw::Rect { x: -NOTE_GAP + 6.0, y: bottom, w: 1.5, h: top - bottom, color: self.c.accent });
-            }
-            self.side.push((at, Side { top, bottom, draws }));
+            let left = side == Notes::Left;
+            let bar = left.then_some(self.c.accent);
+            self.side.push((at, Side { lines: out, fs, num: *n, x: self.measure + NOTE_GAP, left, bar, color: self.c.muted }));
         }
         after
     }
@@ -911,6 +1014,7 @@ impl P<'_> {
         let mut frames: Vec<Vec<Draw>> = Vec::new();
         let mut open: Vec<Open> = Vec::new();
         let gap = 0.35 * self.size;
+        let mut carry: Vec<Piece> = Vec::new();
         let mut start = 0;
         let n = v.len();
         let prev_box = |i: usize, start: usize| -> bool {
@@ -1005,7 +1109,8 @@ impl P<'_> {
             let mut behind = Vec::new();
             let mut y = top - lowered;
             let mut first = true;
-            let mut floor = f64::INFINITY;
+            let hi = y;
+            let mut pieces = std::mem::take(&mut carry);
             for o in open.iter_mut() {
                 o.top = None;
             }
@@ -1022,12 +1127,7 @@ impl P<'_> {
                             draws.push(dr.shifted(0.0, y));
                         }
                         for sd in side {
-                            let want = y + sd.top;
-                            let shift = (want - (floor - gap)).max(0.0);
-                            for dr in &sd.draws {
-                                draws.push(dr.shifted(0.0, y - shift));
-                            }
-                            floor = y + sd.bottom - shift;
+                            pieces.push(Piece { want: y + sd.asc(), side: sd.clone() });
                         }
                         y -= d;
                         for o in open.iter_mut() {
@@ -1051,6 +1151,7 @@ impl P<'_> {
             for o in open.iter_mut() {
                 o.top = None;
             }
+            carry = place_sides(pieces, hi, g.margin, gap, &mut draws);
             behind.extend(draws);
             frames.push(behind);
             start = end;
@@ -1058,6 +1159,11 @@ impl P<'_> {
                 track(&v[start], &mut open, &mut Vec::new(), &mut Vec::new());
                 start += 1;
             }
+        }
+        while !carry.is_empty() {
+            let mut draws = Vec::new();
+            carry = place_sides(std::mem::take(&mut carry), top, g.margin, gap, &mut draws);
+            frames.push(draws);
         }
         if frames.is_empty() {
             frames.push(Vec::new());
@@ -1175,6 +1281,47 @@ mod tests {
         let fs = NOTE_SIZE * 11.0;
         for w in ys.windows(2) {
             assert!(w[0] - w[1] >= LEADING * fs - 0.01, "{ys:?}");
+        }
+    }
+
+    fn long_doc(style: &str) -> String {
+        let fill = "A smooth map sends tangent vectors to tangent vectors. The chain rule composes the differentials. ".repeat(4);
+        let mut src = format!("---\nfunctor: 1\n---\n\nset document(style: {style})\n\n");
+        for _ in 0..5 {
+            src += &format!("{fill}\n\n");
+        }
+        src += &format!("{fill}Foot.^[{}] {fill}\n\n", "A long note that cannot fit in the space left on the page. ".repeat(9));
+        src += &format!("{fill}Huge.^[{}] {fill}\n\n", "A note taller than a page must break across pages. ".repeat(70));
+        for k in 0..6 {
+            src += &format!("{fill}{}\n\n", if k % 2 == 1 { "Small.^[A short note.]" } else { "" });
+        }
+        src
+    }
+
+    #[test]
+    fn long_notes_stay_on_the_page() {
+        for style in ["quiet", "lecture"] {
+            let mut diags = Diagnostics::default();
+            let d = crate::doc::parse(&long_doc(style), &mut diags);
+            let l = layout(&d, &mut diags);
+            let margin = length_pt(&d.settings.margin).unwrap();
+            let top = l.height - margin;
+            let mut cont = 0;
+            for (k, page) in l.pages.iter().enumerate() {
+                let num = (k + 1).to_string();
+                for dr in &page.draws {
+                    if let Draw::Text { y, s, .. } = dr {
+                        if *s == num && *y < margin {
+                            continue;
+                        }
+                        assert!(*y >= margin - 3.0 && *y <= top, "{style}: page {} text {s:?} at {y}", k + 1);
+                        if s.ends_with("continued") {
+                            cont += 1;
+                        }
+                    }
+                }
+            }
+            assert!(cont >= 2, "{style}: {cont}");
         }
     }
 }
