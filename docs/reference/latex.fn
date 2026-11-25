@@ -109,6 +109,7 @@ The n-th root, `\sqrt[n]{x}`, has no form yet.
 | `\emph{x}`, `\textbf{x}` | `*x*`, `**x**` |
 | `\ref{thm:a}`, `\eqref{eq:a}` | `@thm:a`, `@eq:a` |
 | `\cite{knuth84}` | `[@knuth84]` |
+| `\footnote{text}`, `\marginpar{text}` | `^[text]` |
 | `\href{url}{text}` | `[text](url)` |
 | `\includegraphics{plot}` | `![alt](plot.svg)` |
 | Two backticks and two apostrophes for quotes; `--`, `---`, `~` | `"quotes"`, `--`, `---`, `~` |

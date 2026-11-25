@@ -66,6 +66,21 @@ npm run dev
 
 The browser extension in [`extension/`](extension/README.md) shows `fn` code blocks in claude.ai chats as typeset math. It runs the WebAssembly compiler in the browser. The **Browser extension** workflow on GitHub builds it as the `functor-extension` artifact. Load it with **Load unpacked** in `chrome://extensions`.
 
+## Reference
+
+The language reference is at [eleadlau-commits.github.io/Functor/reference](https://eleadlau-commits.github.io/Functor/reference/). It has one page for each construct and each operation.
+
+- The [cheat sheet](docs/reference/cheatsheet.fn) is the whole language on one page. Give it to an AI model that does not know Functor. Its "Short version for instructions" block fits in Claude project instructions.
+- The [LaTeX map](docs/reference/latex.fn) gives the Functor form for each LaTeX command.
+- `reference/llms.txt` on the site lists each page as raw `.fn`.
+
+The pages are Functor files in [`docs/reference`](docs/reference). The compiler makes the pages in `docs/reference/gen` from its own tables. Tests compile each page and each example, and fail when a generated page is old or a construct has no page.
+
+```sh
+cargo run -p functor-cli -- ref gen
+cargo run -p functor-cli -- ref build site/reference
+```
+
 ## Use the command line
 
 ```sh

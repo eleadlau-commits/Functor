@@ -81,6 +81,7 @@ Use @eq:work.
 | three backticks and a language name | Code block |
 | `@eq:a`, `@thm:a`, `@sec:a` | Reference: "(1)", "Theorem 2", "Section 3" |
 | `[@key]` | Citation |
+| `word.^[A note.]` | Numbered margin note |
 | `{n}` after `let n = 3` | Value in text, not in math |
 | `"quotes"`, `'single'`, `--`, `---`, `Theorem~2` | Curly quotes, en dash, em dash, space that does not break |
 | `\$`, `\@`, `\*`, `\_`, `\{`, `\"` | The plain sign |
@@ -181,5 +182,6 @@ $$ {#eq:square}
 | `\begin{align} a &= b \\ &= c \end{align}` | one step on each line in `$$` |
 | `\text{if}`, `\quad` | `"if"`, `quad` |
 | `\label{eq:a}`, `\eqref{eq:a}` | `$$ {#eq:a}` after the math, `@eq:a` |
+| `\footnote{text}` | `^[text]` |
 
 The full map is on the page [From LaTeX](latex.html).

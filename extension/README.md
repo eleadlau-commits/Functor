@@ -29,15 +29,7 @@ Each block has a **Show source** button. The toolbar icon turns the extension of
 
 ## Ask Claude to write Functor
 
-Claude does not know Functor. Put a short note in your Claude project instructions or your profile preferences, for example:
-
-```text
-When you write math, use Functor (github.com/eleadlau-commits/Functor), not LaTeX.
-Put display math in a ```fn code block and inline math in inline code that starts with "fn: ".
-Functor names: alpha, sum, integral, in, to, infty; groups use round brackets:
-x_(i + 1), frac(a, b), sqrt(x). Operations follow a dot: theta.hat, R.bb, in.not, eq.not.
-Matrices: mat(1, 2; 3, 4). Vectors: vec(1, 2, 3). Cases: cases(x, x ge 0; -x, x lt 0).
-```
+Claude does not know Functor. Paste the "Short version for instructions" block from the [cheat sheet](https://eleadlau-commits.github.io/Functor/reference/cheatsheet.html) into your Claude project instructions or your profile preferences. When Claude needs more, give it the whole cheat sheet ([source](https://eleadlau-commits.github.io/Functor/reference/cheatsheet.fn)).
 
 ## Limits
 

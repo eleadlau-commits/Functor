@@ -19,6 +19,7 @@ A paragraph is lines of text with an empty line before and after it. Functor set
 | `![A plot](plot.svg)` | an image |
 | `[@knuth84]` or `[@a; @b]` | a citation: [@knuth84] |
 | `{n}` | the value of `let n = 3` |
+| `claim.^[A note.]` | a numbered margin note |
 
 # Punctuation
 
@@ -31,6 +32,16 @@ Functor changes some signs to the correct typographic sign.
 | `3--5` | 3--5 | en dash, for ranges |
 | `yes---no` | yes---no | em dash |
 | `Theorem~2` | Theorem~2 | a space that does not break |
+
+# Margin notes
+
+`^[...]` right after a word makes a numbered note. The note can hold math and marks.
+
+```fn
+Functor builds each glyph.^[A built glyph takes less than one millisecond, for example $nabla.circle$.] The cache keeps it.
+```
+
+In the `quiet` style the note sits in the right margin, next to its line, and folds into the text on narrow screens. In the `classic` style it follows the paragraph.
 
 # Plain signs
 
