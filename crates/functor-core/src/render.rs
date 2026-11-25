@@ -59,11 +59,13 @@ pub fn render(doc: &Doc, diags: &mut Diagnostics) -> String {
     let mut r = R { env: &doc.env, labels: &doc.labels, diags, out: String::new() };
     let s = &doc.settings;
     r.out.push_str(&format!(
-        "<article class=\"fn-doc\" data-page=\"{}\" style=\"--fn-margin:{};--fn-text-size:{}{}\">",
+        "<article class=\"fn-doc fn-style-{}\" data-page=\"{}\" style=\"--fn-margin:{};--fn-text-size:{}{}{}\">",
+        escape_attr(&s.style),
         escape_attr(&s.page),
         escape_attr(&s.margin),
         escape_attr(&s.text_size),
-        s.font.as_ref().map(|f| format!(";--fn-font:{}", escape_attr(f))).unwrap_or_default()
+        s.font.as_ref().map(|f| format!(";--fn-font:{}", escape_attr(f))).unwrap_or_default(),
+        s.accent.as_ref().map(|a| format!(";--fn-accent:{}", escape_attr(a))).unwrap_or_default()
     ));
     let m = &doc.meta;
     if m.title.is_some() || !m.authors.is_empty() || m.date.is_some() {

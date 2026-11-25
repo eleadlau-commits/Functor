@@ -113,6 +113,19 @@ mod tests {
     }
 
     #[test]
+    fn document_style_rules() {
+        let quiet = compile("---\nfunctor: 1\n---\n\nText.\n");
+        assert!(quiet.html.contains("fn-doc fn-style-quiet"));
+        let classic = compile("---\nfunctor: 1\n---\n\nset document(style: classic, accent: #7091AC)\n\nText.\n");
+        assert!(classic.diagnostics.is_empty(), "{:?}", classic.diagnostics);
+        assert!(classic.html.contains("fn-doc fn-style-classic"));
+        assert!(classic.html.contains("--fn-accent:#7091AC"));
+        let bad = compile("---\nfunctor: 1\n---\n\nset document(style: quite, accent: blue)\n");
+        assert_eq!(bad.errors(), 2, "{:?}", bad.diagnostics);
+        assert!(bad.diagnostics.iter().any(|d| d.hint.as_deref() == Some("Did you mean `quiet`?")));
+    }
+
+    #[test]
     fn symbols_list_is_json() {
         let s = symbols_json();
         assert!(s.contains("\"circle\"") && s.contains("\"theorem\""));

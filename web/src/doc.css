@@ -50,7 +50,44 @@
 .fn-doc a { color: var(--fn-accent); text-decoration: none; }
 .fn-doc .fn-missing { color: var(--fn-error); border-bottom: 1px dashed var(--fn-error); }
 .fn-doc hr { border: 0; border-top: 1px solid var(--fn-rule); margin: 1.5em 0; }
+body:has(> .fn-doc) { container-type: inline-size; margin: 0; }
+.fn-doc.fn-style-quiet { line-height: 1.34; }
+.fn-style-quiet .fn-title { text-align: left; margin-bottom: 2.2em; padding-bottom: 1em; border-bottom: 1px solid var(--fn-rule); }
+.fn-style-quiet .fn-title h1 { font-size: 2em; line-height: 1.1; margin: 0 0 .45em; }
+.fn-style-quiet .fn-title p { display: inline; margin: 0; text-align: left; color: var(--fn-muted); }
+.fn-style-quiet .fn-authors + .fn-date::before { content: " \00B7  "; white-space: pre; }
+.fn-style-quiet h2, .fn-style-quiet h3, .fn-style-quiet h4 { font-weight: normal; position: relative; }
+.fn-style-quiet h2 { font-size: 1.36em; margin: 1.8em 0 .5em; }
+.fn-style-quiet h3 { font-size: 1.14em; font-style: italic; }
+.fn-style-quiet .fn-num { position: absolute; right: 100%; margin-right: .75em; color: var(--fn-accent); font-style: normal; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.fn-style-quiet .fn-env { margin: 1.3em 0; padding: .1em 0 .1em 1em; border-left: 2px solid var(--fn-accent); }
+.fn-style-quiet .fn-env-name { font-weight: normal; font-variant: small-caps; letter-spacing: .06em; color: var(--fn-accent); }
+.fn-style-quiet .fn-env-title { color: var(--fn-muted); font-style: italic; }
+.fn-style-quiet .fn-env-sep { display: none; }
+.fn-style-quiet .fn-env > p:first-of-type { display: block; margin-top: .25em; }
+.fn-doc.fn-style-quiet .fn-theorem, .fn-doc.fn-style-quiet .fn-lemma, .fn-doc.fn-style-quiet .fn-corollary, .fn-doc.fn-style-quiet .fn-proposition { font-style: normal; }
+.fn-style-quiet .fn-definition, .fn-style-quiet .fn-example, .fn-style-quiet .fn-remark { border-left-color: var(--fn-rule); }
+.fn-style-quiet .fn-definition .fn-env-name, .fn-style-quiet .fn-example .fn-env-name, .fn-style-quiet .fn-remark .fn-env-name { color: var(--fn-ink); }
+.fn-style-quiet .fn-proof, .fn-style-quiet .fn-quote, .fn-style-quiet .fn-figure { border-left: 0; padding-left: 0; }
+.fn-style-quiet .fn-figure .fn-env-name { font-variant: normal; letter-spacing: 0; color: var(--fn-ink); }
+.fn-style-quiet .fn-proof .fn-env-name { font-variant: normal; font-style: italic; letter-spacing: 0; color: var(--fn-muted); margin-right: .4em; }
+.fn-style-quiet .fn-proof > p:first-of-type { display: inline; }
+.fn-style-quiet .fn-qed { float: none; margin-left: .5em; color: var(--fn-accent); }
+.fn-style-quiet .fn-eqnum { right: -3.4em; color: var(--fn-muted); }
+.fn-style-quiet a.fn-ref { border-bottom: 1px dotted color-mix(in srgb, var(--fn-accent) 60%, transparent); }
+.fn-style-quiet .fn-table { margin-left: 0; }
+@media screen {
+@container (max-width: 640px) {
+  .fn-style-quiet .fn-num { position: static; margin-right: .5em; }
+  .fn-style-quiet .fn-eqnum { position: static; margin-left: auto; padding-left: .6em; }
+  .fn-style-quiet .fn-equation { justify-content: flex-start; overflow-x: auto; overflow-y: hidden; }
+  .fn-style-quiet .fn-equation .fn-math { flex: none; }
+  .fn-doc.fn-style-quiet p { text-align: left; }
+}
+}
 @media print {
   .fn-doc { max-width: none; padding: 0; }
+  .fn-style-quiet .fn-num { position: static; margin-right: .6em; }
+  .fn-style-quiet .fn-eqnum { right: 0; }
   @page { margin: var(--fn-margin, 2.5cm); }
 }

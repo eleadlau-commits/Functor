@@ -117,6 +117,7 @@ Use @eq:work.
 | Value | `let n = 3`, then `{n}` in text | Text replacement |
 | Punctuation | `"text"`, `'text'`, `--`, `---`, `Theorem~2` | Curly quotes, en dash, em dash, a space that does not break. `\"`, `\'`, `\-`, `\~` give the plain sign |
 | Setting | `set page(size: a4)`, `set text(size: 11pt)`, `set heading(numbering: none)` | Document settings |
+| Document style | `set document(style: quiet)`, `set document(style: classic, accent: #4a6a85)` | The look of the whole page. `quiet` is the default: left title, numbers in the margin, upright theorems with a rule. `classic` is the LaTeX article look |
 
 Math uses names, not backslashes: `alpha`, `sum`, `integral`, `in`, `to`, `infty`. Groups use round brackets: `x_(i + 1)`, `frac(a, b)`, `sqrt(x)`. Spaces separate symbols: `d x` is two symbols. `thin`, `med`, `thick` and `quad` add space, and `neg` takes back one twelfth of an em. `join(a, b)` sets two symbols so that they touch and become one glyph, for example `join(o.up, r.up)`.
 

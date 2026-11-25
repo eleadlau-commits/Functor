@@ -11,6 +11,8 @@ pub const ENV_KINDS: &[&str] = &[
     "theorem", "lemma", "corollary", "proposition", "definition", "example", "remark", "proof", "note", "figure", "quote",
 ];
 
+pub const DOC_STYLES: &[&str] = &["quiet", "classic"];
+
 const NUMBERED: &[&str] = &["theorem", "lemma", "corollary", "proposition", "definition", "example", "remark"];
 
 #[derive(Debug, Clone)]
@@ -20,11 +22,13 @@ pub struct Settings {
     pub text_size: String,
     pub font: Option<String>,
     pub numbering: bool,
+    pub style: String,
+    pub accent: Option<String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { page: "a4".into(), margin: "2.5cm".into(), text_size: "11pt".into(), font: None, numbering: true }
+        Settings { page: "a4".into(), margin: "2.5cm".into(), text_size: "11pt".into(), font: None, numbering: true, style: "quiet".into(), accent: None }
     }
 }
 
@@ -308,6 +312,22 @@ impl DocParser<'_> {
                 }
                 ("cases", "word") => {
                     self.env.kinds.insert("cases.word".into(), v);
+                }
+                ("document", "style") => {
+                    if DOC_STYLES.contains(&v.as_str()) {
+                        self.settings.style = v;
+                    } else {
+                        let hint = did_you_mean(&v, DOC_STYLES.iter().copied()).map(|s| format!("Did you mean `{s}`?"));
+                        self.diags.error(n, arg_col, format!("`{v}` is not a document style."), hint.or(Some(format!("Use {}.", DOC_STYLES.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>().join(" or ")))));
+                    }
+                }
+                ("document", "accent") => {
+                    let hex = v.strip_prefix('#').unwrap_or("");
+                    if (hex.len() == 3 || hex.len() == 6) && hex.chars().all(|c| c.is_ascii_hexdigit()) {
+                        self.settings.accent = Some(v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a colour."), Some("Write a hex colour such as `#4a6a85`.".into()));
+                    }
                 }
                 ("heading", "numbering") => self.settings.numbering = v != "none",
                 ("page", "size") => {
