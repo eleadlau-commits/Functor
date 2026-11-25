@@ -22,6 +22,8 @@ import lmMono from './fonts/functor-lm-mono.woff2?url';
 const KEY_SRC = 'functor.source';
 const KEY_NAME = 'functor.name';
 const KEY_DARK = 'functor.dark';
+const KEY_TABS = 'functor.tabs';
+const BLANK = '---\nfunctor: 1\ntitle: Untitled\n---\n\n# Start\n\nWrite $x.hat$ here.\n';
 
 const store = {
   get(k) {
@@ -37,6 +39,8 @@ const statusEl = $('status');
 const listEl = $('list');
 const previewEl = $('preview');
 const nameEl = $('name');
+const tabsEl = $('tabs');
+const rightEl = document.querySelector('.right');
 
 let fn;
 let inspect = () => {};
@@ -44,8 +48,10 @@ let last = null;
 let timer = 0;
 let view;
 let seq = 0;
-let current = null;
-let savedText = null;
+let extensions = [];
+let tabs = [];
+let active = null;
+let nextId = 1;
 
 let widthPt = 0;
 let lastSrc = null;
@@ -78,6 +84,7 @@ async function render(src) {
   const out = await fn.compile(src, widthPt);
   if (mine !== seq) return;
   last = out;
+  if (active) active.out = out;
   previewEl.innerHTML = last.html;
   if (window.functorNotes) window.functorNotes(previewEl);
   rebreak();
@@ -137,8 +144,8 @@ function schedule(src) {
   clearTimeout(timer);
   timer = setTimeout(() => {
     render(src);
-    if (!fn.native) store.set(KEY_SRC, src);
     markDirty();
+    saveSession();
   }, fn.native ? 30 : 60);
 }
 
@@ -147,19 +154,244 @@ function setSource(text) {
   view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text }, selection: { anchor: head } });
 }
 
+function textOf(tab) {
+  return tab === active ? view.state.doc.toString() : tab.state.doc.toString();
+}
+
+function isDirty(tab) {
+  return fn.native && textOf(tab) !== tab.saved;
+}
+
 function markDirty() {
+  for (const el of tabsEl.querySelectorAll('.tab')) {
+    const tab = tabs.find((t) => t.id === Number(el.dataset.id));
+    if (tab) el.classList.toggle('dirty', isDirty(tab));
+  }
   if (!fn.native) return;
-  const dirty = savedText !== null ? view.state.doc.toString() !== savedText : view.state.doc.length > 0;
-  document.title = `${dirty ? '• ' : ''}${fileName()} · Functor`;
+  document.title = `${isDirty(active) ? '• ' : ''}${fileName()} · Functor`;
   fn.setTitle(document.title).catch(() => {});
 }
 
-function useDoc(doc) {
-  current = doc.path;
-  savedText = doc.text;
-  nameEl.value = doc.name;
-  if (view.state.doc.toString() !== doc.text) setSource(doc.text);
+function makeTab({ path = null, name, text, saved = text }) {
+  return { id: nextId++, path, name, saved, state: EditorState.create({ doc: text, extensions }), scroll: 0, previewScroll: 0, out: null };
+}
+
+function freeName() {
+  const used = new Set(tabs.map((t) => t.name));
+  for (let i = 1; ; i++) {
+    const n = i === 1 ? 'untitled.fn' : `untitled-${i}.fn`;
+    if (!used.has(n)) return n;
+  }
+}
+
+function stash() {
+  if (!active) return;
+  active.state = view.state;
+  active.scroll = view.scrollDOM.scrollTop;
+  active.previewScroll = rightEl.scrollTop;
+}
+
+function activate(tab) {
+  if (tab === active) return;
+  stash();
+  active = tab;
+  view.setState(tab.state);
+  nameEl.value = tab.name;
+  last = tab.out;
+  if (last) previewEl.innerHTML = last.html;
+  requestAnimationFrame(() => {
+    view.scrollDOM.scrollTop = tab.scroll;
+    rightEl.scrollTop = tab.previewScroll;
+  });
+  renderTabs();
   markDirty();
+  saveSession();
+  render(view.state.doc.toString()).then(() => { rightEl.scrollTop = tab.previewScroll; });
+  view.focus();
+}
+
+function addTab(tab, at = tabs.indexOf(active) + 1) {
+  tabs.splice(at > 0 ? at : tabs.length, 0, tab);
+  activate(tab);
+}
+
+function newTab() {
+  addTab(makeTab({ name: freeName(), text: BLANK }));
+}
+
+async function closeTab(tab) {
+  if (isDirty(tab) && !(await fn.files.askDiscard(tab.name))) return;
+  const i = tabs.indexOf(tab);
+  tabs.splice(i, 1);
+  if (fn.native && tab.path && !tabs.some((t) => t.path === tab.path)) fn.files.close(tab.path).catch(() => {});
+  if (!tabs.length) tabs.push(makeTab({ name: freeName(), text: BLANK }));
+  if (tab === active) {
+    active = null;
+    activate(tabs[Math.min(i, tabs.length - 1)]);
+  } else {
+    renderTabs();
+    saveSession();
+  }
+}
+
+function cycle(step) {
+  const i = tabs.indexOf(active);
+  activate(tabs[(i + step + tabs.length) % tabs.length]);
+}
+
+function renderTabs() {
+  tabsEl.replaceChildren(
+    ...tabs.map((tab) => {
+      const el = document.createElement('div');
+      el.className = 'tab';
+      el.dataset.id = tab.id;
+      el.setAttribute('role', 'tab');
+      el.setAttribute('aria-selected', String(tab === active));
+      el.tabIndex = tab === active ? 0 : -1;
+      el.title = tab.path || tab.name;
+      el.classList.toggle('dirty', isDirty(tab));
+      const label = document.createElement('span');
+      label.className = 'tab-name';
+      label.textContent = tab.name;
+      const close = document.createElement('button');
+      close.className = 'tab-close';
+      close.title = 'Close tab';
+      close.setAttribute('aria-label', `Close ${tab.name}`);
+      close.tabIndex = -1;
+      close.textContent = '×';
+      close.addEventListener('pointerdown', (e) => e.stopPropagation());
+      close.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeTab(tab);
+      });
+      el.append(label, close);
+      el.addEventListener('auxclick', (e) => {
+        if (e.button === 1) closeTab(tab);
+      });
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          cycle(e.key === 'ArrowRight' ? 1 : -1);
+          tabsEl.querySelector('[aria-selected="true"]')?.focus();
+        } else if (e.key === 'Delete') closeTab(tab);
+      });
+      el.addEventListener('pointerdown', (e) => dragTab(e, el, tab));
+      return el;
+    }),
+  );
+  const add = document.createElement('button');
+  add.className = 'tab-add';
+  add.title = fn.native ? 'New tab (Ctrl+T)' : 'New tab';
+  add.setAttribute('aria-label', 'New tab');
+  add.textContent = '+';
+  add.addEventListener('click', newTab);
+  tabsEl.append(add);
+  tabsEl.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+function dragTab(e, el, tab) {
+  if (e.button !== 0) return;
+  const x0 = e.clientX;
+  let moved = false;
+  el.setPointerCapture(e.pointerId);
+  const move = (ev) => {
+    if (!moved && Math.abs(ev.clientX - x0) < 5) return;
+    moved = true;
+    el.classList.add('dragging');
+    for (const other of tabsEl.querySelectorAll('.tab')) {
+      if (other === el) continue;
+      const r = other.getBoundingClientRect();
+      const mid = r.left + r.width / 2;
+      const before = other.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING;
+      if (before && ev.clientX < mid && ev.clientX > r.left) other.before(el);
+      else if (!before && ev.clientX > mid && ev.clientX < r.right) other.after(el);
+    }
+  };
+  const up = () => {
+    el.removeEventListener('pointermove', move);
+    el.removeEventListener('pointerup', up);
+    el.removeEventListener('pointercancel', up);
+    el.classList.remove('dragging');
+    if (moved) {
+      const order = [...tabsEl.querySelectorAll('.tab')].map((n) => Number(n.dataset.id));
+      tabs.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+      saveSession();
+    } else activate(tab);
+  };
+  el.addEventListener('pointermove', move);
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+}
+
+function saveSession() {
+  if (!active) return;
+  const list = tabs.map((t) => {
+    const text = textOf(t);
+    if (!fn.native) return { name: t.name, text };
+    const entry = { path: t.path, name: t.name };
+    if (!t.path || text !== t.saved) entry.text = text;
+    if (!t.path) entry.saved = t.saved;
+    return entry;
+  });
+  store.set(KEY_TABS, JSON.stringify({ tabs: list, active: tabs.indexOf(active) }));
+}
+
+function readSession() {
+  try {
+    const s = JSON.parse(store.get(KEY_TABS));
+    return s && Array.isArray(s.tabs) && s.tabs.length ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+async function restoreNative(session) {
+  const out = [];
+  for (const e of session?.tabs ?? []) {
+    if (e.path) {
+      const doc = await fn.files.load(e.path).catch(() => null);
+      if (doc) out.push(makeTab({ path: doc.path, name: doc.name, text: e.text ?? doc.text, saved: doc.text }));
+      else if (e.text != null) out.push(makeTab({ name: e.name, text: e.text, saved: '' }));
+    } else if (typeof e.text === 'string') out.push(makeTab({ name: e.name || 'untitled.fn', text: e.text, saved: e.saved ?? '' }));
+  }
+  return out;
+}
+
+function restoreWeb(session) {
+  if (session) return session.tabs.filter((e) => typeof e.text === 'string').map((e) => makeTab({ name: e.name || 'untitled.fn', text: e.text }));
+  const src = store.get(KEY_SRC);
+  if (src === null) return [];
+  return [makeTab({ name: store.get(KEY_NAME) ?? 'untitled.fn', text: src })];
+}
+
+function openDoc(doc) {
+  const have = tabs.find((t) => t.path === doc.path);
+  if (have) return activate(have);
+  const tab = makeTab({ path: doc.path, name: doc.name, text: doc.text });
+  const blank = !active.path && textOf(active) === active.saved && tabs.length === 1;
+  if (blank) {
+    tabs = [tab];
+    active = null;
+    activate(tab);
+  } else addTab(tab);
+}
+
+function useDoc(tab, doc) {
+  const moved = tab.path && tab.path !== doc.path;
+  if (moved && !tabs.some((t) => t !== tab && t.path === tab.path)) fn.files.close(tab.path).catch(() => {});
+  tab.path = doc.path;
+  tab.name = doc.name;
+  tab.saved = doc.text;
+  if (textOf(tab) !== doc.text) {
+    if (tab === active) setSource(doc.text);
+    else {
+      tab.state = tab.state.update({ changes: { from: 0, to: tab.state.doc.length, insert: doc.text } }).state;
+      tab.out = null;
+    }
+  }
+  if (tab === active) nameEl.value = doc.name;
+  renderTabs();
+  markDirty();
+  saveSession();
 }
 
 function showError(err) {
@@ -168,55 +400,76 @@ function showError(err) {
 }
 
 async function saveNative(as) {
+  const tab = active;
   const text = view.state.doc.toString();
-  const doc = current && !as ? await fn.files.save(current, text) : await fn.files.saveAs(fileName(), text);
-  if (doc) useDoc(doc);
+  const doc = tab.path && !as ? await fn.files.save(tab.path, text) : await fn.files.saveAs(fileName(), text);
+  if (doc) useDoc(tab, doc);
 }
 
 function setupDesktop() {
   const files = fn.files;
-  nameEl.readOnly = true;
+  nameEl.hidden = true;
   $('save').textContent = 'Save';
   $('save').title = 'Save the file (Ctrl+S). Shift-click to save as';
   $('open').title = 'Open a .fn file from disk';
   $('html').title = 'Export the compiled HTML';
-  $('new').addEventListener('click', () => {
-    current = null;
-    savedText = null;
-    files.close();
-    markDirty();
-  });
-  $('open').addEventListener('click', () => files.open().then((d) => d && useDoc(d)).catch(showError));
+  $('new').title = 'New tab (Ctrl+T)';
+  $('open').title = 'Open .fn files from disk in new tabs (Ctrl+O)';
+  $('open').addEventListener('click', () => files.open().then((docs) => docs.forEach(openDoc)).catch(showError));
   $('save').addEventListener('click', (e) => saveNative(e.shiftKey).catch(showError));
   $('html').addEventListener('click', () => standalone().then((html) => files.exportHtml(fileName().replace(/\.fn$/, '.html'), html)).catch(showError));
   $('pdf').title = 'Export a PDF set by Functor';
   $('pdf').addEventListener('click', () => files.exportPdf(fileName().replace(/\.fn$/, '.pdf'), view.state.doc.toString()).catch(showError));
   document.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
-      e.preventDefault();
-      saveNative(e.shiftKey).catch(showError);
-    } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'o') {
-      e.preventDefault();
-      $('open').click();
-    }
+    const mod = e.metaKey || e.ctrlKey;
+    const k = e.key.toLowerCase();
+    let act = null;
+    if (mod && k === 's') act = () => saveNative(e.shiftKey).catch(showError);
+    else if (mod && k === 'o') act = () => $('open').click();
+    else if (mod && k === 't') act = newTab;
+    else if (mod && k === 'w') act = () => closeTab(active);
+    else if (e.ctrlKey && k === 'tab') act = () => cycle(e.shiftKey ? -1 : 1);
+    else if (mod && (k === 'pagedown' || k === 'pageup')) act = () => cycle(k === 'pagedown' ? 1 : -1);
+    else if (mod && !e.shiftKey && !e.altKey && /^[1-9]$/.test(k)) act = () => activate(k === '9' ? tabs[tabs.length - 1] : tabs[Number(k) - 1] ?? active);
+    if (!act) return;
+    e.preventDefault();
+    act();
+  });
+  files.onMenu((id) => {
+    if (id === 'new-tab') newTab();
+    else if (id === 'close-tab') closeTab(active);
+    else if (id === 'open') $('open').click();
+    else if (id === 'next-tab') cycle(1);
+    else if (id === 'prev-tab') cycle(-1);
   });
   files.onChange((doc) => {
-    const dirty = savedText !== null && view.state.doc.toString() !== savedText;
-    if (doc.path !== current || dirty) return;
-    useDoc(doc);
+    for (const tab of tabs.filter((t) => t.path === doc.path)) {
+      if (!isDirty(tab)) useDoc(tab, doc);
+    }
   });
+  window.addEventListener('pagehide', saveSession);
 }
 
 function setupWeb() {
-  nameEl.addEventListener('change', () => store.set(KEY_NAME, fileName()));
+  nameEl.addEventListener('change', () => {
+    active.name = fileName();
+    nameEl.value = active.name;
+    renderTabs();
+    saveSession();
+  });
   $('open').addEventListener('click', () => $('file').click());
   $('file').addEventListener('change', async (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    nameEl.value = f.name;
-    store.set(KEY_NAME, f.name);
-    setSource(await f.text());
+    const text = await f.text();
     e.target.value = '';
+    const blank = textOf(active) === BLANK && tabs.length === 1;
+    const tab = makeTab({ name: f.name, text });
+    if (blank) {
+      tabs = [tab];
+      active = null;
+      activate(tab);
+    } else addTab(tab);
   });
   $('save').addEventListener('click', () => download(fileName(), view.state.doc.toString(), 'text/plain'));
   $('html').addEventListener('click', () => standalone().then((html) => download(fileName().replace(/\.fn$/, '.html'), html, 'text/html')).catch(showError));
@@ -227,7 +480,6 @@ function setupWeb() {
       showError(e);
     }
   });
-  $('new').addEventListener('click', () => store.set(KEY_NAME, nameEl.value));
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 's') {
       e.preventDefault();
@@ -295,40 +547,30 @@ async function main() {
   fn = isDesktop ? await loadNative() : await loadFunctor(new URL('functor.wasm', document.baseURI).href);
   inspect = createInspector($('inspector'), fn);
   const info = await fn.symbols();
-  const opened = fn.native ? await fn.files.initial() : null;
-  const initial = opened ? opened.text : fn.native ? sample : store.get(KEY_SRC) ?? sample;
-  nameEl.value = opened ? opened.name : fn.native ? 'sample.fn' : store.get(KEY_NAME) ?? (store.get(KEY_SRC) ? 'untitled.fn' : 'sample.fn');
-  if (opened) {
-    current = opened.path;
-    savedText = opened.text;
-  }
-
-  view = new EditorView({
-    parent: $('editor'),
-    state: EditorState.create({
-      doc: initial,
-      extensions: [
-        basicSetup,
-        keymap.of([indentWithTab]),
-        functorLanguage,
-        functorHighlight,
-        functorCompletion(fn, info),
-        functorLinter(() => last),
-        EditorView.lineWrapping,
-        EditorView.updateListener.of((u) => {
-          if (u.docChanged) schedule(u.state.doc.toString());
-          else if (u.selectionSet) inspectCursor(u.state);
-        }),
-      ],
+  extensions = [
+    basicSetup,
+    keymap.of([indentWithTab]),
+    functorLanguage,
+    functorHighlight,
+    functorCompletion(fn, info),
+    functorLinter(() => last),
+    EditorView.lineWrapping,
+    EditorView.updateListener.of((u) => {
+      if (u.docChanged) schedule(u.state.doc.toString());
+      else if (u.selectionSet) inspectCursor(u.state);
     }),
-  });
-  await render(initial);
-  markDirty();
-
-  $('new').addEventListener('click', () => {
-    nameEl.value = 'untitled.fn';
-    setSource('---\nfunctor: 1\ntitle: Untitled\n---\n\n# Start\n\nWrite $x.hat$ here.\n');
-  });
+  ];
+  const session = readSession();
+  tabs = fn.native ? await restoreNative(session) : restoreWeb(session);
+  if (!tabs.length) tabs.push(makeTab({ name: 'sample.fn', text: sample }));
+  const first = tabs[Math.min(Math.max(session?.active ?? 0, 0), tabs.length - 1)];
+  view = new EditorView({ parent: $('editor'), state: first.state });
+  activate(first);
+  if (fn.native) {
+    const opened = await fn.files.initial(!session).catch(() => null);
+    if (opened) openDoc(opened);
+  }
+  $('new').addEventListener('click', newTab);
   if (fn.native) setupDesktop();
   else setupWeb();
   $('print').addEventListener('click', () => window.print());

@@ -25,6 +25,7 @@ The website has an editor at the left and a live preview at the right. It runs t
 - Type in the editor. The preview changes at each key.
 - Errors show in the editor and in the problem list. Click a problem to go to its line.
 - Type `.` after a symbol in math to see the operations. Each one shows its meaning and a preview of the glyph.
+- **+** opens a new tab. The browser keeps your tabs and their text.
 - **Save .fn** downloads your file. **Open** loads a file. **HTML** downloads the compiled page. **PDF** downloads a PDF that Functor sets itself. **Print** opens the print dialog.
 - The website keeps your last file in this browser.
 
@@ -47,9 +48,18 @@ The desktop app is the same editor in a native window. The compiler runs as nati
         └────────── watch: reload on change ◄──┘
 ```
 
-- **Open** (Ctrl+O) opens a `.fn` file from disk. **Save** (Ctrl+S) writes it back. Shift+Save is "Save as".
-- When another program changes the open file, the app loads the new text. It does not do this when you have unsaved changes.
-- The app opens your last file at start. You can also give a path: `functor-desktop notes.fn`.
+- Each file opens in its own tab. Each tab keeps its text, undo history, cursor, scroll and preview. A dot on a tab shows changes that are not saved.
+- **Open** (Ctrl+O) opens one or more `.fn` files in new tabs. A file that is already open gets its tab shown. **Save** (Ctrl+S) writes the current tab. Shift+Save is "Save as".
+- When another program changes an open file, the app loads the new text into its tab. It does not do this when the tab has unsaved changes.
+- The app opens your tabs from the last session at start, with unsaved text. You can also give a path: `functor-desktop notes.fn`.
+
+| Keys (Cmd on macOS) | Action |
+|---|---|
+| Ctrl+T, or **New** | New tab |
+| Ctrl+W, or middle-click | Close tab. The app asks first if the tab has unsaved changes |
+| Ctrl+Tab, Ctrl+Shift+Tab | Next tab, previous tab |
+| Ctrl+1 … Ctrl+8, Ctrl+9 | Go to tab 1 … 8, go to the last tab |
+| Drag a tab | Change the order |
 - It works with no network.
 
 Run it on your computer (Linux needs `libwebkit2gtk-4.1-dev`):

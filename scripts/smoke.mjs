@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
 
 const root = join(here, '../web/dist');
 const shots = process.env.SHOTS;
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm', '.svg': 'image/svg+xml' };
 
 const server = createServer(async (req, res) => {
   const path = join(root, decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/\/$/, '/index.html'));
@@ -79,6 +79,18 @@ try {
   for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowLeft');
   await page.waitForFunction(() => document.querySelector('#inspector .insp-source')?.textContent === '(v).vbar.x2', null, { timeout: 5000 });
   if (shots) await page.screenshot({ path: `${shots}/site-inspector-hand.png` });
+
+  await page.click('#tabs .tab-add');
+  await page.waitForFunction(() => document.querySelectorAll('#tabs .tab').length === 2);
+  await page.fill('#name', 'notes.fn');
+  await page.press('#name', 'Enter');
+  await page.click('#tabs .tab:nth-child(1)');
+  if (!(await page.textContent('.cm-content')).includes('object vec: v')) fail('switching tabs lost the first text');
+  await page.reload();
+  await page.waitForSelector('.status', { timeout: 10000 });
+  const tabNames = await page.locator('#tabs .tab-name').allTextContents();
+  console.log('tabs after reload:', tabNames);
+  if (tabNames.length !== 2 || tabNames[1] !== 'notes.fn') fail('the website did not keep its tabs');
 
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await mobile.goto(url);

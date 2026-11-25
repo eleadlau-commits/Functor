@@ -79,14 +79,17 @@ export async function loadNative() {
       return JSON.parse(await invoke('symbols'));
     },
     files: {
-      initial: () => invoke('initial_file'),
+      initial: (last) => invoke('initial_file', { last }),
+      load: (path) => invoke('load_file', { path }),
       open: () => invoke('open_file'),
       save: (path, text) => invoke('save_file', { path, text }),
       saveAs: (name, text) => invoke('save_as', { name, text }),
       exportHtml: (name, html) => invoke('export_html', { name, html }),
       exportPdf: (name, src) => invoke('export_pdf', { name, src }),
-      close: () => invoke('close_file'),
+      close: (path) => invoke('close_file', { path }),
+      askDiscard: (name) => invoke('ask_discard', { name }),
       onChange: (cb) => listen('file-changed', (e) => cb(e.payload)),
+      onMenu: (cb) => listen('menu', (e) => cb(e.payload)),
     },
   };
 }
