@@ -32,10 +32,14 @@ in.not, eq.not, integral.x2, integral.circle, plus.circle, (a + b).angle.
 Text in math: "if". Matrix: mat(a, b; c, d). Vector: vec(1, 2, 3).
 Cases: cases(x, x ge 0; -x, x lt 0). abs(x), norm(v), inner(u, v), binom(n, k).
 Labelled arrow: A to^f B. Diagram: diagram(A, B; C, D | f: A to B, g: A to C).
+Curved arrow: f: A to.bend B. 2-cell: alpha: f implies g.
 Display math: $$ on its own line; each line is a row aligned at its first
 relation; label with {#eq:name} after the closing $$; refer with @eq:name.
 In a chat, put Functor in a fn code block, or a fnmath block for display math.
 Check with: functor check file.fn
+Prefer meaning forms: norm(v), not (v).vbar.x2; object vec: v, not v.arrow
+by hand. The notation check warns when two forms give one look. To see the
+four layers of one symbol: functor trace file.fn line:col.
 ```
 
 # A whole file
@@ -139,10 +143,10 @@ A recipe is a base and up to three operations: `base.op1.op2.op3`. Operations al
 | reflect | `flip` `flipv` `turn` `rot` | a dual or opposite; `rot` is a quarter turn to the left |
 | style | `bold` `bb` `frak` `script` `up` `cal` `alt` | another alphabet: first operation on one letter |
 | magnify | `small` `big` | four fifths of the size; the n-ary version |
-| deform | `tall` `wide` | grow along one axis; the ends keep their shape |
+| deform | `tall` `wide` `bend` `slant` `taper` | grow along one axis, bend into an arc, lean, or thin one end; the strokes keep their shape |
 | fence | `paren` `brack` `brace` `angle` `vbar` `floor` `ceil` | brackets around a group |
 
-Examples: `R.bb`, `g.frak`, `L.script`, `d.up`, `v.bold`, `integral.x2.circle`, `E.flip`, `h.cross`, `(a + b).angle`, `to.wide` (a long arrow). After a fence, `x2` doubles it and `left` or `right` keeps one side: `(v).vbar.x2`, `(x).brace.left`.
+Examples: `R.bb`, `g.frak`, `L.script`, `d.up`, `v.bold`, `integral.x2.circle`, `E.flip`, `h.cross`, `(a + b).angle`, `to.wide` (a long arrow), `to.bend` (a curved arrow), `x.slant`, `to.taper`. After a fence, `x2` doubles it and `left` or `right` keeps one side: `(v).vbar.x2`, `(x).brace.left`.
 
 # Structures
 
@@ -156,11 +160,15 @@ Examples: `R.bb`, `g.frak`, `L.script`, `d.up`, `v.bold`, `integral.x2.circle`, 
 | `wrap(L.script, x + y)`, `wrap(T.frak, S.frak, a)` | Any symbol as a fence |
 | `A to^f B`, `A to_p B`, `x =^"def" y` | Label above or below a relation; the arrow grows to fit |
 
-**Diagrams.** A diagram is a grid with arrows: the cells, a bar, then each arrow as a map. Two cells with the same content: write the position, `2.1` (row 2, column 1). Any relation can be the arrow.
+**Diagrams.** A diagram is a grid with arrows: the cells, a bar, then each arrow as a map. Two cells with the same content: write the position, `2.1` (row 2, column 1). Any relation can be the arrow. `to.bend` curves an arrow to its left, `to.bend.flipv` to its right. An arrow between two named arrows is a 2-cell. When two arrows cross, the arrow written first gets a gap.
 
 ```fn
 $$
 diagram(A, B; C, D | f: A to B, g: A to C, h: B to D, k: C to D)
+$$
+
+$$
+diagram(A, B | f: A to.bend B, g: A to.bend.flipv B, alpha: f implies g)
 $$
 ```
 
@@ -181,7 +189,7 @@ $$ {#eq:square}
 |:--|:--|
 | `set vec(...)` | `style: arrow` or `bold`, `fence:`, `body: column` or `row`, `grow:`, `inline: small` or `full` |
 | `set mat(...)` | `fence:`, `grow:`, `inline: small` or `full` |
-| `set diagram(...)` | `gap: small`, `normal` or `large`, `inline: small` or `full` |
+| `set diagram(...)` | `gap: small`, `normal` or `large`, `inline: small` or `full`, `cross: gap` or `plain` |
 | `set binom(...)`, `set abs(...)`, `set norm(...)`, `set inner(...)`, `set floor(...)`, `set ceil(...)` | `fence:`, `grow:` |
 | `set cases(...)` | `fence:`, `word: "if"`, `grow:` |
 | `set wrap(...)` | `grow: stretch` or `magnify` |
@@ -191,6 +199,7 @@ $$ {#eq:square}
 | `set heading(...)` | `numbering: none` |
 | `set page(...)` | `size: a4`, `a5` or `letter`, `margin: 2.5cm` |
 | `set text(...)` | `size: 11pt`, `font: "Name"` |
+| `set lint(...)` | `notation: off` turns off the notation check |
 
 # From LaTeX, the most common
 

@@ -1,0 +1,41 @@
+---
+functor: 1
+title: taper
+---
+
+set heading(numbering: none)
+
+`taper` · deform · make the start of the long axis thin, a tapered variant.
+
+# Form
+
+`x.taper` on a symbol, `(a + b).taper` on a group. A recipe has one base and up to three operations.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `to.wide.taper` | $to.wide.taper$ | built and cached |
+| `mid.taper` | $mid.taper$ | built and cached |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | Make the start of the long axis thin, a tapered variant. A guideline, not a rule. |
+| Style | Use a `sym` to give a recipe a short name. |
+| Construction | A changed outline of the base. The compiler moves each point of the outline, and the strokes keep their shape and width. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- More than three operations on one base gives a warning.
+- The start of the long axis goes to about one third of its size. On an arrow, the tail is thin and the head keeps its shape.
+
+# From LaTeX
+
+no LaTeX command.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)

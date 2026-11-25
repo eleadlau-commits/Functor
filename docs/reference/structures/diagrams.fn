@@ -66,8 +66,55 @@ $$
 |:--|:--|:--|
 | `set diagram(gap: ...)` | `small`, `normal`, `large` | `normal` |
 | `set diagram(inline: ...)` | `small`, `full` | `small` |
+| `set diagram(cross: ...)` | `gap`, `plain` | `gap` |
 
 The gap between two cells also grows to fit a long label.
+
+# Curved arrows
+
+`bend` on the arrow makes a curved arrow. It is the same `bend` operation as on a symbol. `to.bend` curves to the left of the arrow direction, and `to.bend.flipv` curves to the right. A label goes on the outer side of the curve.
+
+```fn
+$$
+diagram(A, B; C, D | f: A to B, g: A to C, h: B to D, k: C to D, A to.bend D)
+$$
+```
+
+$$
+diagram(A, B; C, D | f: A to B, g: A to C, h: B to D, k: C to D, A to.bend D)
+$$
+
+# 2-cells
+
+A 2-cell is an arrow between two arrows. Name the two arrows with a label, then write the 2-cell with the two names. Write the two arrows first.
+
+```fn
+$$
+diagram(A, B | f: A to.bend B, g: A to.bend.flipv B, alpha: f implies g)
+$$
+```
+
+$$
+diagram(A, B | f: A to.bend B, g: A to.bend.flipv B, alpha: f implies g)
+$$
+
+The name of an arrow is its label: `f: A to B`, `A to^f B` or `A to_f B`.
+
+# Crossing arrows
+
+When two arrows cross, the arrow written first gets a small gap, so the arrow written later goes over it. Write the front arrows last.
+
+```fn
+$$
+diagram(A, , B, ; , A', , B'; C, , D, ; , C', , D' | A to B, A to C, B to D, C to D, A' to B', A' to C', B' to D', C' to D', A to A', B to B', C to C', D to D')
+$$
+```
+
+$$
+diagram(A, , B, ; , A', , B'; C, , D, ; , C', , D' | A to B, A to C, B to D, C to D, A' to B', A' to C', B' to D', C' to D', A to A', B to B', C to C', D to D')
+$$
+
+`set diagram(cross: plain)` draws crossing arrows with no gap.
 
 # Inline structures
 
@@ -77,4 +124,4 @@ The matrix $mat(a, b; c, d)$ is small in text. A one-row sequence such as $0 to 
 
 # Not in Functor 1
 
-Curved arrows, arrows that cross other arrows, and arrows between arrows (2-cells) come in a later phase. A curved arrow needs a bend deform.
+Loops (an arrow from a cell to the same cell) and arrows with a bend angle that you choose come in a later phase.

@@ -52,6 +52,20 @@ When the font has the result, the compiler uses the font glyph: `integral.circle
 
 Each operation has a meaning: `hat` is a derived object, `not` is negation, `bb` is a number set. The meanings are guidelines, not rules. The compiler does not stop you from using `hat` for something else. All operations are on [Operations](symbols/operations.html).
 
+# Deform
+
+`deform` changes the outline of a symbol. It has five operations.
+
+| Operation | What it does | Example | Result |
+|:--|:--|:--|:-:|
+| `tall` | grows the height; the straight parts grow, the ends keep their shape | `integral.tall` | $integral.tall$ |
+| `wide` | grows the width, such as a long arrow | `to.wide` | $to.wide$ |
+| `bend` | bends the long axis into an arc; the strokes keep their width | `to.wide.bend` | $to.wide.bend$ |
+| `slant` | leans to the right | `A.slant` | $A.slant$ |
+| `taper` | makes the start of the long axis thin | `to.wide.taper` | $to.wide.taper$ |
+
+`bend` bends up, so the middle is above the ends. `to.wide.bend.flipv` bends down. In a diagram, `bend` makes a curved arrow, see [Diagrams](structures/diagrams.html).
+
 # Not yet
 
-`deform` has two operations today: `tall` and `wide`. They grow one axis and keep the ends and thin strokes, so `to.wide` is a long arrow. More kinds of `deform` come later. `fuse` comes in a later phase: use `join(a, b)` for now.
+`deform` works on one symbol or a group. It does not bend a whole formula. `fuse` comes in a later phase: use `join(a, b)` for now.

@@ -62,6 +62,24 @@ try {
   if (label !== 'hat') fail(`first completion is ${label}`);
   if (shots) await page.screenshot({ path: `${shots}/site-complete.png` });
 
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('---\nfunctor: 1\n---\n\nobject vec: v\n\n$$\nnorm(v) = (v).vbar.x2\n$$\n\nVector $v$');
+  await page.keyboard.press('ArrowLeft');
+  await page.waitForSelector('#inspector:not([hidden]) .insp-layers', { timeout: 5000 });
+  const layers = await page.locator('#inspector .insp-layers li').allTextContents();
+  console.log('inspector:', layers);
+  if (layers.length !== 4 || !layers[0].includes('object vec: v') || !layers[2].includes('v.arrow')) fail('inspector does not show the four layers of v');
+  const notes = await page.locator('#list li').allTextContents();
+  if (!notes.some((t) => t.includes('Write `norm(v)`.'))) fail('no notation warning for (v).vbar.x2');
+  if (shots) await page.screenshot({ path: `${shots}/site-inspector.png` });
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('End');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowLeft');
+  await page.waitForFunction(() => document.querySelector('#inspector .insp-source')?.textContent === '(v).vbar.x2', null, { timeout: 5000 });
+  if (shots) await page.screenshot({ path: `${shots}/site-inspector-hand.png` });
+
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await mobile.goto(url);
   await mobile.waitForSelector('.status', { timeout: 10000 });

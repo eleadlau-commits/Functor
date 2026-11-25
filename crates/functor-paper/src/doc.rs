@@ -324,6 +324,13 @@ impl DocParser<'_> {
                         self.diags.error(n, arg_col, format!("`{v}` is not a diagram gap."), Some("Use `small`, `normal` or `large`.".into()));
                     }
                 }
+                ("diagram", "cross") => {
+                    if v == "gap" || v == "plain" {
+                        self.env.kinds.insert("diagram.cross".into(), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a diagram crossing."), Some("Use `gap` or `plain`.".into()));
+                    }
+                }
                 (t, "style") if crate::symbols::ARROW_KINDS.contains(&t) => {
                     if crate::symbols::arrow_style(&v).is_some() {
                         self.env.kinds.insert(format!("{t}.style"), v);
@@ -352,6 +359,13 @@ impl DocParser<'_> {
                 }
                 ("cases", "word") => {
                     self.env.kinds.insert("cases.word".into(), v);
+                }
+                ("lint", "notation") => {
+                    if v == "on" || v == "off" {
+                        self.env.kinds.insert("lint.notation".into(), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a value for `notation`."), Some("Use `on` or `off`.".into()));
+                    }
                 }
                 ("document", "style") => {
                     if DOC_STYLES.contains(&v.as_str()) {

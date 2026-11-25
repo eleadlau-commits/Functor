@@ -5,6 +5,7 @@ import { indentWithTab } from '@codemirror/commands';
 import { forceLinting } from '@codemirror/lint';
 import { loadFunctor, loadNative, isDesktop } from './functor.js';
 import { functorLanguage, functorHighlight, functorCompletion, functorLinter } from './lang.js';
+import { createInspector, traceAt } from './inspector.js';
 import sample from '../../examples/sample.fn?raw';
 import docCss from './doc.css?raw';
 import refsJs from './refs.js?raw';
@@ -38,6 +39,7 @@ const previewEl = $('preview');
 const nameEl = $('name');
 
 let fn;
+let inspect = () => {};
 let last = null;
 let timer = 0;
 let view;
@@ -118,9 +120,17 @@ async function render(src) {
     }),
   );
   if (view) {
+    inspectCursor(view.state);
     forceLinting(view);
     if (view.hasFocus) view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: 'nearest' }) });
   }
+}
+
+function inspectCursor(state) {
+  if (!last || !last.traces) return inspect(null);
+  const head = state.selection.main.head;
+  const line = state.doc.lineAt(head);
+  inspect(traceAt(last.traces, line.number, head - line.from + 1));
 }
 
 function schedule(src) {
@@ -283,6 +293,7 @@ function setupDivider() {
 
 async function main() {
   fn = isDesktop ? await loadNative() : await loadFunctor(new URL('functor.wasm', document.baseURI).href);
+  inspect = createInspector($('inspector'), fn);
   const info = await fn.symbols();
   const opened = fn.native ? await fn.files.initial() : null;
   const initial = opened ? opened.text : fn.native ? sample : store.get(KEY_SRC) ?? sample;
@@ -306,6 +317,7 @@ async function main() {
         EditorView.lineWrapping,
         EditorView.updateListener.of((u) => {
           if (u.docChanged) schedule(u.state.doc.toString());
+          else if (u.selectionSet) inspectCursor(u.state);
         }),
       ],
     }),
