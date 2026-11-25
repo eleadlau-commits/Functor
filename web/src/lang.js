@@ -116,9 +116,10 @@ export function functorCompletion(fn, info) {
           const base = op[1];
           return {
             from: ctx.pos - op[2].length,
-            options: ops.map((o) => ({
+            options: ops.map((o, i) => ({
               label: o.name,
               type: 'method',
+              boost: Math.max(-99, 99 - 2 * i),
               detail: o.meaning.split(':')[0],
               info: async () => {
                 const el = await preview(fn, `${base}.${o.name}`)();

@@ -46,7 +46,7 @@ diagram(A, B; C, D | f: A to B, g: A to C, h: B to D, k: C to D)
 $$
 
 - An arrow names its cells by their content. If two cells have the same content, write the position: `2.1` is row 2, column 1.
-- The arrow is any relation: `to`, `mapsto`, `implies`, `=`, `sim`, or a `sym` that you build. On a diagonal or a vertical edge, the same glyph turns to the angle.
+- The arrow is any relation: `to`, `mapsto`, `epi`, `implies`, `=`, `cong`, `sim`, or a `sym` that you build. On a diagonal or a vertical edge, the same glyph turns to the angle.
 - `f: A to B` puts the label f on the outer side of the diagram. `A to^f B` puts it on the left of the arrow direction, and `A to_f B` on the right.
 - A cell can be empty: `diagram(A, ; B, C | A to C)`.
 - Do not write a bar `|` in a cell. Use `abs(x)`.

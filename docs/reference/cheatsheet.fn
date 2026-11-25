@@ -109,13 +109,20 @@ Blocks are `::: kind` and `:::`. The kinds are theorem, lemma, corollary, propos
 | `"if"`, `"tr" A` | Upright text in math |
 | `sum_(k = 1)^n`, `lim_(n to infty)`, `integral_0^1 f d x` | Limits |
 | `join(o.up, r.up)` | Two symbols set as one touching glyph |
+| `stack(lt, sim)`, `stack("def", eq)` | One symbol over another, as one glyph |
 | `thin`, `med`, `thick`, `quad`, `qquad`, `neg` | Spaces. `neg` takes space back. |
 
-**Names.** Large operators: `sum` `prod` `coprod` `integral` `union` `inter`. Binary: `plus` `minus` `times` `cdot` `pm` `mp` `div` `circ` `ast` `star` `wedge` `vee` `cup` `cap` `setminus`. Relations: `eq` `lt` `gt` `le` `ge` `approx` `sim` `equiv` `propto` `in` `ni` `subset` `supset` `subseteq` `supseteq` `perp` `mid` `parallel` `to` `gets` `implies` `iff` `mapsto`. Ordinary: `infty` `partial` `nabla` `forall` `exists` `emptyset` `ell` `aleph` `angle` `triangle` `square` `dots` `cdots` `prime`. The signs `+ - = < > , ; :` also work as they are.
+**Names.** Large operators: `sum` `prod` `coprod` `integral` `union` `inter`. Binary: `plus` `minus` `times` `cdot` `pm` `mp` `div` `circ` `ast` `star` `wedge` `vee` `cup` `cap` `setminus`. Relations: `eq` `lt` `gt` `le` `ge` `approx` `sim` `equiv` `propto` `in` `ni` `subset` `supset` `subseteq` `supseteq` `perp` `mid` `parallel` `to` `gets` `implies` `iff` `mapsto`. Ordinary: `infty` `partial` `nabla` `forall` `exists` `emptyset` `ell` `aleph` `angle` `triangle` `square` `dots` `cdots` `prime`.
 
-**Greek.** `alpha` `beta` `gamma` `delta` `epsilon` `zeta` `eta` `theta` `iota` `kappa` `lambda` `mu` `nu` `xi` `omicron` `pi` `rho` `varsigma` `sigma` `tau` `upsilon` `phi` `chi` `psi` `omega`. Capitals: `Gamma` `Delta` `Theta` `Lambda` `Xi` `Pi` `Sigma` `Upsilon` `Phi` `Psi` `Omega`.
+**More names.** Binary: `ltimes` `rtimes` `sqcup` `sqcap` `uplus` `wr` `bullet` `smash` `semi` `par`. Relations: `prec` `succ` `cong` `simeq` `asymp` `bowtie` `pitchfork` `indep` `between` `normal` `proves` `models` `forces` `lollipop` `therefore` `because`. Arrows: `tofro` `equil` `mono` `epi` `incl`. Ordinary: `bot` `lnot` `complement` `diamond` `wp` `beth` `gimel` `daleth` `digamma` `imath` `jmath` `vdots` `ddots` `udots` `degree` `permille` `dagger` `ddagger` `qed` `corner` `lightning` `plimsoll` `diameter` `blackstar` `checkmark` `flat` `natural` `sharp` `clubs`.
 
-**Functions.** `sin` `cos` `tan` `log` `ln` `exp` `det` `dim` `ker` `deg` `gcd` `arg` `lim` `max` `min` `sup` `inf`.
+**Built, not named.** Up and down arrows: `to.rot`, `to.flip.rot`, `implies.rot`. Long arrows: `to.wide`, `implies.wide`, `mapsto.wide`. Big operators: `wedge.big`, `plus.circle.big`, `sqcup.big`. Others: `lt.x2` (≪), `bot.flipv` (⊤), `proves.flip` (⊣), `subset.square` (⊏), `eq.dot` (≐), `prime.x2` (″), `integral.x4`, `F.turn` (Ⅎ).
+
+The signs `+ - = < > , ; :` also work as they are.
+
+**Greek.** `alpha` `beta` `gamma` `delta` `epsilon` `zeta` `eta` `theta` `iota` `kappa` `lambda` `mu` `nu` `xi` `omicron` `pi` `rho` `varsigma` `sigma` `tau` `upsilon` `phi` `chi` `psi` `omega`. `.alt` gives the other common form: `phi.alt` (ϕ), `epsilon.alt` (ϵ), `theta.alt`, `rho.alt`, `pi.alt`, `kappa.alt`. `mu.up` is upright, for units. `alpha.bold` is bold. Capitals: `Gamma` `Delta` `Theta` `Lambda` `Xi` `Pi` `Sigma` `Upsilon` `Phi` `Psi` `Omega`.
+
+**Functions.** `sin` `cos` `tan` `log` `ln` `exp` `det` `dim` `ker` `deg` `gcd` `arg` `lim` `max` `min` `sup` `inf` `sinh` `cosh` `tanh` `coth` `sec` `csc` `cot` `arcsin` `arccos` `arctan` `lg` `limsup` `liminf` `argmax` `argmin` `colim` `rank` `tr` `Tr` `sgn` `lcm` `span` `diag` `id` `im` `coker` `Aut` `End` `Hom` `Ext` `Tor` `Spec` `Gal` `Re` `Im` `supp` `vol` `erf` `res` `Pr` `Var` `Cov` `Corr` `grad` `curl` `mod`. There is no `div` function, because `div` is ÷. Write divergence as `nabla cdot F`.
 
 # Symbol operations
 
@@ -123,13 +130,13 @@ A recipe is a base and up to three operations: `base.op1.op2.op3`. Operations al
 
 | Family | Operations | Default meaning |
 |:--|:--|:--|
-| decorate | `hat` `tilde` `bar` `dot` `ddot` `check` `breve` `arrow` `under` | a derived or related object |
+| decorate | `hat` `tilde` `bar` `dot` `ddot` `check` `breve` `arrow` `under` `ring` `harpoon` | a derived or related object |
 | enclose | `circle` `box` `square` | a closed or restricted version |
 | strike | `not` `cross` | negation, a fixed variant |
 | repeat | `x2` `x3` `x4` | higher order |
-| reflect | `flip` `flipv` `turn` | a dual or opposite |
-| style | `bold` `bb` `frak` `script` `up` | another alphabet: first operation on one letter |
-| magnify | `small` | four fifths of the size |
+| reflect | `flip` `flipv` `turn` `rot` | a dual or opposite; `rot` is a quarter turn to the left |
+| style | `bold` `bb` `frak` `script` `up` `cal` `alt` | another alphabet: first operation on one letter |
+| magnify | `small` `big` | four fifths of the size; the n-ary version |
 | deform | `tall` `wide` | grow along one axis; the ends keep their shape |
 | fence | `paren` `brack` `brace` `angle` `vbar` `floor` `ceil` | brackets around a group |
 

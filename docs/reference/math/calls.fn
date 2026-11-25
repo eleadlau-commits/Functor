@@ -1,6 +1,6 @@
 ---
 functor: 1
-title: frac, sqrt, text, join
+title: frac, sqrt, text, join, stack
 ---
 
 set heading(numbering: none)
@@ -13,6 +13,7 @@ A call is a name and arguments in round brackets, with commas between them. Stru
 | `sqrt(x)` | one | $sqrt(x^2 + y^2)$ |
 | `binom(n, k)` | top, bottom | $binom(n, k)$ |
 | `join(o.up, r.up)` | two single symbols | $join(o.up, r.up)$ |
+| `stack(lt, sim)` | top, bottom | $stack(lt, sim)$ |
 | `text(x)` | one | $text(x)$ |
 
 # frac
@@ -26,6 +27,23 @@ A call is a name and arguments in round brackets, with commas between them. Stru
 # join
 
 `join(a, b)` sets two symbols so that they touch and become one glyph. Build each side first: `join(circ, r.up)`. The logo of Functor uses `join(o.up, r.up.arrow)`.
+
+# stack
+
+`stack(a, b)` sets `a` over `b` and makes one glyph. It is the vertical partner of `join`. When the font has the result, Functor uses the font glyph: `stack(lt, sim)` gives ≲, `stack(prec, eq)` gives ⪯ and `stack(to, to.flip)` gives ⇄. Text in quotes is set smaller, so `stack("def", eq)` puts "def" over the equals sign.
+
+The glyph is a relation when one of its parts is a relation.
+
+| Write | Result |
+|:--|:-:|
+| `stack(lt, eq)`, `stack(gt, eq)` | $stack(lt, eq), stack(gt, eq)$ |
+| `stack(lt, sim)`, `stack(gt, sim)` | $stack(lt, sim), stack(gt, sim)$ |
+| `stack(lt, gt)`, `stack(gt, lt)` | $stack(lt, gt), stack(gt, lt)$ |
+| `stack(prec, eq)`, `stack(succ, eq)`, `stack(prec, sim)` | $stack(prec, eq), stack(succ, eq), stack(prec, sim)$ |
+| `stack(approx, eq)`, `stack(triangle, eq)` | $stack(approx, eq), stack(triangle, eq)$ |
+| `stack(subset, eq.not)`, `stack(supset, eq.not)` | $stack(subset, eq.not), stack(supset, eq.not)$ |
+| `stack(to, to)`, `stack(to.flip, to.flip)`, `stack(to, to.flip)` | $stack(to, to), stack(to.flip, to.flip), stack(to, to.flip)$ |
+| `stack("def", eq)` | $stack("def", eq)$ |
 
 # text
 

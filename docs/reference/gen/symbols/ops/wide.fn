@@ -15,7 +15,7 @@ set heading(numbering: none)
 
 | Recipe | Result | Glyph |
 |:--|:-:|:--|
-| `to.wide` | $to.wide$ | built and cached |
+| `to.wide` | $to.wide$ | font glyph U+27F6 |
 | `eq.wide` | $eq.wide$ | built and cached |
 
 # Four layers
