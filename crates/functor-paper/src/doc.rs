@@ -331,6 +331,14 @@ impl DocParser<'_> {
                         self.diags.error(n, arg_col, format!("`{v}` is not a diagram crossing."), Some("Use `gap` or `plain`.".into()));
                     }
                 }
+                ("diagram", "bend") => {
+                    let deg = v.parse::<f64>().ok();
+                    if ["small", "normal", "large"].contains(&v.as_str()) || deg.is_some_and(|d| d > 0.0 && d <= crate::math::MAX_BEND) {
+                        self.env.kinds.insert("diagram.bend".into(), v);
+                    } else {
+                        self.diags.error(n, arg_col, format!("`{v}` is not a diagram bend."), Some("Use `small` (15°), `normal` (30°), `large` (45°), or an angle in degrees from 1 to 80, such as `20`.".into()));
+                    }
+                }
                 (t, "style") if crate::symbols::ARROW_KINDS.contains(&t) => {
                     if crate::symbols::arrow_style(&v).is_some() {
                         self.env.kinds.insert(format!("{t}.style"), v);

@@ -308,3 +308,35 @@ Total for diagrams: 18 of 20 (was 15).
 
 - The first 2-cell between two curved arrows had no room for the double arrow. A curved arrow now makes the gap between its cells larger.
 - The first test for 2-cells found no error for `f implies B`, because B is a cell. The check now looks at each end alone.
+
+## Diagram loops and bend angles
+
+A loop is an arrow from a cell to the same cell. A bend angle is style.
+
+```mermaid
+flowchart LR
+  A["<code>e: A to A</code>"] --> B["Score each side<br/>arrows that leave, cells next to it,<br/>loops already there"]
+  B --> C["Free side<br/>ties go to the outer side, then up"]
+  C --> D["<code>rot</code> +90°, <code>turn</code> +180°"]
+  D --> E["Same arrow glyph:<br/><code>wide</code>, then <code>bend</code> to 150°"]
+```
+
+- `e: A to A` is a loop. It uses the same arrow glyph as other arrows. The glyph is grown with `wide` and bent with the same arc as `bend`, but to 150° at each end. There is no own drawing code for a loop.
+- The loop goes to a free side. `rot` and `turn` move it. They keep their symbol meaning: a quarter turn to the left, and a half turn.
+- `set diagram(bend: small | normal | large | degrees)` sets one bend step for the file. Each `bend` on an arrow adds one step, up to 80°. The meaning (this arrow curves) stays in the source, and the angle is one rule.
+- The gap between two cells grows with the bend angle, and with a loop that faces the next cell.
+
+| Diagram layer | Score | What it does now | Gap |
+|:--|:-:|:--|:--|
+| Meaning | 5 | A loop is a map from an object to itself: `A to A`. No new word. | None. |
+| Style | 5 (was 4) | `set diagram(bend:)` sets the angle for the file. | None for the file. One arrow with its own angle needs `bend.bend` or a rule. |
+| Construction | 5 | Loops use `wide` and the `bend` arc. `rot` and `turn` keep their meaning. | None. |
+| Layout | 4 | Loops go to a free side, and gaps grow for loops and steep bends. | A loop that you move onto an arrow (with `rot` or `turn`) crosses it. A curved arrow can still touch an arrow next to it. |
+
+Total for diagrams: 19 of 20 (was 18).
+
+### Key hiccups
+
+- A rule with `set` is read for the whole file. A test page with two angles showed the same angle twice. The before and after pictures use two files.
+- At 60° the arrow head of a curved arrow touched the cell. The end of a curved arrow now stops a little earlier when the angle is steep.
+- A loop that faced the next cell sat on the arrow between the two cells. The gap now grows to hold the loop and the arrow.
