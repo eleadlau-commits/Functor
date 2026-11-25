@@ -156,13 +156,13 @@ When the font has the result, the compiler uses the font glyph. `integral.circle
 
 ## Logo
 
-The logo is written in Functor. The mark is the recipe `(F.bb_(neg neg neg T.up.small)).arrow.square`. The wordmark is one line of math:
+The logo is written in Functor. The mark is the recipe `F.bb.arrow`. The wordmark is one line of math:
 
 ```text
 F.bb.square neg u.up.tilde_(neg u.up.tilde.turn) neg c.frak neg neg T.up neg join(o.up, r.up.arrow)
 ```
 
-The n is the u turned half a circle, so n is the dual of u. The square in the wordmark is empty, and the T of the wordmark sits in the square of the mark. The colour is `#7091AC`. Run `scripts/build-logo.sh` to build the SVG files in `docs/logo/` again.
+The n is the u turned half a circle, so n is the dual of u. The colour is `#7091AC`. Run `scripts/build-logo.sh` to build the SVG files in `docs/logo/` again.
 
 ## How it works
 

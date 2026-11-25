@@ -3,7 +3,7 @@ set -e
 cd "$(dirname "$0")/.."
 BLUE="#7091AC"
 LIGHT="#9DB6CA"
-MARK="(F.bb_(neg neg neg T.up.small)).arrow.square"
+MARK="F.bb.arrow"
 WORD="F.bb.square neg u.up.tilde_(neg u.up.tilde.turn) neg c.frak neg neg T.up neg join(o.up, r.up.arrow)"
 cargo build -q --release -p functor-cli
 BIN=target/release/functor
