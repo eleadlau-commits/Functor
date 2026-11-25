@@ -1,0 +1,42 @@
+---
+functor: 1
+title: Document settings
+---
+
+set heading(numbering: none)
+
+Four rules set the look of the whole page. The rules for math kinds are on [Grids, matrices, vectors, cases](structures/grids.html) and [Fences and wrap](structures/fences.html). The full list is on [All set rules](document/set-rules.html).
+
+```fn
+set document(style: classic, accent: #4a6a85)
+set heading(numbering: none)
+set page(size: a5, margin: 2cm)
+set text(size: 10pt, font: "Functor LM")
+```
+
+# document
+
+| Option | Values | Result |
+|:--|:--|:--|
+| `style` | `quiet` (default), `classic` | `quiet`: the title at the left, numbers in the margin, upright theorems with a rule. `classic`: the LaTeX article look. |
+| `accent` | a hex colour, for example `#4a6a85` | the colour of numbers and rules |
+
+# heading
+
+`numbering: none` removes the numbers from headings.
+
+# page
+
+| Option | Values |
+|:--|:--|
+| `size` | `a4` (default), `a5`, `letter` |
+| `margin` | a length: `2.5cm`, `20mm`, `1in`, `72pt` |
+
+# text
+
+| Option | Values |
+|:--|:--|
+| `size` | a length, for example `11pt` |
+| `font` | a font name in quotes |
+
+A length is a number and a unit: `pt`, `mm`, `cm`, `in` or `em`.

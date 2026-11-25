@@ -1,0 +1,40 @@
+---
+functor: 1
+title: angle
+---
+
+set heading(numbering: none)
+
+`angle` · fence · angle brackets, a pairing or an average.
+
+# Form
+
+`(a + b).angle` on a group, `x.angle` on a symbol.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `(a + b).angle` | $(a + b).angle$ | fence around the group |
+| `(u, v).angle` | $(u, v).angle$ | fence around the group |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | Angle brackets, a pairing or an average. A guideline, not a rule. |
+| Style | A kind can take this fence from a rule: `set abs(fence: angle)`. |
+| Construction | Brackets around a group or a symbol. The brackets grow with the content. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- Works on a group, `(a + b).angle`, or on a symbol, `x.angle`. Write `x2` after it to double the fence. Write `left` or `right` after it to keep one side only. A style rule can give a kind its fence: `set mat(fence: angle)`.
+
+# From LaTeX
+
+`\langle u, v \rangle` becomes `(u, v).angle` or `inner(u, v)`.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)

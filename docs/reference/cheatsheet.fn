@@ -1,0 +1,187 @@
+---
+functor: 1
+title: Cheat sheet
+---
+
+set heading(numbering: none)
+
+This page holds all of Functor on one page. It is for people and for AI models. An AI model has seen much LaTeX and no Functor, so read "Not LaTeX" first. After you write a file, run `functor check file.fn` and fix each error.
+
+# Not LaTeX
+
+- No backslashes. Write `alpha`, `sum`, `infty`, not `\alpha`.
+- Round brackets make a group: `x_(i + 1)`, `frac(a, b)`, `sqrt(x)`. Curly brackets are shown as braces.
+- A space separates two names: `d x` is d times x. `dx` is not a name, so it gives a warning and shows d x.
+- A symbol is a base and short operations: `theta.hat`, `in.not`, `sum.circle`. There is no `\hat{}`.
+- No `&` and no `\\`. In display math, each new line is a row. Rows align at their first relation.
+- Text in math goes in quotes: `"if"`. There is no `\text{}`.
+- No packages, no macros, no `\newcommand`. Write `sym name = recipe` for a short name.
+- Matrices are calls: `mat(1, 0; 0, 1)`. A comma ends a cell and a semicolon ends a row.
+- Relations are names: `eq.not` (not `!=` or `\neq`), `ge` (not `\ge`), `in.not` (not `\notin`), `R.bb` (not `\mathbb{R}`).
+
+# Short version for instructions
+
+Paste this block into the instructions of an AI model. Then give it this page when it needs more.
+
+```text
+Write math in Functor, not LaTeX. No backslashes. Names: alpha, sum, integral,
+infty, in, le, ge, to, implies. Spaces separate names: "d x", not "dx".
+Groups use round brackets: x_(i + 1), frac(a, b), sqrt(x). Symbols are a base
+and operations: theta.hat, x.bar, v.arrow, R.bb, L.script, A.bold, d.up,
+in.not, eq.not, integral.x2, integral.circle, plus.circle, (a + b).angle.
+Text in math: "if". Matrix: mat(a, b; c, d). Vector: vec(1, 2, 3).
+Cases: cases(x, x ge 0; -x, x lt 0). abs(x), norm(v), inner(u, v), binom(n, k).
+Display math: $$ on its own line; each line is a row aligned at its first
+relation; label with {#eq:name} after the closing $$; refer with @eq:name.
+In a chat, put Functor in a fn code block, or a fnmath block for display math.
+Check with: functor check file.fn
+```
+
+# A whole file
+
+```fn
+---
+functor: 1
+title: Notes on fields
+author: E
+date: 25 November 2026
+---
+
+object vec: F, v
+sym csum = sum.circle
+set mat(fence: brack)
+let n = 3
+
+# Fields {#sec:fields}
+
+A force $F = m a$ acts on {n} bodies. See @eq:work and @thm:main [@knuth84].
+
+$$
+W = csum_C F cdot d r
+$$ {#eq:work}
+
+::: theorem {#thm:main title="Closed work"}
+If $F = nabla phi$, then $W = 0$.
+:::
+
+::: proof
+Use @eq:work.
+:::
+```
+
+# Document parts
+
+| Write | Result |
+|:--|:--|
+| `# Title {#sec:a}`, `## Sub` | Numbered heading with a label |
+| `*italic*`, `**bold**`, a word between backticks | Emphasis, bold, code |
+| `[text](https://example.com)`, `![alt](plot.svg)` | Link, image |
+| `- item`, `1. item` | Lists |
+| Rows of cells between bars, and a second row of dashes such as `:--` | Table, as in Markdown |
+| three backticks and a language name | Code block |
+| `@eq:a`, `@thm:a`, `@sec:a` | Reference: "(1)", "Theorem 2", "Section 3" |
+| `[@key]` | Citation |
+| `word.^[A note.]` | Numbered margin note |
+| `{n}` after `let n = 3` | Value in text, not in math |
+| `"quotes"`, `'single'`, `--`, `---`, `Theorem~2` | Curly quotes, en dash, em dash, space that does not break |
+| `\$`, `\@`, `\*`, `\_`, `\{`, `\"` | The plain sign |
+
+Blocks are `::: kind` and `:::`. The kinds are theorem, lemma, corollary, proposition, definition, example, remark, proof, note, figure, quote. Options: `{#thm:a title="Name"}`. A figure has a line `Caption: text`.
+
+# Declarations
+
+| Write | Meaning |
+|:--|:--|
+| `object vec: v, F` | v and F are vectors. Their look comes from `set vec(...)`. |
+| `sym csum = sum.circle` | A short name for a recipe. |
+| `let n = 3`, `let name = "text"` | A value for `{n}` in text. |
+| `set ...(...)` | A style rule. See "Set rules" below. |
+
+# Math
+
+| Write | Result |
+|:--|:--|
+| `x y`, `2 x`, `a b c` | Product |
+| `x_1`, `x^2`, `x_(i j)^(n + 1)`, `f'`, `f''` | Scripts and primes |
+| `frac(a, b)`, `sqrt(x)`, `binom(n, k)` | Fraction, root, binomial |
+| `(a + b)`, `[a, b)`, `{x}` | Brackets that grow with the content |
+| `"if"`, `"tr" A` | Upright text in math |
+| `sum_(k = 1)^n`, `lim_(n to infty)`, `integral_0^1 f d x` | Limits |
+| `join(o.up, r.up)` | Two symbols set as one touching glyph |
+| `thin`, `med`, `thick`, `quad`, `qquad`, `neg` | Spaces. `neg` takes space back. |
+
+**Names.** Large operators: `sum` `prod` `coprod` `integral` `union` `inter`. Binary: `plus` `minus` `times` `cdot` `pm` `mp` `div` `circ` `ast` `star` `wedge` `vee` `cup` `cap` `setminus`. Relations: `eq` `lt` `gt` `le` `ge` `approx` `sim` `equiv` `propto` `in` `ni` `subset` `supset` `subseteq` `supseteq` `perp` `mid` `parallel` `to` `gets` `implies` `iff` `mapsto`. Ordinary: `infty` `partial` `nabla` `forall` `exists` `emptyset` `ell` `aleph` `angle` `triangle` `square` `dots` `cdots` `prime`. The signs `+ - = < > , ; :` also work as they are.
+
+**Greek.** `alpha` `beta` `gamma` `delta` `epsilon` `zeta` `eta` `theta` `iota` `kappa` `lambda` `mu` `nu` `xi` `omicron` `pi` `rho` `varsigma` `sigma` `tau` `upsilon` `phi` `chi` `psi` `omega`. Capitals: `Gamma` `Delta` `Theta` `Lambda` `Xi` `Pi` `Sigma` `Upsilon` `Phi` `Psi` `Omega`.
+
+**Functions.** `sin` `cos` `tan` `log` `ln` `exp` `det` `dim` `ker` `deg` `gcd` `arg` `lim` `max` `min` `sup` `inf`.
+
+# Symbol operations
+
+A recipe is a base and up to three operations: `base.op1.op2.op3`. Operations also work on a group: `(F_T).box`.
+
+| Family | Operations | Default meaning |
+|:--|:--|:--|
+| decorate | `hat` `tilde` `bar` `dot` `ddot` `check` `breve` `arrow` `under` | a derived or related object |
+| enclose | `circle` `box` `square` | a closed or restricted version |
+| strike | `not` `cross` | negation, a fixed variant |
+| repeat | `x2` `x3` `x4` | higher order |
+| reflect | `flip` `flipv` `turn` | a dual or opposite |
+| style | `bold` `bb` `frak` `script` `up` | another alphabet: first operation on one letter |
+| magnify | `small` | four fifths of the size |
+| fence | `paren` `brack` `brace` `angle` `vbar` `floor` `ceil` | brackets around a group |
+
+Examples: `R.bb`, `g.frak`, `L.script`, `d.up`, `v.bold`, `integral.x2.circle`, `E.flip`, `h.cross`, `(a + b).angle`. After a fence, `x2` doubles it and `left` or `right` keeps one side: `(v).vbar.x2`, `(x).brace.left`.
+
+# Structures
+
+| Write | Result |
+|:--|:--|
+| `mat(1, 0; 0, 1)` | Matrix |
+| `vec(1, 2, 3)` | Vector with components. `vec(x)` is a named vector. |
+| `cases(x, x ge 0; -x, x lt 0)` | Cases: value, then condition |
+| `grid(a, b; c, d)` | Grid with no fence |
+| `abs(x)`, `norm(v)`, `inner(u, v)`, `floor(x)`, `ceil(x)` | Bars, double bars, angle brackets, floor, ceiling |
+| `wrap(L.script, x + y)`, `wrap(T.frak, S.frak, a)` | Any symbol as a fence |
+
+**Aligned equations.** In display math, write one step on each line. Rows align at the first relation. A line that starts with a relation continues the left side.
+
+```fn
+$$
+(a + b)^2 = (a + b)(a + b)
+          = a^2 + 2 a b + b^2
+$$ {#eq:square}
+```
+
+# Set rules
+
+| Rule | Options |
+|:--|:--|
+| `set vec(...)` | `style: arrow` or `bold`, `fence:`, `body: column` or `row`, `grow:` |
+| `set mat(...)`, `set binom(...)`, `set abs(...)`, `set norm(...)`, `set inner(...)`, `set floor(...)`, `set ceil(...)` | `fence:`, `grow:` |
+| `set cases(...)` | `fence:`, `word: "if"`, `grow:` |
+| `set wrap(...)` | `grow: stretch` or `magnify` |
+| `set document(...)` | `style: quiet` or `classic`, `accent: #4a6a85` |
+| `set heading(...)` | `numbering: none` |
+| `set page(...)` | `size: a4`, `a5` or `letter`, `margin: 2.5cm` |
+| `set text(...)` | `size: 11pt`, `font: "Name"` |
+
+# From LaTeX, the most common
+
+| LaTeX | Functor |
+|:--|:--|
+| `\frac{a}{b}`, `\sqrt{x}` | `frac(a, b)`, `sqrt(x)` |
+| `x_{i+1}^{2}` | `x_(i + 1)^2` |
+| `\hat{\theta}`, `\bar{x}`, `\vec{v}` | `theta.hat`, `x.bar`, `v.arrow` |
+| `\mathbb{R}`, `\mathcal{L}`, `\mathbf{A}` | `R.bb`, `L.script`, `A.bold` |
+| `\neq`, `\notin`, `\leq`, `\to` | `eq.not`, `in.not`, `le`, `to` |
+| `\iint`, `\oint`, `\oplus` | `integral.x2`, `integral.circle`, `plus.circle` |
+| `\left( x \right)` | `(x)` |
+| `\begin{pmatrix} a & b \\ c & d \end{pmatrix}` | `mat(a, b; c, d)` |
+| `\begin{cases} ... \end{cases}` | `cases(value, condition; ...)` |
+| `\begin{align} a &= b \\ &= c \end{align}` | one step on each line in `$$` |
+| `\text{if}`, `\quad` | `"if"`, `quad` |
+| `\label{eq:a}`, `\eqref{eq:a}` | `$$ {#eq:a}` after the math, `@eq:a` |
+| `\footnote{text}` | `^[text]` |
+
+The full map is on the page [From LaTeX](latex.html).

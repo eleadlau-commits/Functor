@@ -1,0 +1,40 @@
+---
+functor: 1
+title: vbar
+---
+
+set heading(numbering: none)
+
+`vbar` · fence · bars, a size or a determinant.
+
+# Form
+
+`(a + b).vbar` on a group, `x.vbar` on a symbol.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `(x).vbar` | $(x).vbar$ | fence around the group |
+| `(v).vbar.x2` | $(v).vbar.x2$ | fence around the group |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | Bars, a size or a determinant. A guideline, not a rule. |
+| Style | A kind can take this fence from a rule: `set abs(fence: vbar)`. |
+| Construction | Brackets around a group or a symbol. The brackets grow with the content. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- Works on a group, `(a + b).vbar`, or on a symbol, `x.vbar`. Write `x2` after it to double the fence. Write `left` or `right` after it to keep one side only. A style rule can give a kind its fence: `set mat(fence: vbar)`.
+
+# From LaTeX
+
+`\lvert x \rvert` becomes `(x).vbar` or `abs(x)`, `\lVert v \rVert` becomes `(v).vbar.x2` or `norm(v)`.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)

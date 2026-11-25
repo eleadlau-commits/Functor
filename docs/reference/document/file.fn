@@ -1,0 +1,49 @@
+---
+functor: 1
+title: File and front matter
+---
+
+set heading(numbering: none)
+
+A Functor file is plain text with the extension `.fn`. It has front matter, then declarations, then the text.
+
+# Front matter
+
+The front matter is between two lines of `---` at the top of the file.
+
+```fn
+---
+functor: 1
+title: Notes on fields
+author: E, A. N. Other
+date: 25 November 2026
+---
+```
+
+| Setting | Meaning |
+|:--|:--|
+| `functor` | The language version. Write `functor: 1`. Without it, the compiler gives a warning. |
+| `title` | The title of the document. |
+| `author` or `authors` | One or more names, with commas between them. |
+| `date` | Any text. |
+
+The compiler ignores an unknown setting and gives a warning with a hint.
+
+# Order of the file
+
+1. Front matter.
+2. Declarations: `object`, `sym`, `let`, `set`. Each one is on its own line. A declaration works from its line to the end of the file.
+3. Text: headings, paragraphs, math, blocks.
+
+# Versions
+
+A file states its language version. When the language changes in a way that breaks old files, the version number goes up, and `functor migrate` will update old files. The canonical names change only with a new version.
+
+# Commands
+
+| Command | Result |
+|:--|:--|
+| `functor check file.fn` | Each problem as `file:line:col: error: message`, with a hint |
+| `functor compile file.fn` | An HTML file |
+| `functor pdf file.fn` | A PDF file that Functor sets itself |
+| `functor glyph theta.hat` | The SVG of one recipe |

@@ -1,0 +1,53 @@
+---
+functor: 1
+title: object, sym, let
+---
+
+set heading(numbering: none)
+
+A declaration is one line. It works from its line to the end of the file. Write declarations after the front matter.
+
+# object
+
+`object vec: F, v, u` says that F, v and u are vectors. This is the meaning layer. Their look comes from one style rule, so you do not write `F.arrow` in each place.
+
+```fn
+object vec: F, v
+set vec(style: bold)
+
+$F = m a$ and $v = frac(d x, d t)$.
+```
+
+Today `vec` is the only kind for `object`. Own kinds come with `kind` in phase 1.
+
+# sym
+
+`sym csum = sum.circle` gives a recipe a short name. A recipe is one base and its operations, with no spaces.
+
+```fn
+sym csum = sum.circle
+sym dint = integral.x2
+sym RR = R.bb
+
+$csum_C F + dint_D f + x in RR$
+```
+
+A `sym` that has the name of a built-in symbol hides it, and the compiler gives a warning. A `sym` can add more operations: `csum.small`.
+
+# let
+
+`let n = 3` makes a value. Write `{n}` in text to show it. A value is a number or text in quotes: `let name = "Ada"`. Values do not work in math yet.
+
+```fn
+let n = 3
+
+There are {n} bodies.
+```
+
+# set
+
+`set` lines are style rules. See [Document settings](document/settings.html) and [All set rules](document/set-rules.html).
+
+# Not yet
+
+`use`, `kind`, `style` and `default` are reserved for phase 1. The compiler refuses them with a clear message.

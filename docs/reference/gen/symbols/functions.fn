@@ -1,0 +1,43 @@
+---
+functor: 1
+title: Functions and spaces
+---
+
+set heading(numbering: none)
+
+A function name is set upright. It takes no operations.
+
+# Functions
+
+| Name | Result | Limits in display |
+|:--|:-:|:--|
+| `sin` | $sin x$ | at the side |
+| `cos` | $cos x$ | at the side |
+| `tan` | $tan x$ | at the side |
+| `log` | $log x$ | at the side |
+| `ln` | $ln x$ | at the side |
+| `exp` | $exp x$ | at the side |
+| `det` | $det x$ | below |
+| `dim` | $dim x$ | at the side |
+| `ker` | $ker x$ | at the side |
+| `deg` | $deg x$ | at the side |
+| `gcd` | $gcd x$ | below |
+| `arg` | $arg x$ | at the side |
+| `lim` | $lim x$ | below |
+| `max` | $max x$ | below |
+| `min` | $min x$ | below |
+| `sup` | $sup x$ | below |
+| `inf` | $inf x$ | below |
+
+For another upright name, write text in quotes: `"tr" A`.
+
+# Spaces
+
+| Name | Width | Example |
+|:--|:--|:-:|
+| `neg` | -0.083 em | $a neg b$ |
+| `thin` | 0.167 em | $a thin b$ |
+| `med` | 0.222 em | $a med b$ |
+| `thick` | 0.278 em | $a thick b$ |
+| `quad` | 1.000 em | $a quad b$ |
+| `qquad` | 2.000 em | $a qquad b$ |

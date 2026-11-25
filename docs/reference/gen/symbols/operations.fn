@@ -1,0 +1,101 @@
+---
+functor: 1
+title: Operations
+---
+
+set heading(numbering: none)
+
+Functor has 33 operations in 8 families. Write an operation after a dot: `theta.hat`. Each operation has a meaning. The meaning is a guideline, not a rule.
+
+# decorate
+
+A mark above or below the base. The mark follows the slant of an italic letter.
+
+| Operation | Example | Meaning |
+|:--|:-:|:--|
+| [`hat`](symbols/ops/hat.html) | $x.hat$ | a derived object, often an estimate |
+| [`tilde`](symbols/ops/tilde.html) | $x.tilde$ | a related object, often an approximation |
+| [`bar`](symbols/ops/bar.html) | $x.bar$ | a derived object, often a mean or conjugate |
+| [`dot`](symbols/ops/dot.html) | $x.dot$ | a first derivative in time |
+| [`ddot`](symbols/ops/ddot.html) | $x.ddot$ | a second derivative in time |
+| [`check`](symbols/ops/check.html) | $f.check$ | a dual or inverse object |
+| [`breve`](symbols/ops/breve.html) | $u.breve$ | a related object |
+| [`arrow`](symbols/ops/arrow.html) | $v.arrow$ | a vector |
+| [`under`](symbols/ops/under.html) | $x.under$ | a related object |
+
+# enclose
+
+A shape around the base: a circle, a box or a square.
+
+| Operation | Example | Meaning |
+|:--|:-:|:--|
+| [`circle`](symbols/ops/circle.html) | $sum.circle$ | a closed or restricted version |
+| [`box`](symbols/ops/box.html) | $plus.box$ | a restricted or boxed version |
+| [`square`](symbols/ops/square.html) | $x.square$ | a boxed version with equal sides |
+
+# strike
+
+A line through the base.
+
+| Operation | Example | Meaning |
+|:--|:-:|:--|
+| [`not`](symbols/ops/not.html) | $in.not$ | negation |
+| [`cross`](symbols/ops/cross.html) | $h.cross$ | a fixed variant |
+
+# repeat
+
+Copies of the base side by side. A font glyph is used when one exists, for example two integrals.
+
+| Operation | Example | Meaning |
+|:--|:-:|:--|
+| [`x2`](symbols/ops/x2.html) | $integral.x2$ | second order |
+| [`x3`](symbols/ops/x3.html) | $integral.x3$ | third order |
+| [`x4`](symbols/ops/x4.html) | $integral.x4$ | fourth order |
+
+# reflect
+
+A mirror image or a half turn of the base.
+
+| Operation | Example | Meaning |
+|:--|:-:|:--|
+| [`flip`](symbols/ops/flip.html) | $E.flip$ | a dual or opposite |
+| [`flipv`](symbols/ops/flipv.html) | $Pi.flipv$ | a dual or opposite |
+| [`turn`](symbols/ops/turn.html) | $A.turn$ | a dual or opposite |
+
+# style
+
+Another alphabet for a letter: bold, double-struck, fraktur, script, upright.
+
+| Operation | Example | Meaning |
+|:--|:-:|:--|
+| [`bold`](symbols/ops/bold.html) | $v.bold$ | a new kind of object, often a vector |
+| [`bb`](symbols/ops/bb.html) | $R.bb$ | a number set |
+| [`frak`](symbols/ops/frak.html) | $g.frak$ | an ideal, an algebra or a structure |
+| [`script`](symbols/ops/script.html) | $L.script$ | a family, a category or a transform |
+| [`up`](symbols/ops/up.html) | $d.up$ | a constant, a unit or a name |
+
+# magnify
+
+A smaller or larger copy of the base.
+
+| Operation | Example | Meaning |
+|:--|:-:|:--|
+| [`small`](symbols/ops/small.html) | $T.up.small$ | a smaller version, about four fifths |
+
+# fence
+
+Brackets around a group or a symbol. The brackets grow with the content.
+
+| Operation | Example | Meaning |
+|:--|:-:|:--|
+| [`paren`](symbols/ops/paren.html) | $(a + b).paren$ | round brackets, a group or a tuple |
+| [`brack`](symbols/ops/brack.html) | $(a, b).brack$ | square brackets, a group or a matrix |
+| [`brace`](symbols/ops/brace.html) | $(x).brace$ | curly brackets, a set |
+| [`angle`](symbols/ops/angle.html) | $(a + b).angle$ | angle brackets, a pairing or an average |
+| [`vbar`](symbols/ops/vbar.html) | $(x).vbar$ | bars, a size or a determinant |
+| [`floor`](symbols/ops/floor.html) | $(x).floor$ | round down |
+| [`ceil`](symbols/ops/ceil.html) | $(x).ceil$ | round up |
+
+# Not yet
+
+The compiler refuses these with a clear message: `deform` (phase 1), `fuse` (phase 1), `stretch` (phase 1).

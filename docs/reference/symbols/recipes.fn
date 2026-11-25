@@ -1,0 +1,57 @@
+---
+functor: 1
+title: Recipes
+---
+
+set heading(numbering: none)
+
+Functor builds symbols. You do not learn a long list of commands. A recipe is a base and up to three operations, with dots between them.
+
+```text
+base.op1.op2.op3
+theta.hat        sum.circle        in.not        integral.x2.circle
+```
+
+| Recipe | Result | How |
+|:--|:-:|:--|
+| `theta.hat` | $theta.hat$ | decorate |
+| `sum.circle` | $sum.circle$ | enclose, built |
+| `in.not` | $in.not$ | strike, font glyph |
+| `integral.x2.circle` | $integral.x2.circle$ | repeat, then enclose, font glyph |
+| `E.flip` | $E.flip$ | reflect, font glyph |
+| `nabla.circle` | $nabla.circle$ | enclose, built |
+| `theta.hat.box` | $theta.hat.box$ | decorate, then enclose, built |
+
+# The base
+
+A base is a single letter (`x`), a named symbol (`sum`, `in`), a Greek letter (`theta`), a sign (`+`), or a group in round brackets.
+
+# Order
+
+Operations work from left to right. `x.hat.box` puts the hat on x, then boxes both. `x.box.hat` boxes x, then puts the hat on the box. Style operations (`bold`, `bb`, `frak`, `script`, `up`) must come first, on a single letter.
+
+# Groups
+
+Any operation also works on a group: `(F_T).box` boxes F with its index. The brackets of the group are not shown.
+
+```fn
+$(F_T).box + (a + b).bar + (x_1).circle$
+```
+
+The mark of the Functor logo is the recipe `(F.bb_(neg neg neg T.up.small)).arrow.square`.
+
+# Three operations at most
+
+More than three operations give a warning, because the symbol becomes hard to read. Give a long recipe a name with `sym`.
+
+# Font glyph or built glyph
+
+When the font has the result, the compiler uses the font glyph: `integral.circle` gives the font contour integral. When the font does not have it, the compiler builds the glyph from the base and the operations, and keeps it in a cache. A built glyph takes less than one millisecond. The list of font results is on [Font composites](symbols/composites.html).
+
+# Meanings
+
+Each operation has a meaning: `hat` is a derived object, `not` is negation, `bb` is a number set. The meanings are guidelines, not rules. The compiler does not stop you from using `hat` for something else. All operations are on [Operations](symbols/operations.html).
+
+# Not yet
+
+`deform`, `fuse` and `stretch` come in phase 1. `deform` will be the most general operation.

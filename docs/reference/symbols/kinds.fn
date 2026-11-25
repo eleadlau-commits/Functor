@@ -1,0 +1,42 @@
+---
+functor: 1
+title: Meaning and style
+---
+
+set heading(numbering: none)
+
+Put meaning in the source and style in one rule. This is the most important guideline of Functor.
+
+# The four layers
+
+| Layer | You write | Example |
+|:--|:--|:--|
+| Meaning | what the object is | `object vec: F` |
+| Style | how this kind looks | `set vec(style: arrow)` |
+| Construction | the recipe | `F.arrow` |
+| Glyph | nothing: the compiler picks or builds it | font glyph or built glyph |
+
+# Vectors
+
+```fn
+object vec: F, v
+set vec(style: arrow)
+
+$F = m frac(d v, d t)$
+```
+
+Change `arrow` to `bold`, and every vector in the document changes. You do not edit each formula. `vec(x)` marks one symbol as a vector without a declaration.
+
+# Why not write the operation each time
+
+`F.arrow` in each place is construction in the source. When you want bold vectors later, you must change each one. With `object vec: F` the source says what F is, and one rule says how all vectors look.
+
+The same idea works for structures: `mat(...)` is a matrix, and `set mat(fence: brack)` gives every matrix square brackets. See [Grids, matrices, vectors, cases](structures/grids.html).
+
+# Style operations
+
+`bold`, `bb`, `frak`, `script` and `up` change the alphabet of a letter. Use them for fixed notation: `R.bb` for the real numbers, `g.frak` for a Lie algebra, `d.up` for the differential. For a kind of object that can change its look, use `object` and a `set` rule.
+
+# Own kinds
+
+`kind` comes in phase 1. Then you can declare a kind, for example `kind tensor`, and give it a style rule.

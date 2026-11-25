@@ -1,0 +1,49 @@
+---
+functor: 1
+title: Display math and chains
+---
+
+set heading(numbering: none)
+
+Display math stands on its own line, centred. Write `$$` on a line, the math, and `$$` on a line. A label after the closing `$$` gives the equation a number.
+
+```fn
+$$
+E = m c^2
+$$ {#eq:energy}
+
+See @eq:energy.
+```
+
+A short equation can stay on one line: `$$ E = m c^2 $$`.
+
+# Aligned chains
+
+Each line in display math is a row. The rows align at the first relation, such as `=`, `le` or `implies`. A line that starts with a relation continues the left side of the line before it. This replaces `align`, `&` and `\\` of LaTeX.
+
+```fn
+$$
+(a + b)^2 = (a + b)(a + b)
+          = a^2 + 2 a b + b^2
+          le 2 (a^2 + b^2)
+$$ {#eq:square}
+```
+
+The spaces at the start of a line do not matter. A line with no relation starts one quad after the align point.
+
+# New lines inside brackets
+
+A new line inside round, square or curly brackets does not start a row. So a long matrix can use many lines:
+
+```fn
+$$
+A = mat(
+  1, 2, 3;
+  4, 5, 6
+)
+$$
+```
+
+# Numbers
+
+One display block has one number. Labels on single rows of a chain come later.

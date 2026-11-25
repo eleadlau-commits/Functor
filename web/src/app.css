@@ -85,6 +85,8 @@ button {
 }
 button:hover { border-color: var(--muted); }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.ref-link { align-self: center; padding: 5px 8px; color: var(--muted); text-decoration: none; }
+.ref-link:hover { color: var(--ink); }
 button.link { border: 0; background: none; color: var(--muted); padding: 2px 4px; }
 button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 18%, var(--panel)); border-color: var(--accent); }
 .panes {

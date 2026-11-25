@@ -1,0 +1,41 @@
+---
+functor: 1
+title: frak
+---
+
+set heading(numbering: none)
+
+`frak` · style · an ideal, an algebra or a structure.
+
+# Form
+
+`x.frak` on a symbol, `(a + b).frak` on a group. A recipe has one base and up to three operations.
+
+# Examples
+
+| Recipe | Result | Glyph |
+|:--|:-:|:--|
+| `g.frak` | $g.frak$ | font letter |
+| `A.frak` | $A.frak$ | font letter |
+
+# Four layers
+
+| Layer | For this operation |
+|:--|:--|
+| Meaning | An ideal, an algebra or a structure. A guideline, not a rule. |
+| Style | For a kind of object, prefer `object` and a `set` rule. Use the operation for fixed notation, such as `R.bb`. |
+| Construction | Another alphabet for a letter: bold, double-struck, fraktur, script, upright. |
+| Glyph | The font glyph when the font has one, otherwise a built glyph kept in the recipe cache. |
+
+# Rules
+
+- More than three operations on one base gives a warning.
+- Works on a single letter, as the first operation.
+
+# From LaTeX
+
+`\mathfrak{g}` becomes `g.frak`.
+
+# See also
+
+[All operations](symbols/operations.html) · [Recipes](symbols/recipes.html)
