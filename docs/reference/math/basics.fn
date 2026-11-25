@@ -9,7 +9,7 @@ Inline math is between two dollar signs: `$x + y$`. Display math is between two 
 
 # Names and spaces
 
-A space separates two names. `d x` is d times x. A word that is not a name shows as single letters, with a warning and a hint.
+A space separates two names. `d x` is d times x. For the differential, write `dd x`. A word that is not a name shows as single letters, with a warning and a hint.
 
 | Write | Result | Note |
 |:--|:-:|:--|
@@ -30,9 +30,10 @@ Single letters are italic. The signs `+ - * = < > , ; : ! / |` work as they are,
 | `x_(i + 1)^(n - 1)` | $x_(i + 1)^(n - 1)$ |
 | `a_(i j)` | $a_(i j)$ |
 | `f'`, `f''`, `f'''` | $f', f'', f'''$ |
+| `f'_n`, `f''(x)` | $f'_n, f''(x)$ |
 | `e^(i pi)` | $e^(i pi)$ |
 
-A script is one item or a group in round brackets. Two `_` on one term is an error: put both parts in one group.
+A script is one item or a group in round brackets. Two `_` on one term is an error: put both parts in one group. A prime has full size and sits at the height of the font, before the other scripts.
 
 # Groups and brackets
 
@@ -49,7 +50,7 @@ Brackets grow with the content. Each bracket must close with its own kind, so a 
 
 # Text in math
 
-Text in quotes is upright: `"if"`, `"tr" A`.
+Text in quotes is upright: `"if"`, `"tr" A`. Text gets a word space on each side, so `p "prime"` shows as $p "prime"$. There is no space next to a bracket or a comma. Use `quad` for a larger gap.
 
 ```fn
 $f(x) = 0 quad "for all" quad x in R.bb$
@@ -61,6 +62,41 @@ $f(x) = 0 quad "for all" quad x in R.bb$
 
 ```fn
 $$
-sum_(k = 1)^n k = frac(n (n + 1), 2),   lim_(n to infty) (1 + frac(1, n))^n = e,   integral_0^1 x^2 d x = frac(1, 3)
+sum_(k = 1)^n k = frac(n (n + 1), 2),   lim_(n to infty) (1 + frac(1, n))^n = e,   integral_0^1 x^2 dd x = frac(1, 3)
 $$
 ```
+
+## Many conditions
+
+In a script group, `;` starts a new condition. In display math, each condition has its own line. In text, the conditions stay on one line with commas. You write the source one time.
+
+```fn
+$$
+f(n) = sum_(p "prime"; p le n; p mid.not m) 1/p
+$$
+```
+
+In text: $sum_(p "prime"; p le n) 1/p$.
+
+## Wide limits
+
+A wide limit can go under the symbols next to the operator when they do not go down into the space of the limit. Then the gap stays small. A deep neighbour, such as a `frac` or a second `sum`, keeps the full gap, so the two never touch.
+
+```fn
+$$
+x = sum_(1 le i lt j le n) a_i b_j,   y = sum_(1 le i lt j le n) frac(a_i, b_j)
+$$
+```
+
+## Differentials
+
+`dd` is the differential d. It puts a thin space before the d.
+
+```fn
+$$
+integral_0^1 f(x) dd x,   frac(dd y, dd x),   integral.x2_D g dd x dd y
+$$
+```
+
+`set dd(style: up)` makes every `dd` upright.
+
