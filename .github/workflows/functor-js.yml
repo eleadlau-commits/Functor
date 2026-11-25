@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish js/dist to npm (needs the NPM_TOKEN secret)
+        description: Stage js/dist on npm (needs the NPM_TOKEN secret); approve it on npmjs.com with 2FA
         type: boolean
         default: false
 
@@ -39,7 +39,7 @@ jobs:
           name: functor-js
           path: js/dist
       - if: github.event_name == 'workflow_dispatch' && inputs.publish
-        run: npm publish --provenance --access public
+        run: npx -y npm@12.2.3 stage publish . --provenance --access public
         working-directory: js/dist
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
