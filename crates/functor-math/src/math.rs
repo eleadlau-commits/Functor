@@ -985,6 +985,21 @@ impl Parser<'_, '_, '_> {
             let with_pos: Vec<(String, usize)> = base_ops.into_iter().map(|o| (o, start)).collect();
             return self.resolve(&base_word, &with_pos, start, depth + 1);
         }
+        if symbols::ARROW_KINDS.contains(&word) {
+            if let Some(name) = symbols::arrow_style(&self.ctx.env.opt(word, "style")) {
+                return self.resolve_base(name, ops, start);
+            }
+        }
+        if symbols::greek_index(word).is_some() {
+            if let Some(style) = self.ctx.env.kinds.get(&format!("greek.{word}")).cloned() {
+                let styled = ops.first().and_then(|(o, _)| symbols::op_def(o)).is_some_and(|d| d.kind == OpKind::Style);
+                if !styled {
+                    let mut all = vec![(style, start)];
+                    all.extend(ops.iter().cloned());
+                    return self.resolve_base(word, &all, start);
+                }
+            }
+        }
         if let Some(kind) = self.ctx.env.objects.get(word).cloned() {
             if kind == "vec" && !ops.iter().any(|(o, _)| o == "arrow" || o == "bold") {
                 let mut all = vec![(self.ctx.env.vec_style.clone(), start)];
@@ -2500,6 +2515,65 @@ mod tests {
         assert_eq!(open.unwrap().items, Glyph::from_font(0x5B, false).unwrap().items);
         assert_eq!(env.opt("norm", "fence"), "vbar.x2");
         assert_eq!(env.grow("vec"), Grow::Stretch);
+    }
+
+    fn run_env(src: &str, env: &MathEnv) -> (Node, Vec<crate::diag::Diagnostic>) {
+        let mut diags = Diagnostics::default();
+        let pos = |o: usize| (1, o + 1);
+        let n = {
+            let mut ctx = Ctx { env, diags: &mut diags, pos: &pos, display: false };
+            parse(src, &mut ctx)
+        };
+        (n, diags.finish())
+    }
+
+    #[test]
+    fn arrow_kinds_take_their_look_from_a_rule() {
+        let mut env = MathEnv::new();
+        for (word, cp) in [("mono", 0x21A3), ("epi", 0x21A0), ("incl", 0x21AA)] {
+            let (n, d) = run_env(word, &env);
+            assert!(d.is_empty(), "{word}: {d:?}");
+            assert_eq!(single(&n).items, Glyph::from_font(cp, false).unwrap().items, "{word}");
+        }
+        env.kinds.insert("mono.style".into(), "hook".into());
+        env.kinds.insert("epi.style".into(), "plain".into());
+        for (word, cp) in [("mono", 0x21AA), ("epi", 0x2192), ("incl", 0x21AA)] {
+            let (n, _) = run_env(word, &env);
+            assert_eq!(single(&n).items, Glyph::from_font(cp, false).unwrap().items, "{word}");
+            assert_eq!(node_class(&n), Some(Class::Rel));
+        }
+        let (n, d) = run_env("diagram(A, B | f: A mono B)", &env);
+        assert!(d.is_empty(), "{d:?}");
+        let t = top(n);
+        let (_, edges) = diagram_of(&t);
+        assert_eq!(edges[0].g.items, Glyph::from_font(0x21AA, false).unwrap().items);
+    }
+
+    #[test]
+    fn greek_rule_changes_every_letter_but_an_explicit_style_wins() {
+        let mut env = MathEnv::new();
+        env.kinds.insert("greek.phi".into(), "alt".into());
+        let (n, d) = run_env("phi", &env);
+        assert!(d.is_empty(), "{d:?}");
+        assert_eq!(single(&n).items, Glyph::from_font(0x1D719, false).unwrap().items);
+        let (with_rule, _) = run_env("phi.hat", &env);
+        let (without, _) = run_env("phi.hat", &MathEnv::new());
+        assert_ne!(single(&with_rule).items, single(&without).items);
+        let (n, _) = run_env("phi.up", &env);
+        assert_eq!(single(&n).items, Glyph::from_font(0x3C6, false).unwrap().items);
+        let (n, _) = run_env("theta", &env);
+        assert_eq!(single(&n).items, Glyph::from_font(0x1D703, false).unwrap().items);
+    }
+
+    #[test]
+    fn yoneda_is_a_built_glyph() {
+        let (_, d) = run("yo(A)", false);
+        assert!(d.is_empty(), "{d:?}");
+        let g = Glyph::from_font(0x3088, false).expect("yo");
+        assert!(matches!(g.items[0].shape, glyph::Shape::Outline(_)));
+        assert!(g.h > 600.0 && g.w > 500.0);
+        let (_, d) = run("yo.box", false);
+        assert!(d.is_empty(), "{d:?}");
     }
 
     #[test]

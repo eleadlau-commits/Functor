@@ -134,6 +134,7 @@ pub const NAMES: &[Named] = &[
     n("mono", 0x21A3, Rel),
     n("epi", 0x21A0, Rel),
     n("incl", 0x21AA, Rel),
+    n("yo", 0x3088, Ord),
     n("bot", 0x22A5, Ord),
     n("lnot", 0xAC, Ord),
     n("complement", 0x2201, Ord),
@@ -377,8 +378,26 @@ pub const KIND_DEFAULTS: &[(&str, &str, &str)] = &[
     ("floor", "fence", "floor"),
     ("ceil", "fence", "ceil"),
     ("wrap", "grow", "stretch"),
+    ("mono", "style", "tail"),
+    ("epi", "style", "twohead"),
+    ("incl", "style", "hook"),
     ("dd", "style", "italic"),
 ];
+
+pub const ARROW_KINDS: &[&str] = &["mono", "epi", "incl"];
+
+pub const ARROW_STYLES: &[(&str, &str, &str)] = &[
+    ("tail", "mono", "a tail at the start: ↣"),
+    ("twohead", "epi", "two heads: ↠"),
+    ("hook", "incl", "a hook at the start: ↪"),
+    ("plain", "to", "a plain arrow: →"),
+];
+
+pub fn arrow_style(style: &str) -> Option<&'static str> {
+    ARROW_STYLES.iter().find(|(s, _, _)| *s == style).map(|(_, name, _)| *name)
+}
+
+pub const GREEK_STYLES: &[&str] = &["alt", "up", "bold"];
 
 pub const SET_OPTIONS: &[(&str, &[&str])] = &[
     ("vec", &["style", "fence", "body", "grow", "inline"]),
@@ -392,6 +411,10 @@ pub const SET_OPTIONS: &[(&str, &[&str])] = &[
     ("ceil", &["fence", "grow"]),
     ("wrap", &["grow"]),
     ("diagram", &["gap", "inline"]),
+    ("mono", &["style"]),
+    ("epi", &["style"]),
+    ("incl", &["style"]),
+    ("greek", GREEK),
     ("dd", &["style"]),
     ("document", &["style", "accent"]),
     ("heading", &["numbering"]),

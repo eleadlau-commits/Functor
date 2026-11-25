@@ -116,13 +116,13 @@ Blocks are `::: kind` and `:::`. The kinds are theorem, lemma, corollary, propos
 
 **Names.** Large operators: `sum` `prod` `coprod` `integral` `union` `inter`. Binary: `plus` `minus` `times` `cdot` `pm` `mp` `div` `circ` `ast` `star` `wedge` `vee` `cup` `cap` `setminus`. Relations: `eq` `lt` `gt` `le` `ge` `approx` `sim` `equiv` `propto` `in` `ni` `subset` `supset` `subseteq` `supseteq` `perp` `mid` `parallel` `to` `gets` `implies` `iff` `mapsto`. Ordinary: `infty` `partial` `nabla` `forall` `exists` `emptyset` `ell` `aleph` `angle` `triangle` `square` `dots` `cdots` `prime`.
 
-**More names.** Binary: `ltimes` `rtimes` `sqcup` `sqcap` `uplus` `wr` `bullet` `smash` `semi` `par`. Relations: `prec` `succ` `cong` `simeq` `asymp` `bowtie` `pitchfork` `indep` `between` `normal` `proves` `models` `forces` `lollipop` `therefore` `because`. Arrows: `tofro` `equil` `mono` `epi` `incl`. Ordinary: `bot` `lnot` `complement` `diamond` `wp` `beth` `gimel` `daleth` `digamma` `imath` `jmath` `vdots` `ddots` `udots` `degree` `permille` `dagger` `ddagger` `qed` `corner` `lightning` `plimsoll` `diameter` `blackstar` `checkmark` `flat` `natural` `sharp` `clubs`.
+**More names.** Binary: `ltimes` `rtimes` `sqcup` `sqcap` `uplus` `wr` `bullet` `smash` `semi` `par`. Relations: `prec` `succ` `cong` `simeq` `asymp` `bowtie` `pitchfork` `indep` `between` `normal` `proves` `models` `forces` `lollipop` `therefore` `because`. Arrows: `tofro` `equil` `mono` `epi` `incl`. Ordinary: `yo` (Yoneda よ), `bot` `lnot` `complement` `diamond` `wp` `beth` `gimel` `daleth` `digamma` `imath` `jmath` `vdots` `ddots` `udots` `degree` `permille` `dagger` `ddagger` `qed` `corner` `lightning` `plimsoll` `diameter` `blackstar` `checkmark` `flat` `natural` `sharp` `clubs`.
 
 **Built, not named.** Up and down arrows: `to.rot`, `to.flip.rot`, `implies.rot`. Long arrows: `to.wide`, `implies.wide`, `mapsto.wide`. Big operators: `wedge.big`, `plus.circle.big`, `sqcup.big`. Others: `lt.x2` (≪), `bot.flipv` (⊤), `proves.flip` (⊣), `subset.square` (⊏), `eq.dot` (≐), `prime.x2` (″), `integral.x4`, `F.turn` (Ⅎ).
 
 The signs `+ - = < > , ; :` also work as they are.
 
-**Greek.** `alpha` `beta` `gamma` `delta` `epsilon` `zeta` `eta` `theta` `iota` `kappa` `lambda` `mu` `nu` `xi` `omicron` `pi` `rho` `varsigma` `sigma` `tau` `upsilon` `phi` `chi` `psi` `omega`. `.alt` gives the other common form: `phi.alt` (ϕ), `epsilon.alt` (ϵ), `theta.alt`, `rho.alt`, `pi.alt`, `kappa.alt`. `mu.up` is upright, for units. `alpha.bold` is bold. Capitals: `Gamma` `Delta` `Theta` `Lambda` `Xi` `Pi` `Sigma` `Upsilon` `Phi` `Psi` `Omega`.
+**Greek.** `alpha` `beta` `gamma` `delta` `epsilon` `zeta` `eta` `theta` `iota` `kappa` `lambda` `mu` `nu` `xi` `omicron` `pi` `rho` `varsigma` `sigma` `tau` `upsilon` `phi` `chi` `psi` `omega`. `.alt` gives the other common form: `phi.alt` (ϕ), `epsilon.alt` (ϵ), `theta.alt`, `rho.alt`, `pi.alt`, `kappa.alt`. `mu.up` is upright, for units. `alpha.bold` is bold. `set greek(phi: alt, pi: up)` changes every φ and π in the document; an operation such as `phi.up` in one place wins. Capitals: `Gamma` `Delta` `Theta` `Lambda` `Xi` `Pi` `Sigma` `Upsilon` `Phi` `Psi` `Omega`.
 
 **Functions.** `sin` `cos` `tan` `log` `ln` `exp` `det` `dim` `ker` `deg` `gcd` `arg` `lim` `max` `min` `sup` `inf` `sinh` `cosh` `tanh` `coth` `sec` `csc` `cot` `arcsin` `arccos` `arctan` `lg` `limsup` `liminf` `argmax` `argmin` `colim` `rank` `tr` `Tr` `sgn` `lcm` `span` `diag` `id` `im` `coker` `Aut` `End` `Hom` `Ext` `Tor` `Spec` `Gal` `Re` `Im` `supp` `vol` `erf` `res` `Pr` `Var` `Cov` `Corr` `grad` `curl` `mod`. There is no `div` function, because `div` is ÷. Write divergence as `nabla cdot F`.
 
@@ -164,6 +164,8 @@ diagram(A, B; C, D | f: A to B, g: A to C, h: B to D, k: C to D)
 $$
 ```
 
+**Arrow kinds.** `mono`, `epi` and `incl` are meanings. One rule gives every arrow of a kind its look: `set mono(style: hook)`. Styles: `tail` ↣, `twohead` ↠, `hook` ↪, `plain` →. The rule works in diagrams too: `f: A mono B`.
+
 **Aligned equations.** In display math, write one step on each line. Rows align at the first relation. A line that starts with a relation continues the left side.
 
 ```fn
@@ -183,6 +185,8 @@ $$ {#eq:square}
 | `set binom(...)`, `set abs(...)`, `set norm(...)`, `set inner(...)`, `set floor(...)`, `set ceil(...)` | `fence:`, `grow:` |
 | `set cases(...)` | `fence:`, `word: "if"`, `grow:` |
 | `set wrap(...)` | `grow: stretch` or `magnify` |
+| `set mono(...)`, `set epi(...)`, `set incl(...)` | `style: tail`, `twohead`, `hook` or `plain` |
+| `set greek(...)` | a Greek name and `alt`, `up` or `bold`: `phi: alt` |
 | `set document(...)` | `style: quiet`, `classic`, `lecture`, `compact` or `board`; `accent: #4a6a85` |
 | `set heading(...)` | `numbering: none` |
 | `set page(...)` | `size: a4`, `a5` or `letter`, `margin: 2.5cm` |
@@ -201,6 +205,7 @@ $$ {#eq:square}
 | `\left( x \right)` | `(x)` |
 | `\begin{pmatrix} a & b \\ c & d \end{pmatrix}` | `mat(a, b; c, d)` |
 | `\begin{cases} ... \end{cases}` | `cases(value, condition; ...)` |
+| `\varphi` everywhere | `set greek(phi: alt)`, then `phi` |
 | `\xrightarrow{f}`, `\overset{\text{def}}{=}` | `to^f`, `=^"def"` |
 | tikz-cd | `diagram(...)`, see "Diagrams" above |
 | `\begin{align} a &= b \\ &= c \end{align}` | one step on each line in `$$` |
