@@ -21,7 +21,7 @@ Functor is a typesetting language for mathematics. This reference describes each
 | Math | [Basics](math/basics.html), [frac, sqrt, text, join](math/calls.html), [Display math and chains](math/display.html) |
 | Symbols | [Recipes](symbols/recipes.html), [Meaning and style](symbols/kinds.html), [Named symbols](symbols/names.html), [Greek](symbols/greek.html), [Functions and spaces](symbols/functions.html), [Operations](symbols/operations.html), [Font composites](symbols/composites.html) |
 | Structures | [Grids, matrices, vectors, cases](structures/grids.html), [Fences and wrap](structures/fences.html), [Diagrams and labelled arrows](structures/diagrams.html) |
-| Help | [Common errors](help/errors.html), [Notation check and trace](help/notation.html), [Math on web pages](help/web.html) |
+| Help | [Common errors](help/errors.html), [Notation check and trace](help/notation.html), [Editor and preview](help/editor.html), [Math on web pages](help/web.html) |
 
 # Four layers
 

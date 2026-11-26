@@ -44,6 +44,7 @@ pub struct Doc {
     pub meta: Meta,
     pub settings: Settings,
     pub blocks: Vec<Block>,
+    pub spans: Vec<(usize, usize)>,
     pub env: MathEnv,
     pub labels: HashMap<String, Target>,
 }
@@ -62,7 +63,7 @@ pub fn parse(src: &str, diags: &mut Diagnostics) -> Doc {
         counters: Counters::default(),
     };
     let body_start = p.front_matter(&lines);
-    let blocks = p.blocks(&lines[body_start..], 0);
+    let (blocks, spans) = p.blocks(&lines[body_start..], 0);
     if p.meta.version.is_none() {
         p.diags.warning(
             1,
@@ -71,7 +72,7 @@ pub fn parse(src: &str, diags: &mut Diagnostics) -> Doc {
             Some("Add `functor: 1` to the front matter, between two `---` lines.".into()),
         );
     }
-    Doc { meta: p.meta, settings: p.settings, blocks, env: p.env, labels: p.labels }
+    Doc { meta: p.meta, settings: p.settings, blocks, spans, env: p.env, labels: p.labels }
 }
 
 #[derive(Default)]
@@ -484,16 +485,20 @@ impl DocParser<'_> {
         }
     }
 
-    fn blocks(&mut self, lines: &[Line], depth: usize) -> Vec<Block> {
+    fn blocks(&mut self, lines: &[Line], depth: usize) -> (Vec<Block>, Vec<(usize, usize)>) {
         let mut out = Vec::new();
+        let mut spans = Vec::new();
         let mut para = Span::new();
+        let mut para_span = (0, 0);
         let mut i = 0;
+        let end = |k: usize| lines[(k.max(1) - 1).min(lines.len() - 1)].0;
         macro_rules! flush {
             () => {
                 if !para.text.is_empty() {
                     let p = std::mem::replace(&mut para, Span::new());
                     let content = self.inline(&p);
                     out.push(Block::Para(content));
+                    spans.push(para_span);
                 }
             };
         }
@@ -521,6 +526,7 @@ impl DocParser<'_> {
                 let plain = plain_text(&content);
                 self.add_label(&label, Target::Heading { number: number.clone(), text: plain }, n, col);
                 out.push(Block::Heading { level, content, label, number });
+                spans.push((n, n));
                 i += 1;
                 continue;
             }
@@ -528,6 +534,7 @@ impl DocParser<'_> {
                 flush!();
                 let (block, used) = self.display_math(&lines[i..]);
                 out.push(block);
+                spans.push((n, end(i + used)));
                 i += used;
                 continue;
             }
@@ -544,6 +551,7 @@ impl DocParser<'_> {
                     self.diags.error(n, col, "This code block has no closing ```.", Some("Add a line with ``` after the code.".into()));
                 }
                 out.push(Block::Code { lang, text: text.join("\n") });
+                spans.push((n, end(j + 1)));
                 i = (j + 1).min(lines.len());
                 continue;
             }
@@ -557,6 +565,7 @@ impl DocParser<'_> {
                 let (block, used) = self.env_block(&lines[i..], depth);
                 if let Some(b) = block {
                     out.push(b);
+                    spans.push((n, end(i + used)));
                 }
                 i += used;
                 continue;
@@ -564,6 +573,7 @@ impl DocParser<'_> {
             if t == "---" || t == "***" {
                 flush!();
                 out.push(Block::Rule);
+                spans.push((n, n));
                 i += 1;
                 continue;
             }
@@ -571,6 +581,7 @@ impl DocParser<'_> {
                 flush!();
                 let (block, used) = self.list(&lines[i..]);
                 out.push(block);
+                spans.push((n, end(i + used)));
                 i += used;
                 continue;
             }
@@ -578,14 +589,19 @@ impl DocParser<'_> {
                 flush!();
                 let (block, used) = self.table(&lines[i..]);
                 out.push(block);
+                spans.push((n, end(i + used)));
                 i += used;
                 continue;
             }
+            if para.text.is_empty() {
+                para_span.0 = n;
+            }
+            para_span.1 = n;
             para.push_line(t, n, col);
             i += 1;
         }
         flush!();
-        out
+        (out, spans)
     }
 
     fn next_heading(&mut self, level: usize) -> String {
@@ -700,7 +716,8 @@ impl DocParser<'_> {
             }
             body_lines.push((bn, bl));
         }
-        let body = self.blocks(&body_lines, depth + 1);
+        let (body, spans) = self.blocks(&body_lines, depth + 1);
+        let spans = spans.into_iter().map(|(a, b)| (a - n, b - n)).collect();
         let get = |k: &str| attrs.iter().find(|(a, _)| a == k).map(|(_, v)| v.clone());
         for (k, _) in &attrs {
             if !["title", "width"].contains(&k.as_str()) {
@@ -710,7 +727,7 @@ impl DocParser<'_> {
         if kind == "figure" && caption.is_none() {
             self.diags.warning(n, col, "This figure has no caption.", Some("Add a line `Caption: ...` inside the figure.".into()));
         }
-        (Some(Block::Env(Env { kind, label, title: get("title"), width: get("width"), number, caption, body })), used)
+        (Some(Block::Env(Env { kind, label, title: get("title"), width: get("width"), number, caption, body, spans })), used)
     }
 
     fn list(&mut self, lines: &[Line]) -> (Block, usize) {

@@ -1,0 +1,37 @@
+---
+functor: 1
+title: Editor and preview
+---
+
+set heading(numbering: none)
+
+The website and the desktop app have the same editor. The source is at the left. The preview is at the right.
+
+# Go between the source and the preview
+
+| You do | Result |
+|:--|:--|
+| Double-click a word in the preview | The cursor goes to that word in the source, and the word is selected. |
+| Double-click math in the preview | The source of that math is selected. |
+| Press `Alt+Enter`, or click **Locate** | The preview scrolls to the cursor. The word or the math at the cursor flashes. |
+| Move the cursor | A light band in the preview marks the block that holds the cursor. |
+
+```text
+ source line 74  ──► block with data-fn-line="73" data-fn-end-line="75"
+        ▲                         │
+        │                         ▼
+ k-th "related" in lines 73-75 ◄── k-th "related" in the block text
+```
+
+# How it works
+
+Each block in the HTML output tells which source lines it comes from.
+
+| Attribute | Where | Value |
+|:--|:--|:--|
+| `data-fn-line`, `data-fn-end-line` | a top-level block | the first and the last source line |
+| `data-fn-rel` | a block inside `:::` | the lines, relative to the top-level block, for example `1-3` |
+
+The editor finds the block, and then finds the same word in the lines of that block. Math is found by its source text. So a jump is exact to the word, but a word that the line breaker splits with a hyphen goes to the start of its block.
+
+The PDF has no jumps. Use the preview to find a place, then export the PDF.

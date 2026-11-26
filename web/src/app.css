@@ -189,6 +189,12 @@ button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 18%, 
 .preview .fn-doc { box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 8px 24px rgba(0, 0, 0, .06); min-height: 100%; width: auto; max-width: var(--fn-page-width, 210mm); }
 .preview { container-type: inline-size; }
 @container (max-width: 700px) { .preview .fn-doc { padding: 1.2em; } }
+.preview .fn-sync-here { background: color-mix(in srgb, var(--accent) 7%, transparent); border-radius: 2px; }
+.preview .fn-sync-flash { animation: fn-sync-flash 1.2s ease-out; border-radius: 2px; }
+@keyframes fn-sync-flash { from { background: color-mix(in srgb, var(--accent) 22%, transparent); } to { background: transparent; } }
+.preview ::highlight(fn-sync) { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.problems-tools { display: flex; gap: 10px; }
+@media print { .preview .fn-sync-here { background: none; } }
 @media (max-width: 760px) {
   .bar { flex-wrap: wrap; }
   .panes { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }

@@ -44,6 +44,59 @@ try {
   if (svgs < 20) fail(`only ${svgs} math SVGs in the preview`);
   if (shots) await page.screenshot({ path: `${shots}/site.png` });
 
+  const spot = (sel, word) => page.evaluate(([sel, word]) => {
+    const el = document.querySelector(sel);
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const n = walker.currentNode;
+      const i = n.data.indexOf(word);
+      if (i < 0) continue;
+      const r = document.createRange();
+      r.setStart(n, i + 1);
+      r.setEnd(n, i + 2);
+      r.startContainer.parentElement.scrollIntoView({ block: 'center' });
+      const b = r.getBoundingClientRect();
+      return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+    }
+    return null;
+  }, [sel, word]);
+  const lineOf = () => page.evaluate(() => {
+    const active = document.querySelector('.cm-activeLine');
+    return { text: document.getSelection().toString(), line: active?.textContent ?? '' };
+  });
+  let at = await spot('#preview .fn-definition [data-fn-rel]', 'related');
+  if (!at) fail('no word "related" in a nested block of the preview');
+  else {
+    await page.mouse.dblclick(at.x, at.y);
+    await page.waitForTimeout(100);
+    const got = await lineOf();
+    console.log('preview to source:', got.text, '|', got.line.slice(0, 40));
+    if (got.text !== 'related' || !got.line.includes('A related value')) fail('double-click in the preview did not select the word in the source');
+  }
+  const mathBox = await page.locator('#preview svg.fn-math[aria-label="x in.not A"]').boundingBox();
+  if (mathBox) {
+    await page.mouse.dblclick(mathBox.x + mathBox.width / 2, mathBox.y + mathBox.height / 2);
+    await page.waitForTimeout(100);
+    const got = await lineOf();
+    console.log('math to source:', got.text);
+    if (got.text !== 'x in.not A') fail('double-click on math did not select its source');
+  } else fail('no math x in.not A in the preview');
+  at = await spot('#preview .fn-definition [data-fn-rel]', 'related');
+  if (at) await page.mouse.dblclick(at.x, at.y);
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Alt+Enter');
+  await page.waitForTimeout(100);
+  const hl = await page.evaluate(() => {
+    const h = window.CSS?.highlights?.get('fn-sync');
+    const r = h && [...h][0];
+    return { word: r ? r.toString() : null, here: document.querySelector('.fn-sync-here')?.textContent.slice(0, 30) };
+  });
+  console.log('source to preview:', hl);
+  if (hl.word !== 'related') fail('Alt+Enter did not mark the word in the preview');
+  if (!hl.here || !hl.here.includes('An estimate')) fail('the preview does not mark the block at the cursor');
+  if (shots) await page.screenshot({ path: `${shots}/site-locate.png` });
+
   await page.click('.cm-content');
   await page.keyboard.press('Control+End');
   await page.keyboard.type('\n\nBad $alpah + x.circel$ and @eq:nope.\n');

@@ -6,6 +6,7 @@ import { forceLinting } from '@codemirror/lint';
 import { loadFunctor, loadNative, isDesktop } from './functor.js';
 import { functorLanguage, functorHighlight, functorCompletion, functorLinter } from './lang.js';
 import { createInspector, traceAt } from './inspector.js';
+import { createSync } from './sync.js';
 import sample from '../../examples/sample.fn?raw';
 import docCss from './doc.css?raw';
 import refsJs from './refs.js?raw';
@@ -44,6 +45,7 @@ const rightEl = document.querySelector('.right');
 
 let fn;
 let inspect = () => {};
+let sync = null;
 let last = null;
 let timer = 0;
 let view;
@@ -127,6 +129,7 @@ async function render(src) {
     }),
   );
   if (view) {
+    sync?.mark();
     inspectCursor(view.state);
     forceLinting(view);
     if (view.hasFocus) view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: 'nearest' }) });
@@ -549,7 +552,7 @@ async function main() {
   const info = await fn.symbols();
   extensions = [
     basicSetup,
-    keymap.of([indentWithTab]),
+    keymap.of([indentWithTab, { key: 'Alt-Enter', run: () => sync?.toPreview() ?? false }]),
     functorLanguage,
     functorHighlight,
     functorCompletion(fn, info),
@@ -557,7 +560,10 @@ async function main() {
     EditorView.lineWrapping,
     EditorView.updateListener.of((u) => {
       if (u.docChanged) schedule(u.state.doc.toString());
-      else if (u.selectionSet) inspectCursor(u.state);
+      else if (u.selectionSet) {
+        inspectCursor(u.state);
+        sync?.mark();
+      }
     }),
   ];
   const session = readSession();
@@ -565,6 +571,8 @@ async function main() {
   if (!tabs.length) tabs.push(makeTab({ name: 'sample.fn', text: sample }));
   const first = tabs[Math.min(Math.max(session?.active ?? 0, 0), tabs.length - 1)];
   view = new EditorView({ parent: $('editor'), state: first.state });
+  sync = createSync(view, previewEl);
+  $('locate').addEventListener('click', () => sync.toPreview());
   activate(first);
   if (fn.native) {
     const opened = await fn.files.initial(!session).catch(() => null);
