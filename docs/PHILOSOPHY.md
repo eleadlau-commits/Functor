@@ -340,3 +340,75 @@ Total for diagrams: 19 of 20 (was 18).
 - A rule with `set` is read for the whole file. A test page with two angles showed the same angle twice. The before and after pictures use two files.
 - At 60° the arrow head of a curved arrow touched the cell. The end of a curved arrow now stops a little earlier when the angle is steep.
 - A loop that faced the next cell sat on the arrow between the two cells. The gap now grows to hold the loop and the arrow.
+
+## Incremental preview
+
+"Speed is part of the design" also applies to the live preview. Before this change, each key compiled the whole file, made all of its HTML again (4 MB for an 850-line note) and replaced the whole preview. The compile also ran on the main thread of the browser.
+
+```mermaid
+flowchart LR
+  K["Key"] --> P["Parse the whole file<br/>labels, numbers, rules"]
+  P --> H["Hash each top-level block<br/>lines relative to the block"]
+  H -->|"same hash"| C["Reuse the HTML from the cache"]
+  H -->|"new hash"| R["Render this block only"]
+  C --> D["Send only new HTML"]
+  R --> D
+  D --> M["Patch only the changed<br/>nodes in the preview"]
+```
+
+- The parse still reads the whole file. It is cheap (2 ms for 3,400 lines), and it gives the correct numbers, labels and rules for each block.
+- The hash of a block has its content with lines relative to the block, the document rules, the width, and the targets of its `@` references. A block that only moves down is not rendered again. A block whose equation number or reference text changes is rendered again.
+- The margin-note number and the paragraph indent flow from block to block. A cached block keeps how many notes it adds, not an absolute number.
+- The compiler runs in a Web Worker on the website. The desktop app keeps one session in the native compiler.
+- `functor bench file.fn` now prints the time of one edit. Gate: 16 ms, one frame.
+
+| Measure | Before | After |
+|:--|:-:|:-:|
+| 850-line note, native compile for one key | 28 ms | 1.7 ms |
+| 850-line note, key to painted preview (browser, with 30 to 60 ms wait) | 249 ms | 62 ms |
+| 3,400-line note, key to painted preview | 898 ms | 120 ms |
+| Longest main-thread block, 3,400 lines | 1,131 ms | 60 ms |
+| HTML sent for one key, 850 lines | 4.7 MB | about 50 KB |
+
+| Principle | Score | What it does now | Gap |
+|:--|:-:|:--|:--|
+| Speed | 5 | Only changed blocks render. Only changed nodes change in the preview. The main thread stays free. | A change to a rule, the width or a heading number above renders many blocks again, as it must. |
+| Correctness | 5 | A test compares the incremental HTML, problems and traces with a full compile after many edits. The browser test compares the preview with a full compile. | None. |
+| One code path | 4 | The full compile uses the same block renderer as the session. | The PDF still sets the whole file each time. |
+
+### Key hiccups
+
+- The browser test found a margin-note bug: a cached block kept an absolute note number, so notes after a deleted note had the wrong number. The cache now keeps the count that each block adds.
+- A space at the end of a line does not change a block, so the preview does not change. This is correct, but it made the first timing script wait for ever.
+
+## Page breaks
+
+A page break at a heading is style. A page break in one place is layout in the source.
+
+```mermaid
+flowchart LR
+  A["<code>set heading(new_page: 1)</code>"] --> B["Parser marks each heading<br/>of level 1 that has text before it"]
+  C["<code>===</code> on its own line"] --> D["Page break block"]
+  B --> E["PDF: forced break<br/>compact skips the right column"]
+  D --> E
+  B --> F["HTML: dashed line on screen,<br/>new page when printed"]
+  D --> F
+```
+
+- One rule for all headings of a level and above. Chapters, sections and subsections use the same option with a different number. There is no new chapter level.
+- `===` is one new line form. It looks like a heavy `---` rule. It has no keyword and no backslash.
+- A heading right after the title does not start a page, so `new_page: 1` does not leave the title alone on a page. Two breaks in a row give one break.
+
+| Principle | Score | What it does | Gap |
+|:--|:-:|:--|:--|
+| Meaning | 4 | A heading stays a heading. The rule says only how it starts on the page. | `===` is layout in the source, not meaning. It is for the few places that a rule cannot cover. |
+| Style | 5 | One `set heading(new_page:)` rule for the whole file, the same as `numbering`. | None. |
+| Tight grammar | 4 | One option and one line form. Clear errors for a bad level, `===` in a block, and `===` under a line of text (a Markdown heading). | `===` is new syntax. |
+| Personal use | 5 (was 3) | Chapters on new pages in the PDF and in print. The phase 0 gap "No page breaks for print" is closed. | No odd-page start for two-sided print. |
+
+Total for page breaks: 18 of 20.
+
+### Key hiccups
+
+- Kerning splits a word into more than one text draw in the PDF, so the first test could not find "Alpha". The tests use words with no kerning pair.
+- In `compact`, a forced break goes to the next column. A heading break now also skips the empty right column.

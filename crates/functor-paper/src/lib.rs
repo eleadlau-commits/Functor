@@ -1,6 +1,7 @@
 pub use functor_math::{deform, diag, glyph, lint, math, symbols, trace};
 pub mod ast;
 pub mod doc;
+pub mod incr;
 pub mod inline;
 pub mod json;
 pub mod linebreak;
@@ -27,15 +28,7 @@ impl Output {
     }
 
     pub fn to_json(&self) -> String {
-        let diags = json::array(self.diagnostics.iter().map(|d| {
-            json::Obj::new()
-                .str("severity", d.severity.as_str())
-                .num("line", d.line)
-                .num("col", d.col)
-                .str("message", &d.message)
-                .raw("hint", json::opt(d.hint.as_deref()))
-                .end()
-        }));
+        let diags = diags_json(&self.diagnostics);
         let stats = json::Obj::new()
             .num("built", self.stats.built)
             .num("hits", self.stats.hits)
@@ -44,6 +37,18 @@ impl Output {
         let traces = json::array(self.traces.iter().map(trace_json));
         json::Obj::new().str("html", &self.html).raw("diagnostics", diags).raw("stats", stats).raw("traces", traces).end()
     }
+}
+
+pub fn diags_json(diagnostics: &[Diagnostic]) -> String {
+    json::array(diagnostics.iter().map(|d| {
+        json::Obj::new()
+            .str("severity", d.severity.as_str())
+            .num("line", d.line)
+            .num("col", d.col)
+            .str("message", &d.message)
+            .raw("hint", json::opt(d.hint.as_deref()))
+            .end()
+    }))
 }
 
 pub fn trace_json(t: &Trace) -> String {
@@ -69,7 +74,7 @@ fn traced<T>(env: &math::MathEnv, diags: &mut Diagnostics, f: impl FnOnce(&mut D
     trace::start();
     let out = f(diags);
     let traces = trace::finish();
-    lint::lint(&traces, env, diags);
+    lint::lint(&traces.iter().collect::<Vec<_>>(), env, diags);
     (out, traces)
 }
 
@@ -212,6 +217,19 @@ mod tests {
             vb.split(' ').nth(2).and_then(|w| w.parse().ok()).unwrap_or(0.0)
         };
         assert!(width("set limits(overhang: off)\n\n") > width("") + 500.0);
+    }
+
+    #[test]
+    fn page_break_rules() {
+        let out = compile("---\nfunctor: 1\n---\n\nset heading(new_page: 1)\n\n# One\n\nText.\n\n# Two\n\nText.\n\n===\n\n## Three\n");
+        assert!(out.diagnostics.iter().all(|d| d.severity != crate::diag::Severity::Error));
+        assert_eq!(out.html.matches("fn-new-page").count(), 1);
+        assert_eq!(out.html.matches("fn-page-break").count(), 1);
+        let bad = compile("---\nfunctor: 1\n---\n\nset heading(new_page: 7)\n\nTitle\n===\n\n::: note\n===\n:::\n");
+        let msgs: Vec<&str> = bad.diagnostics.iter().map(|d| d.message.as_str()).collect();
+        assert!(msgs.iter().any(|m| m.contains("not a heading level")), "{msgs:?}");
+        assert!(msgs.iter().any(|m| m.contains("does not make the line above a heading")), "{msgs:?}");
+        assert!(msgs.iter().any(|m| m.contains("cannot go in a block")), "{msgs:?}");
     }
 
     #[test]

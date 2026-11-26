@@ -144,6 +144,58 @@ pub fn render(doc: &Doc, diags: &mut Diagnostics) -> String {
 }
 
 pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -> String {
+    let f = frame(doc, width_pt);
+    let mut out = format!("{}{}", f.open, f.title);
+    let mut st = Flow::default();
+    for (i, b) in doc.blocks.iter().enumerate() {
+        out.push_str(&render_block(doc, &f, diags, b, &mut st, doc.spans.get(i).copied()));
+    }
+    out.push_str("</article>");
+    out
+}
+
+pub struct Frame {
+    pub open: String,
+    pub title: String,
+    pub measure: Option<f64>,
+    pub(crate) look: Look,
+}
+
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+pub struct Flow {
+    pub after_par: bool,
+    pub notes: usize,
+}
+
+pub fn render_block(doc: &Doc, f: &Frame, diags: &mut Diagnostics, b: &Block, st: &mut Flow, lines: Option<(usize, usize)>) -> String {
+    let mut r = R {
+        env: &doc.env,
+        labels: &doc.labels,
+        diags,
+        out: String::new(),
+        measure: f.measure,
+        base: Style::default(),
+        indent: 0.0,
+        in_figure: false,
+        look: f.look,
+        pdf: false,
+        notes: st.notes,
+        note_src: Vec::new(),
+        after_par: st.after_par,
+        top_line: None,
+    };
+    match lines {
+        Some(span) => r.block_at(b, span),
+        None => {
+            r.top_line = Some(0);
+            r.block(b);
+        }
+    }
+    *st = Flow { after_par: r.after_par, notes: r.notes };
+    r.out
+}
+
+pub fn frame(doc: &Doc, width_pt: Option<f64>) -> Frame {
     let s = &doc.settings;
     let page = page_width_pt(&s.page);
     let look = Look::of(&s.style);
@@ -176,23 +228,7 @@ pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -
         Some(t) if look.scale() != 1.0 => format!("{}pt", (t * 100.0).round() / 100.0),
         _ => s.text_size.clone(),
     };
-    let mut r = R {
-        env: &doc.env,
-        labels: &doc.labels,
-        diags,
-        out: String::new(),
-        measure,
-        base: Style::default(),
-        indent: 0.0,
-        in_figure: false,
-        look,
-        pdf: false,
-        notes: 0,
-        note_src: Vec::new(),
-        after_par: false,
-        top_line: None,
-    };
-    r.out.push_str(&format!(
+    let open = format!(
         "<article class=\"fn-doc fn-style-{}{}{}\" data-page=\"{}\" style=\"--fn-page-width:{}pt;--fn-margin:{};--fn-text-size:{}{}{}\">",
         escape_attr(&s.style),
         if with_notes { " fn-has-notes" } else { "" },
@@ -203,27 +239,23 @@ pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -
         escape_attr(&text_size),
         s.font.as_ref().map(|f| format!(";--fn-font:{}", escape_attr(f))).unwrap_or_default(),
         s.accent.as_ref().map(|a| format!(";--fn-accent:{}", escape_attr(a))).unwrap_or_default()
-    ));
+    );
+    let mut title = String::new();
     let m = &doc.meta;
     if m.title.is_some() || !m.authors.is_empty() || m.date.is_some() {
-        r.out.push_str("<header class=\"fn-title\">");
+        title.push_str("<header class=\"fn-title\">");
         if let Some(t) = &m.title {
-            r.out.push_str(&format!("<h1>{}</h1>", escape(t)));
+            title.push_str(&format!("<h1>{}</h1>", escape(t)));
         }
         if !m.authors.is_empty() {
-            r.out.push_str(&format!("<p class=\"fn-authors\">{}</p>", escape(&m.authors.join(", "))));
+            title.push_str(&format!("<p class=\"fn-authors\">{}</p>", escape(&m.authors.join(", "))));
         }
         if let Some(d) = &m.date {
-            r.out.push_str(&format!("<p class=\"fn-date\">{}</p>", escape(d)));
+            title.push_str(&format!("<p class=\"fn-date\">{}</p>", escape(d)));
         }
-        r.out.push_str("</header>");
+        title.push_str("</header>");
     }
-    for (b, s) in doc.blocks.iter().zip(&doc.spans) {
-        r.top_line = None;
-        r.block_at(b, *s);
-    }
-    r.out.push_str("</article>");
-    r.out
+    Frame { open, title, measure, look }
 }
 
 impl R<'_> {
@@ -260,10 +292,11 @@ impl R<'_> {
 
     fn block_inner(&mut self, b: &Block) {
         match b {
-            Block::Heading { level, content, label, number } => {
+            Block::Heading { level, content, label, number, new_page } => {
                 let lv = (*level + 1).min(6);
                 let id = label.as_deref().map(|l| format!(" id=\"{}\"", label_id(l))).unwrap_or_default();
-                self.out.push_str(&format!("<h{lv}{id}>"));
+                let class = if *new_page { " class=\"fn-new-page\"" } else { "" };
+                self.out.push_str(&format!("<h{lv}{id}{class}>"));
                 if let Some(n) = number {
                     self.out.push_str(&format!("<span class=\"fn-num\">{n}</span> "));
                 }
@@ -337,6 +370,7 @@ impl R<'_> {
             }
             Block::Env(e) => self.env_block(e),
             Block::Rule => self.out.push_str("<hr>"),
+            Block::PageBreak => self.out.push_str("<div class=\"fn-page-break\" role=\"separator\" aria-label=\"Page break\"></div>"),
         }
     }
 

@@ -165,6 +165,8 @@ The n-th root, `\sqrt[n]{x}`, has no form yet.
 | `\title{}`, `\author{}`, `\date{}` | front matter: `title:`, `author:`, `date:` |
 | `\section{Intro}\label{sec:intro}` | `# Intro {#sec:intro}` |
 | `\subsection{}` | `## ...` |
+| `\newpage`, `\clearpage`, `\pagebreak` | `===` on its own line |
+| a chapter that starts on a new page | `set heading(new_page: 1)` |
 | `\emph{x}`, `\textbf{x}` | `*x*`, `**x**` |
 | `\ref{thm:a}`, `\eqref{eq:a}` | `@thm:a`, `@eq:a` |
 | `\cite{knuth84}` | `[@knuth84]` |

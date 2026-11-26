@@ -45,12 +45,13 @@ const shell = () => {
   let wasm = null;
   const enc = new TextEncoder();
   const dec = new TextDecoder();
-  const compile = async (src, width) => {
+  const compile = async (src, width, parts, reset) => {
     if (!wasm) wasm = (await WebAssembly.instantiate(await (await fetch('/functor.wasm')).arrayBuffer(), {})).instance.exports;
     const data = enc.encode(src);
     const ptr = wasm.alloc(data.length);
     new Uint8Array(wasm.memory.buffer, ptr, data.length).set(data);
-    const len = wasm.compile_width(ptr, data.length, width || 0);
+    if (reset) wasm.session_reset();
+    const len = parts ? wasm.session_compile(ptr, data.length, width || 0) : wasm.compile_width(ptr, data.length, width || 0);
     wasm.dealloc(ptr, data.length);
     const json = dec.decode(new Uint8Array(wasm.memory.buffer, wasm.result_ptr(), len));
     return '{"nativeMs":0.5,' + json.slice(1);
@@ -69,6 +70,7 @@ const shell = () => {
       calls.push(cmd);
       switch (cmd) {
         case 'compile': return compile(args.src, args.width);
+        case 'compile_parts': return compile(args.src, args.width, true, args.reset);
         case 'symbols': {
           if (!wasm) await compile('', 0);
           const len = wasm.symbols();

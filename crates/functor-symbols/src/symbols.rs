@@ -465,7 +465,7 @@ pub const SET_OPTIONS: &[(&str, &[&str])] = &[
     ("limits", &["overhang"]),
     ("document", &["style", "accent"]),
     ("lint", &["notation"]),
-    ("heading", &["numbering"]),
+    ("heading", &["numbering", "new_page"]),
     ("page", &["size", "margin"]),
     ("text", &["size", "font"]),
 ];

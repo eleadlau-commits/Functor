@@ -85,3 +85,20 @@ pub extern "C" fn cache_export() -> usize {
 pub unsafe extern "C" fn cache_import(ptr: *const u8, len: usize) -> usize {
     functor_paper::glyph::import_cache(&input(ptr, len))
 }
+
+thread_local! {
+    static SESSION: RefCell<functor_paper::incr::Session> = RefCell::new(functor_paper::incr::Session::new());
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn session_compile(ptr: *const u8, len: usize, width_pt: f64) -> usize {
+    let src = input(ptr, len);
+    let w = if width_pt > 0.0 { Some(width_pt) } else { None };
+    let json = SESSION.with(|s| s.borrow_mut().compile(&src, w).to_json().to_string());
+    set_result(json)
+}
+
+#[no_mangle]
+pub extern "C" fn session_reset() {
+    SESSION.with(|s| s.borrow_mut().reset());
+}

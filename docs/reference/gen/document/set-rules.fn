@@ -49,6 +49,7 @@ A `set` line changes the look of the whole document. Write it on its own line, b
 | `set document(...)` | `accent` | `none` |
 | `set lint(...)` | `notation` | `on` |
 | `set heading(...)` | `numbering` | `on` |
+| `set heading(...)` | `new_page` | `none` |
 | `set page(...)` | `size` | `a4` |
 | `set page(...)` | `margin` | `2.5cm` |
 | `set text(...)` | `size` | `11pt` |
