@@ -67,6 +67,21 @@ sum_(k = 1)^n k = frac(n (n + 1), 2),   lim_(n to infty) (1 + frac(1, n))^n = e,
 $$
 ```
 
+## Place of the limits
+
+One rule changes the place of the limits for one operator in the whole document. `over` puts them below and above in display math. `side` puts them at the side.
+
+```fn
+set integral(limits: over)
+set sum(limits: side)
+
+$$
+integral_0^1 f(x) dd x = sum_(k = 1)^n a_k
+$$
+```
+
+The rule works on the big operators (`sum`, `prod`, `coprod`, `integral`, `union`, `inter`) and on the functions with limits, such as `lim`, `max` and `det`. In text, the limits always go at the side.
+
 ## Many conditions
 
 In a script group, `;` starts a new condition. In display math, each condition has its own line. In text, the conditions stay on one line with commas. You write the source one time.
@@ -82,6 +97,8 @@ In text: $sum_(p "prime"; p le n) 1/p$.
 ## Wide limits
 
 A wide limit can go under the symbols next to the operator when they do not go down into the space of the limit. Then the gap stays small. A deep neighbour, such as a `frac` or a second `sum`, keeps the full gap, so the two never touch.
+
+`set limits(overhang: off)` keeps each limit inside the width of its operator, for all operators in the document.
 
 ```fn
 $$

@@ -632,7 +632,17 @@ impl<'a> Gen<'a> {
     fn set_rule(&mut self) -> String {
         let fence = self.fence_spec();
         let grow = *self.r.pick(&["stretch", "magnify"]);
-        match self.r.below(10) {
+        match self.r.below(13) {
+            10 => {
+                let (name, style) = *self.r.pick(&[("le", "alt"), ("ge", "alt"), ("implies", "wide"), ("iff", "wide"), ("mapsto", "wide"), ("partial", "slant"), ("nabla", "slant"), ("to", "bend"), ("cup", "bold")]);
+                format!("set {name}(style: {style})")
+            }
+            11 => format!(
+                "set {}(limits: {})",
+                self.r.pick(&["sum", "prod", "integral", "union", "lim", "max"]),
+                self.r.pick(&["over", "side"])
+            ),
+            12 => format!("set limits(overhang: {})", self.r.pick(&["on", "off"])),
             9 => format!(
                 "set diagram(gap: {}, inline: {})",
                 self.r.pick(&["small", "normal", "large"]),

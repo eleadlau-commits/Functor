@@ -338,13 +338,15 @@ fn set_rules_page() -> String {
     for (target, keys) in symbols::SET_OPTIONS {
         if *target == "greek" {
             s.push_str("| `set greek(...)` | a lowercase Greek name, such as `phi` | `italic` |\n");
+            s.push_str("| `set NAME(...)`, for a symbol name such as `le` | `style` | `none` |\n");
+            s.push_str("| `set NAME(...)`, for a big operator or a function with limits, such as `sum` or `lim` | `limits` | `over`; `side` for `integral` |\n");
             continue;
         }
         for k in keys.iter() {
             s.push_str(&format!("| `set {target}(...)` | `{k}` | `{}` |\n", kind_default(target, k)));
         }
     }
-    s.push_str(&format!("\nA `fence` value is a fence operation such as `brack` or `vbar.x2`, the word `none`, or any one symbol, for example a `sym`. A `grow` value is `stretch` or `magnify`. An arrow `style` is {}. A Greek value is {}.\n", symbols::ARROW_STYLES.iter().map(|(st, name, _)| format!("`{st}` (${name}$)")).collect::<Vec<_>>().join(", "), symbols::GREEK_STYLES.iter().map(|g| format!("`{g}`")).collect::<Vec<_>>().join(", ")));
+    s.push_str(&format!("\nA `fence` value is a fence operation such as `brack` or `vbar.x2`, the word `none`, or any one symbol, for example a `sym`. A `grow` value is `stretch` or `magnify`. An arrow `style` is {}. A Greek value is {}. A symbol `style` is one to three of {}, joined with dots, such as `wide` or `alt.bold`. A `limits` value is `over` or `side`.\n", symbols::ARROW_STYLES.iter().map(|(st, name, _)| format!("`{st}` (${name}$)")).collect::<Vec<_>>().join(", "), symbols::GREEK_STYLES.iter().map(|g| format!("`{g}`")).collect::<Vec<_>>().join(", "), symbols::SYMBOL_STYLE_OPS.iter().map(|g| format!("`{g}`")).collect::<Vec<_>>().join(", ")));
     s
 }
 

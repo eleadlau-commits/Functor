@@ -113,6 +113,8 @@ These recipes have a glyph in the font, so the compiler uses it. All other recip
 | `lambda.cross` | $lambda.cross$ | U+019B |
 | `in.small` | $in.small$ | U+220A |
 | `ni.small` | $ni.small$ | U+220D |
+| `partial.slant` | $partial.slant$ | U+1D715 |
+| `nabla.slant` | $nabla.slant$ | U+1D6FB |
 | `le.alt` | $le.alt$ | U+2A7D |
 | `ge.alt` | $ge.alt$ | U+2A7E |
 | `wedge.big` | $wedge.big$ | U+22C0 |

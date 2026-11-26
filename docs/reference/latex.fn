@@ -65,6 +65,7 @@ Functor is not compatible with LaTeX, and it does not try to be. This page maps 
 | `\ll`, `\gg`, `\lll` | `lt.x2`, `gt.x2`, `lt.x3` | $lt.x2, gt.x2, lt.x3$ |
 | `\prec`, `\succ`, `\preceq` | `prec`, `succ`, `stack(prec, eq)` | $prec, succ, stack(prec, eq)$ |
 | `\leqslant`, `\lesssim`, `\lessgtr` | `le.alt`, `stack(lt, sim)`, `stack(lt, gt)` | $le.alt, stack(lt, sim), stack(lt, gt)$ |
+| `\leqslant` in the whole file | `set le(style: alt)`, then plain `le` | $le.alt$ |
 | `\cong`, `\simeq`, `\asymp`, `\doteq` | `cong`, `simeq`, `asymp`, `eq.dot` | $cong, simeq, asymp, eq.dot$ |
 | `\sqsubset`, `\sqsubseteq` | `subset.square`, `subseteq.square` | $subset.square, subseteq.square$ |
 | `\subsetneq`, `\Subset` | `stack(subset, eq.not)`, `subset.x2` | $stack(subset, eq.not), subset.x2$ |
@@ -81,6 +82,7 @@ Functor is not compatible with LaTeX, and it does not try to be. This page maps 
 | `\leftrightarrow`, `\uparrow`, `\downarrow` | `tofro`, `to.rot`, `to.flip.rot` | $tofro, to.rot, to.flip.rot$ |
 | `\Uparrow`, `\Downarrow`, `\updownarrow` | `implies.rot`, `implies.flip.rot`, `tofro.rot` | $implies.rot, implies.flip.rot, tofro.rot$ |
 | `\longrightarrow`, `\Longrightarrow`, `\longmapsto` | `to.wide`, `implies.wide`, `mapsto.wide` | $to.wide, implies.wide, mapsto.wide$ |
+| `\implies` (always long) | `set implies(style: wide)`, then plain `implies` | $implies.wide$ |
 | `\hookrightarrow`, `\rightarrowtail`, `\twoheadrightarrow` | `incl`, `mono`, `epi` | $incl, mono, epi$ |
 | `\yo` (Yoneda embedding) | `yo` | $yo(A)$ |
 | `\rightleftharpoons`, `\rightharpoonup` | `equil`, `to.harpoon` | $equil, to.harpoon$ |
@@ -103,6 +105,8 @@ Functor is not compatible with LaTeX, and it does not try to be. This page maps 
 | `\int_0^1 f\,dx` | `integral_0^1 f dd x` | $integral_0^1 f dd x$ |
 | `\sum_{\substack{p \text{ prime} \\ p \le n}}` | `sum_(p "prime"; p le n)` | $sum_(p "prime"; p le n)$ |
 | `\smashoperator`, `\mathclap` | not needed: a wide limit goes under clear neighbours | $x = sum_(1 le i lt j le n) a_i b_j$ |
+| `\int\limits`, `\sum\nolimits` in the whole file | `set integral(limits: over)`, `set sum(limits: side)` | $integral_0^1$ |
+| `\DeclareMathOperator*` limits off for `\lim` | `set lim(limits: side)` | $lim_(n to infty)$ |
 | `\iint`, `\iiint`, `\oint` | `integral.x2`, `integral.x3`, `integral.circle` | $integral.x2, integral.x3, integral.circle$ |
 | `\bigcup`, `\bigcap` | `union`, `inter` | $union, inter$ |
 | `\bigwedge`, `\bigvee` | `wedge.big`, `vee.big` | $wedge.big, vee.big$ |
