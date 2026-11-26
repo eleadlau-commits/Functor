@@ -264,6 +264,19 @@ mod tests {
     }
 
     #[test]
+    fn compact_indents_paragraphs() {
+        let src = "---\nfunctor: 1\n---\n\nset document(style: STYLE)\n\n# One\n\nAlpha text.\n\nBravo text.\n\n::: theorem\nCharlie text.\n\nDelta text.\n:::\n\nEcho text.\n\n- Foxtrot.\n- Golf.\n\nHotel text.\n";
+        let compact = compile(&src.replace("STYLE", "compact"));
+        assert!(compact.diagnostics.is_empty(), "{:?}", compact.diagnostics);
+        assert_eq!(compact.html.matches("fn-par fn-indented").count(), 2);
+        assert_eq!(compact.html.matches("class=\"fn-indent\"").count(), 2);
+        for st in ["quiet", "classic", "lecture", "board"] {
+            let out = compile(&src.replace("STYLE", st));
+            assert!(!out.html.contains("fn-indented"), "{st}");
+        }
+    }
+
+    #[test]
     fn symbols_list_is_json() {
         let s = symbols_json();
         assert!(s.contains("\"circle\"") && s.contains("\"theorem\""));

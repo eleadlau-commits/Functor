@@ -145,6 +145,7 @@ enum Content {
     Text(String),
     Math(String, Rc<LBox>),
     Mark(String),
+    Indent,
 }
 
 #[derive(Clone)]
@@ -262,6 +263,15 @@ impl Builder {
         let style = self.style();
         let w = width(s, Style { mono: false, ..style }) * MARK_SCALE;
         self.items.push(Item::Box { w, content: Content::Mark(s.to_string()), style, wraps: self.cur_wraps() });
+    }
+
+    pub fn indent(&mut self, w: f64) {
+        let style = self.style();
+        self.items.push(Item::Box { w, content: Content::Indent, style, wraps: self.cur_wraps() });
+    }
+
+    pub fn has_sides(&self) -> bool {
+        !self.sides.is_empty()
     }
 
     pub fn side(&mut self, html: String) {
@@ -429,6 +439,7 @@ impl Builder {
                                 placed.push(PItem::Mark { x, s: t.clone() });
                                 x += w;
                             }
+                            Content::Indent => x += w,
                         }
                         last = Some((*style, link));
                     }
@@ -460,6 +471,7 @@ impl Builder {
                         Content::Text(t) => placed.push(PItem::Text { x, s: t.clone(), style: *style, scale: 1.0, link }),
                         Content::Math(_, lb) => placed.push(PItem::Math { x, lbox: lb.clone(), link }),
                         Content::Mark(t) => placed.push(PItem::Mark { x, s: t.clone() }),
+                        Content::Indent => {}
                     }
                     x += w;
                 }
@@ -500,10 +512,15 @@ impl Builder {
                 match it {
                     Item::Box { w, content, wraps, style } => {
                         sync(&mut out, &mut open, wraps);
+                        if matches!(content, Content::Indent) {
+                            out.push_str(&format!("<span class=\"fn-indent\" style=\"width:{}em\"></span>", num(w / e)));
+                            continue;
+                        }
                         let inner = match content {
                             Content::Text(t) => escape(t),
                             Content::Math(h, _) => h.clone(),
                             Content::Mark(t) => format!("<sup class=\"fn-mark\">{}</sup>", escape(t)),
+                            Content::Indent => String::new(),
                         };
                         if (e - 1.0).abs() > 1e-5 && !expands(content, style) {
                             out.push_str(&format!(

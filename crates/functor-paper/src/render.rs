@@ -47,6 +47,7 @@ pub(crate) struct R<'a> {
     pub(crate) pdf: bool,
     pub(crate) notes: usize,
     pub(crate) note_src: Vec<(usize, Vec<Inline>)>,
+    pub(crate) after_par: bool,
 }
 
 pub fn length_pt(s: &str) -> Option<f64> {
@@ -111,6 +112,10 @@ impl Look {
         }
     }
 
+    pub(crate) fn indents(self) -> bool {
+        self == Look::Compact
+    }
+
     pub(crate) fn scale(self) -> f64 {
         if self == Look::Board {
             BOARD_SCALE
@@ -131,6 +136,7 @@ pub(crate) fn columns(look: Look, content_pt: f64) -> bool {
 const LIST_INDENT: f64 = 2.5;
 const QUOTE_INDENT: f64 = 2.0;
 const NOTE_INDENT: f64 = 1.2;
+pub(crate) const PAR_INDENT: f64 = 1.2;
 
 pub fn render(doc: &Doc, diags: &mut Diagnostics) -> String {
     render_width(doc, diags, None)
@@ -182,6 +188,7 @@ pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -
         pdf: false,
         notes: 0,
         note_src: Vec::new(),
+        after_par: false,
     };
     r.out.push_str(&format!(
         "<article class=\"fn-doc fn-style-{}{}{}\" data-page=\"{}\" style=\"--fn-page-width:{}pt;--fn-margin:{};--fn-text-size:{}{}{}\">",
@@ -217,7 +224,22 @@ pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -
 }
 
 impl R<'_> {
+    pub(crate) fn indent_next(&self, prefix_empty: bool) -> bool {
+        self.look.indents() && self.after_par && prefix_empty
+    }
+
     fn block(&mut self, b: &Block) {
+        let para = matches!(b, Block::Para(_));
+        if !para {
+            self.after_par = false;
+        }
+        self.block_inner(b);
+        if !para {
+            self.after_par = false;
+        }
+    }
+
+    fn block_inner(&mut self, b: &Block) {
         match b {
             Block::Heading { level, content, label, number } => {
                 let lv = (*level + 1).min(6);
@@ -230,10 +252,12 @@ impl R<'_> {
                 self.out.push_str(&format!("</h{lv}>"));
             }
             Block::Para(c) => {
+                let indent = self.indent_next(true);
                 if !self.para(c, &[]) {
-                    self.out.push_str("<p>");
+                    self.out.push_str(if indent { "<p class=\"fn-indented\">" } else { "<p>" });
                     self.inlines(c);
                     self.out.push_str("</p>");
+                    self.after_par = true;
                 }
             }
             Block::Math { src, line, col, label, number } => {
@@ -250,6 +274,7 @@ impl R<'_> {
                 self.out.push_str(&format!("<{tag}>"));
                 self.indent += LIST_INDENT;
                 for it in items {
+                    self.after_par = false;
                     self.out.push_str("<li>");
                     if !self.para(it, &[]) {
                         self.inlines(it);
@@ -398,6 +423,10 @@ impl R<'_> {
         }
         let base = self.base;
         let mut b = Builder::new(base);
+        let indented = self.indent_next(prefix.is_empty() && !c.is_empty());
+        if indented {
+            b.indent(PAR_INDENT);
+        }
         for (t, st, w) in prefix {
             b.push(*st, Some(w.clone()));
             b.text(t);
@@ -410,7 +439,9 @@ impl R<'_> {
         if b.is_empty() {
             return false;
         }
-        self.out.push_str(&b.finish(measure - self.indent, base, true, true));
+        self.after_par = !b.has_sides();
+        let html = b.finish(measure - self.indent, base, true, true);
+        self.out.push_str(&if indented { html.replacen("<p class=\"fn-par", "<p class=\"fn-par fn-indented", 1) } else { html });
         true
     }
 
