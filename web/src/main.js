@@ -26,6 +26,7 @@ const KEY_SRC = 'functor.source';
 const KEY_NAME = 'functor.name';
 const KEY_DARK = 'functor.dark';
 const KEY_TABS = 'functor.tabs';
+const EMPTY = '---\nfunctor: 1\n---\n\n';
 const BLANK = '---\nfunctor: 1\ntitle: Untitled\n---\n\n# Start\n\nWrite $x.hat$ here.\n';
 
 const store = {
@@ -356,7 +357,7 @@ async function restoreNative(session) {
       const doc = await fn.files.load(e.path).catch(() => null);
       if (doc) out.push(makeTab({ path: doc.path, name: doc.name, text: e.text ?? doc.text, saved: doc.text }));
       else if (e.text != null) out.push(makeTab({ name: e.name, text: e.text, saved: '' }));
-    } else if (typeof e.text === 'string') out.push(makeTab({ name: e.name || 'untitled.fn', text: e.text, saved: e.saved ?? '' }));
+    } else if (typeof e.text === 'string' && e.text !== sample) out.push(makeTab({ name: e.name || 'untitled.fn', text: e.text, saved: e.saved ?? '' }));
   }
   return out;
 }
@@ -571,7 +572,7 @@ async function main() {
   ];
   const session = readSession();
   tabs = fn.native ? await restoreNative(session) : restoreWeb(session);
-  if (!tabs.length) tabs.push(makeTab({ name: 'sample.fn', text: sample }));
+  if (!tabs.length) tabs.push(fn.native ? makeTab({ name: 'untitled.fn', text: EMPTY }) : makeTab({ name: 'sample.fn', text: sample }));
   const first = tabs[Math.min(Math.max(session?.active ?? 0, 0), tabs.length - 1)];
   view = new EditorView({ parent: $('editor'), state: first.state });
   sync = createSync(view, previewEl);

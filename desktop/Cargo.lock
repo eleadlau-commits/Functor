@@ -885,7 +885,7 @@ dependencies = [
 
 [[package]]
 name = "functor-desktop"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "functor-paper",
  "notify",
@@ -897,14 +897,14 @@ dependencies = [
 
 [[package]]
 name = "functor-math"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "functor-symbols",
 ]
 
 [[package]]
 name = "functor-paper"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "functor-math",
  "hypher",
@@ -915,7 +915,7 @@ dependencies = [
 
 [[package]]
 name = "functor-symbols"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "futures-channel"
