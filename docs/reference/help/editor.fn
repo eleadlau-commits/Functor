@@ -23,6 +23,18 @@ The website and the desktop app have the same editor. The source is at the left.
  k-th "related" in lines 73-75 ◄── k-th "related" in the block text
 ```
 
+# Spelling
+
+The editor checks the spelling of prose. A wavy line marks a word that is not in the dictionary. Math, code, labels, references, declarations and URLs are not checked.
+
+| You do | Result |
+|:--|:--|
+| Right-click a marked word, or press `Ctrl+.` (`Cmd+.` on a Mac) | A menu shows suggestions and **Add to my word list**. |
+| Press `Alt+F7` | The next marked word is selected. |
+| Click **Spelling** | Turn the check on or off, choose English (UK) or English (US), and remove words from your word list. |
+
+Your word list stays in this browser or in the desktop app. It is not in the file.
+
 # How it works
 
 Each block in the HTML output tells which source lines it comes from.
