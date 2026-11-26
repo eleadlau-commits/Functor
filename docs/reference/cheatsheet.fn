@@ -32,7 +32,7 @@ in.not, eq.not, integral.x2, integral.circle, plus.circle, (a + b).angle.
 Text in math: "if". Matrix: mat(a, b; c, d). Vector: vec(1, 2, 3).
 Cases: cases(x, x ge 0; -x, x lt 0). abs(x), norm(v), inner(u, v), binom(n, k).
 Labelled arrow: A to^f B. Diagram: diagram(A, B; C, D | f: A to B, g: A to C).
-Curved arrow: f: A to.bend B. 2-cell: alpha: f implies g.
+Curved arrow: f: A to.bend B. Loop: e: A to A. 2-cell: alpha: f implies g.
 Display math: $$ on its own line; each line is a row aligned at its first
 relation; label with {#eq:name} after the closing $$; refer with @eq:name.
 In a chat, put Functor in a fn code block, or a fnmath block for display math.
@@ -163,7 +163,7 @@ Examples: `R.bb`, `g.frak`, `L.script`, `d.up`, `v.bold`, `integral.x2.circle`, 
 | `wrap(L.script, x + y)`, `wrap(T.frak, S.frak, a)` | Any symbol as a fence |
 | `A to^f B`, `A to_p B`, `x =^"def" y` | Label above or below a relation; the arrow grows to fit |
 
-**Diagrams.** A diagram is a grid with arrows: the cells, a bar, then each arrow as a map. Two cells with the same content: write the position, `2.1` (row 2, column 1). Any relation can be the arrow. `to.bend` curves an arrow to its left, `to.bend.flipv` to its right. An arrow between two named arrows is a 2-cell. When two arrows cross, the arrow written first gets a gap.
+**Diagrams.** A diagram is a grid with arrows: the cells, a bar, then each arrow as a map. Two cells with the same content: write the position, `2.1` (row 2, column 1). Any relation can be the arrow. `to.bend` curves an arrow to its left, `to.bend.flipv` to its right, `to.bend.bend` twice as much. `A to A` is a loop on a free side; `to.rot` and `to.turn` move it a quarter or a half circle. An arrow between two named arrows is a 2-cell. When two arrows cross, the arrow written first gets a gap.
 
 ```fn
 $$
@@ -172,6 +172,10 @@ $$
 
 $$
 diagram(A, B | f: A to.bend B, g: A to.bend.flipv B, alpha: f implies g)
+$$
+
+$$
+diagram(T | mu: T to T, eta: T to T)
 $$
 ```
 
@@ -192,7 +196,7 @@ $$ {#eq:square}
 |:--|:--|
 | `set vec(...)` | `style: arrow` or `bold`, `fence:`, `body: column` or `row`, `grow:`, `inline: small` or `full` |
 | `set mat(...)` | `fence:`, `grow:`, `inline: small` or `full` |
-| `set diagram(...)` | `gap: small`, `normal` or `large`, `inline: small` or `full`, `cross: gap` or `plain` |
+| `set diagram(...)` | `gap: small`, `normal` or `large`, `inline: small` or `full`, `cross: gap` or `plain`, `bend: small`, `normal`, `large` or degrees (one bend step) |
 | `set binom(...)`, `set abs(...)`, `set norm(...)`, `set inner(...)`, `set floor(...)`, `set ceil(...)` | `fence:`, `grow:` |
 | `set cases(...)` | `fence:`, `word: "if"`, `grow:` |
 | `set wrap(...)` | `grow: stretch` or `magnify` |

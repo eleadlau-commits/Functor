@@ -67,12 +67,15 @@ $$
 | `set diagram(gap: ...)` | `small`, `normal`, `large` | `normal` |
 | `set diagram(inline: ...)` | `small`, `full` | `small` |
 | `set diagram(cross: ...)` | `gap`, `plain` | `gap` |
+| `set diagram(bend: ...)` | `small` (15°), `normal` (30°), `large` (45°), or degrees from 1 to 80 | `normal` |
 
 The gap between two cells also grows to fit a long label.
 
 # Curved arrows
 
 `bend` on the arrow makes a curved arrow. It is the same `bend` operation as on a symbol. `to.bend` curves to the left of the arrow direction, and `to.bend.flipv` curves to the right. A label goes on the outer side of the curve.
+
+Each `bend` adds one step. One step is 30° at each end, so `to.bend.bend` curves 60°. The most is 80°. The angle is style, so one rule sets it for the file: `set diagram(bend: small)` makes one step 15°, and `set diagram(bend: 20)` makes it 20°. The gap between the cells grows with the angle.
 
 ```fn
 $$
@@ -83,6 +86,40 @@ $$
 $$
 diagram(A, B; C, D | f: A to B, g: A to C, h: B to D, k: C to D, A to.bend D)
 $$
+
+# Loops
+
+A loop is an arrow from a cell to the same cell: `e: A to A`. The loop goes to a free side of the cell. A side is free when no arrow leaves the cell in that direction and no cell is next to it there. When two sides are equally free, the loop goes to the outer side of the diagram, and above a cell that is alone.
+
+```fn
+$$
+diagram(A, B | e: A to A, f: A to B)
+$$
+```
+
+$$
+diagram(A, B | e: A to A, f: A to B)
+$$
+
+A second loop on the same cell goes to the next free side:
+
+```fn
+$$
+diagram(T | mu: T to T, eta: T to T)
+$$
+```
+
+$$
+diagram(T | mu: T to T, eta: T to T)
+$$
+
+`rot` and `turn` move a loop. They have the same meaning as on a symbol: `rot` turns a quarter circle to the left, and `turn` turns a half circle. `X to.rot X` puts the loop to the left of the free side, and `X to.turn X` puts it on the opposite side.
+
+$$
+diagram(X | X to X) quad diagram(X | X to.rot X) quad diagram(X | X to.turn X)
+$$
+
+A loop does not bend. On an arrow that is not a loop, `rot` and `turn` give a warning, because the cells set the direction of the arrow.
 
 # 2-cells
 
@@ -124,4 +161,4 @@ The matrix $mat(a, b; c, d)$ is small in text. A one-row sequence such as $0 to 
 
 # Not in Functor 1
 
-Loops (an arrow from a cell to the same cell) and arrows with a bend angle that you choose come in a later phase.
+A bend angle for one arrow only. `set diagram(bend: ...)` sets the step for the whole file, and `bend.bend` doubles it on one arrow.

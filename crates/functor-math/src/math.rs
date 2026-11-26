@@ -98,6 +98,7 @@ pub struct Edge {
     pub labels: Vec<(Node, Side)>,
     pub name: Option<String>,
     pub bend: f64,
+    pub quarters: u8,
 }
 
 impl Node {
@@ -129,7 +130,7 @@ pub fn parse(src: &str, ctx: &mut Ctx) -> Node {
 }
 
 fn parse_at(src: &str, base: usize, ctx: &mut Ctx) -> Node {
-    let mut p = Parser { s: src, i: 0, base, ctx, depth: 0, too_deep: false, edge_mode: false, edge_bend: 0.0 };
+    let mut p = Parser { s: src, i: 0, base, ctx, depth: 0, too_deep: false, edge_mode: false, edge_bend: 0.0, edge_quarters: 0 };
     let row = p.row(&[]);
     if p.i < p.s.len() {
         let at = p.i;
@@ -192,6 +193,7 @@ struct Parser<'a, 'b, 'c> {
     too_deep: bool,
     edge_mode: bool,
     edge_bend: f64,
+    edge_quarters: u8,
 }
 
 impl Parser<'_, '_, '_> {
@@ -839,6 +841,7 @@ impl Parser<'_, '_, '_> {
         let mut parts: Vec<(usize, usize, Node)> = Vec::new();
         self.edge_mode = true;
         self.edge_bend = 0.0;
+        self.edge_quarters = 0;
         loop {
             self.skip_ws();
             match self.peek() {
@@ -854,7 +857,8 @@ impl Parser<'_, '_, '_> {
             }
         }
         self.edge_mode = false;
-        let bend = self.edge_bend;
+        let mut bend = (self.edge_bend * bend_step(&self.ctx.env.opt("diagram", "bend"))).clamp(-MAX_BEND, MAX_BEND);
+        let mut quarters = self.edge_quarters;
         let Some(k) = parts.iter().position(|(_, _, n)| n.class() == Class::Rel) else {
             self.err(at, "This arrow has no arrow symbol.", Some("Write `f: A to B`. Any relation works, for example `A = B`.".into()));
             return None;
@@ -886,6 +890,7 @@ impl Parser<'_, '_, '_> {
                 if bend != 0.0 {
                     self.err(at, "A 2-cell cannot bend.", Some("Remove `bend` from this arrow.".into()));
                 }
+                quarters = 0;
                 (End::Arrow(a), End::Arrow(b))
             }
             (Some(_), None) | (None, Some(_)) => {
@@ -895,9 +900,13 @@ impl Parser<'_, '_, '_> {
             _ => {
                 let from = self.find_cell(texts, &from_t, parts[0].0)?;
                 let to = self.find_cell(texts, &to_t, parts[k + 1].0)?;
-                if from == to {
-                    self.err(at, "An arrow needs two different cells.", Some("Loops come in a later phase.".into()));
-                    return None;
+                if from == to && bend != 0.0 {
+                    self.warn(at, "A loop does not bend.", Some("Remove `bend`. Use `rot` or `turn` to move the loop to a different side.".into()));
+                    bend = 0.0;
+                }
+                if from != to && quarters != 0 {
+                    self.warn(at, "`rot` and `turn` move a loop. This arrow is not a loop.", Some("Remove `rot` or `turn`. An arrow points from its first cell to its second cell.".into()));
+                    quarters = 0;
                 }
                 (End::Cell(from.0, from.1), End::Cell(to.0, to.1))
             }
@@ -919,7 +928,7 @@ impl Parser<'_, '_, '_> {
                 return None;
             }
         };
-        Some(Edge { from, to, g, labels, name, bend })
+        Some(Edge { from, to, g, labels, name, bend, quarters })
     }
 
     fn is_cell(&self, texts: &[Vec<String>], t: &str) -> bool {
@@ -934,10 +943,14 @@ impl Parser<'_, '_, '_> {
         let mut bent = false;
         for (o, at) in ops {
             if o == "bend" {
-                self.edge_bend = (self.edge_bend.abs() + 30.0).min(60.0) * if self.edge_bend < 0.0 { -1.0 } else { 1.0 };
+                self.edge_bend = (self.edge_bend.abs() + 1.0) * if self.edge_bend < 0.0 { -1.0 } else { 1.0 };
                 bent = true;
             } else if o == "flipv" && bent {
                 self.edge_bend = -self.edge_bend;
+            } else if o == "rot" {
+                self.edge_quarters = (self.edge_quarters + 1) % 4;
+            } else if o == "turn" {
+                self.edge_quarters = (self.edge_quarters + 2) % 4;
             } else {
                 out.push((o.clone(), *at));
             }
@@ -2111,6 +2124,16 @@ fn edge_glyph(g: &Rc<Glyph>, len: f64) -> Glyph {
     Glyph { w: len, h: g.h, d: g.d, items, italic: false }
 }
 
+pub const MAX_BEND: f64 = 80.0;
+
+pub fn bend_step(v: &str) -> f64 {
+    match v {
+        "small" => 15.0,
+        "large" => 45.0,
+        _ => v.parse::<f64>().ok().filter(|d| *d > 0.0 && *d <= MAX_BEND).unwrap_or(30.0),
+    }
+}
+
 fn turn((x, y): (f64, f64), a: f64) -> (f64, f64) {
     let (c, s) = (a.cos(), a.sin());
     (x * c - y * s, x * s + y * c)
@@ -2139,6 +2162,70 @@ fn seg_hit(a: (f64, f64), b: (f64, f64), c: (f64, f64), d: (f64, f64)) -> Option
     ((0.0..=1.0).contains(&t) && (0.0..=1.0).contains(&u)).then_some((t, u))
 }
 
+const SIDES: [(f64, f64); 4] = [(0.0, 1.0), (-1.0, 0.0), (0.0, -1.0), (1.0, 0.0)];
+const LOOP_CHORD: f64 = 560.0;
+const LOOP_HALF: f64 = 150.0;
+
+fn loop_depth() -> f64 {
+    let h = LOOP_HALF.to_radians();
+    let r = LOOP_CHORD / (2.0 * h.sin());
+    r * (1.0 - h.cos())
+}
+
+fn loop_sides(filled: &[Vec<bool>], edges: &[Edge]) -> Vec<Option<usize>> {
+    let nrows = filled.len();
+    let ncols = filled.iter().map(Vec::len).max().unwrap_or(0);
+    let mid = ((ncols as f64 - 1.0) / 2.0, (nrows as f64 - 1.0) / 2.0);
+    let mut taken: Vec<((usize, usize), usize)> = Vec::new();
+    let mut out = Vec::with_capacity(edges.len());
+    for e in edges {
+        let (End::Cell(r, c), End::Cell(r2, c2)) = (e.from, e.to) else {
+            out.push(None);
+            continue;
+        };
+        if (r, c) != (r2, c2) {
+            out.push(None);
+            continue;
+        }
+        let mut dirs: Vec<(f64, f64)> = Vec::new();
+        for o in edges {
+            let (End::Cell(fr, fc), End::Cell(tr, tc)) = (o.from, o.to) else { continue };
+            if (fr, fc) == (tr, tc) {
+                continue;
+            }
+            let half = o.bend.to_radians();
+            let v = |a: (usize, usize), b: (usize, usize)| {
+                let (x, y) = (b.1 as f64 - a.1 as f64, a.0 as f64 - b.0 as f64);
+                let l = (x * x + y * y).sqrt().max(1e-9);
+                (x / l, y / l)
+            };
+            if (fr, fc) == (r, c) {
+                dirs.push(turn(v((fr, fc), (tr, tc)), half));
+            } else if (tr, tc) == (r, c) {
+                dirs.push(turn(v((tr, tc), (fr, fc)), -half));
+            }
+        }
+        let away = (c as f64 - mid.0, mid.1 - r as f64);
+        let score = |k: usize| {
+            let d = SIDES[k];
+            let mut sc = 0.0;
+            sc += 2.0 * dirs.iter().filter(|u| u.0 * d.0 + u.1 * d.1 > 0.38).count() as f64;
+            let (nr, nc) = (r as i64 - d.1 as i64, c as i64 + d.0 as i64);
+            if nr >= 0 && nc >= 0 && filled.get(nr as usize).and_then(|row| row.get(nc as usize)).copied().unwrap_or(false) {
+                sc += 1.0;
+            }
+            sc += 3.0 * taken.iter().filter(|(cell, kk)| *cell == (r, c) && *kk == k).count() as f64;
+            sc -= 0.1 * (away.0 * d.0 + away.1 * d.1);
+            sc + [0.0, 0.03, 0.01, 0.02][k]
+        };
+        let best = (0..4).min_by(|a, b| score(*a).total_cmp(&score(*b))).unwrap_or(0);
+        let k = (best + e.quarters as usize) % 4;
+        taken.push(((r, c), k));
+        out.push(Some(k));
+    }
+    out
+}
+
 fn layout_diagram(rows: &[Vec<Node>], edges: &[Edge], gap: f64, cross: bool, st: St) -> LBox {
     let s = st.scale;
     let cs = St { display: false, ..st };
@@ -2157,11 +2244,25 @@ fn layout_diagram(rows: &[Vec<Node>], edges: &[Edge], gap: f64, cross: bool, st:
     let labels: Vec<Vec<(LBox, Side)>> = edges.iter().map(|e| e.labels.iter().map(|(n, side)| (layout(n, ls), *side)).collect()).collect();
     let mut col_gaps = vec![2600.0 * s * gap; ncols.saturating_sub(1)];
     let mut row_gaps = vec![1900.0 * s * gap; nrows.saturating_sub(1)];
+    let filled: Vec<Vec<bool>> = boxes.iter().map(|r| r.iter().map(|b| b.w > 0.0).collect()).collect();
+    let sides = loop_sides(&filled, edges);
+    for ((e, ls), side) in edges.iter().zip(&labels).zip(&sides) {
+        let (Some(k), End::Cell(r, c)) = (side, e.from) else { continue };
+        let lb = ls.iter().map(|(b, _)| if k % 2 == 0 { b.h + b.d } else { b.w }).fold(0.0, f64::max);
+        let need = (loop_depth() + 2400.0) * s + lb;
+        match k {
+            0 if r > 0 => row_gaps[r - 1] = row_gaps[r - 1].max(need + 450.0 * s),
+            2 if r + 1 < nrows => row_gaps[r] = row_gaps[r].max(need + 450.0 * s),
+            1 if c > 0 => col_gaps[c - 1] = col_gaps[c - 1].max(need + 450.0 * s),
+            3 if c + 1 < ncols => col_gaps[c] = col_gaps[c].max(need + 450.0 * s),
+            _ => {}
+        }
+    }
     for (e, ls) in edges.iter().zip(&labels) {
         let (End::Cell(fr, fc), End::Cell(tr, tc)) = (e.from, e.to) else { continue };
         let lw = ls.iter().map(|(b, _)| b.w).fold(0.0, f64::max);
         let gw = if stretchy(&e.g) { 0.0 } else { e.g.w * s + 600.0 * s };
-        let gw = if e.bend != 0.0 { gw.max(4200.0 * s) } else { gw };
+        let gw = if e.bend != 0.0 { gw.max((3000.0 + 40.0 * e.bend.abs()) * s) } else { gw };
         if fr == tr && fc.abs_diff(tc) == 1 {
             let c = fc.min(tc);
             col_gaps[c] = col_gaps[c].max(lw + 700.0 * s).max(gw);
@@ -2208,7 +2309,7 @@ fn layout_diagram(rows: &[Vec<Node>], edges: &[Edge], gap: f64, cross: bool, st:
         tx.min(ty)
     };
     let mut paths: Vec<Path> = Vec::with_capacity(edges.len());
-    for e in edges {
+    for (e, side) in edges.iter().zip(&sides) {
         let thick = {
             let (_, y0, _, y1) = e.g.ink_box();
             (y1 - y0) * s
@@ -2222,6 +2323,15 @@ fn layout_diagram(rows: &[Vec<Node>], edges: &[Edge], gap: f64, cross: bool, st:
                 let tb = paths[b].thick / 2.0 + 200.0 * s;
                 ((ma.0 + u.0 * ta, ma.1 + u.1 * ta), (mb.0 - u.0 * tb, mb.1 - u.1 * tb), 0.0, true)
             }
+            (End::Cell(fr, fc), End::Cell(..)) if side.is_some() => {
+                let d = SIDES[side.unwrap_or(0)];
+                let (ax, ay) = centre((fr, fc));
+                let t = exit((fr, fc), d);
+                let q = (ax + d.0 * t, ay + d.1 * t);
+                let n = turn(d, std::f64::consts::FRAC_PI_2);
+                let h = LOOP_CHORD * s / 2.0;
+                ((q.0 + n.0 * h, q.1 + n.1 * h), (q.0 - n.0 * h, q.1 - n.1 * h), LOOP_HALF.to_radians(), false)
+            }
             (End::Cell(fr, fc), End::Cell(tr, tc)) => {
                 let (ax, ay) = centre((fr, fc));
                 let (bx, by) = centre((tr, tc));
@@ -2231,7 +2341,7 @@ fn layout_diagram(rows: &[Vec<Node>], edges: &[Edge], gap: f64, cross: bool, st:
                 let u0 = turn(u, half);
                 let u1 = turn(u, -half);
                 let t0 = exit((fr, fc), u0);
-                let t1 = exit((tr, tc), (-u1.0, -u1.1));
+                let t1 = exit((tr, tc), (-u1.0, -u1.1)) + 260.0 * s * half.sin().abs();
                 ((ax + u0.0 * t0, ay + u0.1 * t0), (bx - u1.0 * t1, by - u1.1 * t1), half, false)
             }
             _ => ((0.0, 0.0), (0.0, 0.0), 0.0, true),
@@ -2682,6 +2792,51 @@ mod tests {
         assert!(d.iter().any(|x| x.message.contains("two different arrows")));
         let svg = render(&n, true, "x");
         assert!(svg.contains("<path"));
+    }
+
+    #[test]
+    fn loops_go_to_a_free_side_and_rot_moves_them() {
+        let (n, d) = run("diagram(A, B | e: A to A, f: A to B)", true);
+        assert!(d.is_empty(), "{d:?}");
+        let (rows, edges) = diagram_of(&n);
+        assert_eq!((edges[0].from, edges[0].to), (End::Cell(0, 0), End::Cell(0, 0)));
+        let filled: Vec<Vec<bool>> = rows.iter().map(|r| r.iter().map(|_| true).collect()).collect();
+        assert_eq!(loop_sides(&filled, edges), vec![Some(1), None]);
+        let (n, _) = run("diagram(A, B; C, D | A to B, A to C, B to D, C to D, D to D, A to A)", true);
+        let (rows, edges) = diagram_of(&n);
+        let filled: Vec<Vec<bool>> = rows.iter().map(|r| r.iter().map(|_| true).collect()).collect();
+        let sides = loop_sides(&filled, edges);
+        assert!(matches!(sides[4], Some(2) | Some(3)), "{sides:?}");
+        assert!(matches!(sides[5], Some(0) | Some(1)), "{sides:?}");
+        let (n, d) = run("diagram(T | mu: T to T, eta: T to T, T to.rot T, T to.turn T)", true);
+        assert!(d.is_empty(), "{d:?}");
+        let (_, edges) = diagram_of(&n);
+        let sides = loop_sides(&[vec![true]], edges);
+        assert_eq!(&sides[..2], &[Some(0), Some(2)]);
+        assert_eq!((edges[2].quarters, edges[3].quarters), (1, 2));
+        assert!(render(&n, true, "x").contains("<path"));
+        let (_, d) = run("diagram(A | A to.bend A)", true);
+        assert!(d.iter().any(|x| x.message.contains("loop does not bend")));
+        let (_, d) = run("diagram(A, B | A to.rot B)", true);
+        assert!(d.iter().any(|x| x.message.contains("not a loop")));
+    }
+
+    #[test]
+    fn a_rule_sets_the_bend_step() {
+        let mut env = MathEnv::new();
+        let bends = |env: &MathEnv| {
+            let (n, d) = run_env("diagram(A, B | A to.bend B, A to.bend.bend.flipv B, A to.bend.bend.bend.bend B)", env);
+            assert!(d.is_empty(), "{d:?}");
+            let t = top(n);
+            diagram_of(&t).1.iter().map(|e| e.bend).collect::<Vec<_>>()
+        };
+        assert_eq!(bends(&env), vec![30.0, -60.0, MAX_BEND]);
+        env.kinds.insert("diagram.bend".into(), "small".into());
+        assert_eq!(bends(&env), vec![15.0, -30.0, 60.0]);
+        env.kinds.insert("diagram.bend".into(), "20".into());
+        assert_eq!(bends(&env), vec![20.0, -40.0, MAX_BEND]);
+        assert_eq!(bend_step("large"), 45.0);
+        assert_eq!(bend_step("200"), 30.0);
     }
 
     #[test]

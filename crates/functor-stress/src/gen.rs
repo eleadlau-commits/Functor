@@ -529,7 +529,7 @@ impl<'a> Gen<'a> {
                 (self.r.below(rows), self.r.below(cols)),
                 (self.r.below(rows), self.r.below(cols)),
             );
-            if a == b || cells[a.0][a.1].is_empty() || cells[b.0][b.1].is_empty() {
+            if (a == b && self.r.chance(0.6)) || cells[a.0][a.1].is_empty() || cells[b.0][b.1].is_empty() {
                 continue;
             }
             let pos = |p: (usize, usize)| format!("{}.{}", p.0 + 1, p.1 + 1);
@@ -546,7 +546,15 @@ impl<'a> Gen<'a> {
                 1 => format!("_{}", self.letter()),
                 _ => String::new(),
             };
-            arrows.push(format!("{lab}{} {arrow}{tail} {}", pos(a), pos(b)));
+            let ops = match (a == b, self.r.below(6)) {
+                (true, 0) => ".rot",
+                (true, 1) => ".turn",
+                (false, 0) => ".bend",
+                (false, 1) => ".bend.flipv",
+                (false, 2) if self.r.chance(0.3) => ".bend.bend",
+                _ => "",
+            };
+            arrows.push(format!("{lab}{} {arrow}{ops}{tail} {}", pos(a), pos(b)));
         }
         let body: Vec<String> = cells.iter().map(|r| r.join(", ")).collect();
         if arrows.is_empty() {
@@ -644,9 +652,10 @@ impl<'a> Gen<'a> {
             ),
             12 => format!("set limits(overhang: {})", self.r.pick(&["on", "off"])),
             9 => format!(
-                "set diagram(gap: {}, inline: {})",
+                "set diagram(gap: {}, inline: {}, bend: {})",
                 self.r.pick(&["small", "normal", "large"]),
-                self.r.pick(&["small", "full"])
+                self.r.pick(&["small", "full"]),
+                self.r.pick(&["small", "normal", "large", "20", "60"])
             ),
             0 => format!(
                 "set vec(style: {}, fence: {fence}, body: {})",
