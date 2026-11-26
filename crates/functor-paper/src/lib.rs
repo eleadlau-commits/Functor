@@ -1,6 +1,7 @@
 pub use functor_math::{deform, diag, glyph, lint, math, symbols, trace};
 pub mod ast;
 pub mod doc;
+pub mod incr;
 pub mod inline;
 pub mod json;
 pub mod linebreak;
@@ -27,15 +28,7 @@ impl Output {
     }
 
     pub fn to_json(&self) -> String {
-        let diags = json::array(self.diagnostics.iter().map(|d| {
-            json::Obj::new()
-                .str("severity", d.severity.as_str())
-                .num("line", d.line)
-                .num("col", d.col)
-                .str("message", &d.message)
-                .raw("hint", json::opt(d.hint.as_deref()))
-                .end()
-        }));
+        let diags = diags_json(&self.diagnostics);
         let stats = json::Obj::new()
             .num("built", self.stats.built)
             .num("hits", self.stats.hits)
@@ -44,6 +37,18 @@ impl Output {
         let traces = json::array(self.traces.iter().map(trace_json));
         json::Obj::new().str("html", &self.html).raw("diagnostics", diags).raw("stats", stats).raw("traces", traces).end()
     }
+}
+
+pub fn diags_json(diagnostics: &[Diagnostic]) -> String {
+    json::array(diagnostics.iter().map(|d| {
+        json::Obj::new()
+            .str("severity", d.severity.as_str())
+            .num("line", d.line)
+            .num("col", d.col)
+            .str("message", &d.message)
+            .raw("hint", json::opt(d.hint.as_deref()))
+            .end()
+    }))
 }
 
 pub fn trace_json(t: &Trace) -> String {
@@ -69,7 +74,7 @@ fn traced<T>(env: &math::MathEnv, diags: &mut Diagnostics, f: impl FnOnce(&mut D
     trace::start();
     let out = f(diags);
     let traces = trace::finish();
-    lint::lint(&traces, env, diags);
+    lint::lint(&traces.iter().collect::<Vec<_>>(), env, diags);
     (out, traces)
 }
 

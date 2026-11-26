@@ -1,40 +1,71 @@
-const enc = new TextEncoder();
-const dec = new TextDecoder();
+import { instantiate } from './wasm.js';
+import { createParts, compileParts } from './parts.js';
+
+const STORE = 'functor.glyphs';
+
+function savedGlyphs() {
+  try {
+    return localStorage.getItem(STORE) || '';
+  } catch {
+    return '';
+  }
+}
+
+function keepGlyphs(text) {
+  if (!text) return;
+  try {
+    localStorage.setItem(STORE, text);
+  } catch {}
+}
+
+function startWorker(url) {
+  let worker;
+  try {
+    worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
+  } catch {
+    return null;
+  }
+  const waiting = new Map();
+  let next = 1;
+  worker.onmessage = (e) => {
+    const { id, out, cache } = e.data;
+    keepGlyphs(cache);
+    const done = waiting.get(id);
+    waiting.delete(id);
+    if (done) done(out);
+  };
+  worker.postMessage({ type: 'init', url, cache: savedGlyphs() });
+  return (src, width, reset) =>
+    new Promise((resolve) => {
+      const id = next++;
+      waiting.set(id, resolve);
+      worker.postMessage({ type: 'compile', id, src, width, reset });
+    });
+}
 
 export async function loadFunctor(url) {
-  const res = await fetch(url);
-  const bytes = await res.arrayBuffer();
-  const { instance } = await WebAssembly.instantiate(bytes, {});
-  const w = instance.exports;
-
-  const read = (len) => dec.decode(new Uint8Array(w.memory.buffer, w.result_ptr(), len));
-
-  const callRaw = (fn, text, ...extra) => {
-    const data = enc.encode(text);
-    const ptr = w.alloc(data.length);
-    new Uint8Array(w.memory.buffer, ptr, data.length).set(data);
-    const len = fn(ptr, data.length, ...extra);
-    w.dealloc(ptr, data.length);
-    return len;
-  };
-  const call = (fn, text, ...extra) => read(callRaw(fn, text, ...extra));
-
+  const { w, read, callRaw, call } = await instantiate(url);
+  const saved = savedGlyphs();
+  if (saved) callRaw(w.cache_import, saved);
+  const persist = () => keepGlyphs(read(w.cache_export()));
   const glyphCache = new Map();
-  const STORE = 'functor.glyphs';
-  try {
-    const saved = localStorage.getItem(STORE);
-    if (saved) callRaw(w.cache_import, saved);
-  } catch {}
-  const persist = () => {
-    const text = read(w.cache_export());
-    if (!text) return;
-    try {
-      localStorage.setItem(STORE, text);
-    } catch {}
+  const parts = createParts();
+  const here = (src, width, reset) => {
+    if (reset) w.session_reset();
+    const t = performance.now();
+    const out = JSON.parse(call(w.session_compile, src, width || 0));
+    out.ms = performance.now() - t;
+    persist();
+    return out;
   };
+  const run = startWorker(url) || here;
 
   return {
+    worker: run !== here,
     compile(src, widthPt) {
+      return compileParts(parts, run, src, widthPt);
+    },
+    compileFull(src, widthPt) {
       const t = performance.now();
       const out = JSON.parse(call(w.compile_width, src, widthPt || 0));
       out.ms = performance.now() - t;
@@ -62,14 +93,18 @@ export async function loadNative() {
   const { listen } = await import('@tauri-apps/api/event');
   const { getCurrentWindow } = await import('@tauri-apps/api/window');
   const glyphCache = new Map();
+  const parts = createParts();
+  const run = async (src, width, reset) => {
+    const t = performance.now();
+    const out = JSON.parse(await invoke('compile_parts', { src, width: width || null, reset }));
+    out.ms = performance.now() - t;
+    return out;
+  };
   return {
     native: true,
     setTitle: (title) => getCurrentWindow().setTitle(title),
-    async compile(src, widthPt) {
-      const t = performance.now();
-      const out = JSON.parse(await invoke('compile', { src, width: widthPt || null }));
-      out.ms = performance.now() - t;
-      return out;
+    compile(src, widthPt) {
+      return compileParts(parts, run, src, widthPt);
     },
     async glyph(recipe) {
       if (!glyphCache.has(recipe)) glyphCache.set(recipe, await invoke('glyph', { recipe }));

@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Inline {
     Text(String),
     Strong(Vec<Inline>),
@@ -12,7 +12,7 @@ pub enum Inline {
     Note(Vec<Inline>),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Align {
     None,
     Left,
@@ -20,7 +20,7 @@ pub enum Align {
     Right,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Block {
     Heading { level: usize, content: Vec<Inline>, label: Option<String>, number: Option<String> },
     Para(Vec<Inline>),
@@ -32,7 +32,7 @@ pub enum Block {
     Rule,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Env {
     pub kind: String,
     pub label: Option<String>,
@@ -43,7 +43,7 @@ pub struct Env {
     pub body: Vec<Block>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Target {
     Heading { number: Option<String>, text: String },
     Env { kind: String, number: usize },

@@ -6,7 +6,7 @@ use crate::trace::{look, rough_look, Form, Trace};
 
 const VECTOR_LOOKS: [&str; 2] = ["arrow", "bold"];
 
-pub fn lint(traces: &[Trace], env: &MathEnv, diags: &mut Diagnostics) {
+pub fn lint(traces: &[&Trace], env: &MathEnv, diags: &mut Diagnostics) {
     if env.opt("lint", "notation") == "off" {
         return;
     }
@@ -22,7 +22,7 @@ fn vector_op(t: &Trace) -> Option<&str> {
     it.next().is_none().then_some(first)
 }
 
-fn vector_rule(traces: &[Trace], env: &MathEnv, diags: &mut Diagnostics, done: &mut HashSet<(usize, usize)>) {
+fn vector_rule(traces: &[&Trace], env: &MathEnv, diags: &mut Diagnostics, done: &mut HashSet<(usize, usize)>) {
     let rule = env.vec_style.as_str();
     for t in traces.iter().filter(|t| t.key.starts_with("vec ") && matches!(t.form, Form::Object | Form::Kind)) {
         let Some(h) = vector_op(t) else { continue };
@@ -41,7 +41,7 @@ fn vector_rule(traces: &[Trace], env: &MathEnv, diags: &mut Diagnostics, done: &
     }
 }
 
-fn vector_letters(traces: &[Trace], diags: &mut Diagnostics, done: &mut HashSet<(usize, usize)>) {
+fn vector_letters(traces: &[&Trace], diags: &mut Diagnostics, done: &mut HashSet<(usize, usize)>) {
     let mut first: HashMap<&str, (&str, usize)> = HashMap::new();
     for t in traces.iter().filter(|t| t.form == Form::Name) {
         let Some(h) = vector_op(t) else { continue };
@@ -82,7 +82,7 @@ fn suggestion(f: &Trace, t: &Trace) -> String {
     }
 }
 
-fn same_look(traces: &[Trace], diags: &mut Diagnostics, done: &mut HashSet<(usize, usize)>) {
+fn same_look(traces: &[&Trace], diags: &mut Diagnostics, done: &mut HashSet<(usize, usize)>) {
     let mut rough: HashMap<u64, Vec<usize>> = HashMap::new();
     for (i, t) in traces.iter().enumerate() {
         if let Some(l) = rough_look(t) {

@@ -6,6 +6,7 @@ import { forceLinting } from '@codemirror/lint';
 import { loadFunctor, loadNative, isDesktop } from './functor.js';
 import { functorLanguage, functorHighlight, functorCompletion, functorLinter } from './lang.js';
 import { createInspector, traceAt } from './inspector.js';
+import { patch } from './parts.js';
 import sample from '../../examples/sample.fn?raw';
 import docCss from './doc.css?raw';
 import refsJs from './refs.js?raw';
@@ -47,7 +48,8 @@ let inspect = () => {};
 let last = null;
 let timer = 0;
 let view;
-let seq = 0;
+let wanted = null;
+let running = null;
 let extensions = [];
 let tabs = [];
 let active = null;
@@ -78,19 +80,36 @@ new ResizeObserver(() => {
   resizeTimer = setTimeout(rebreak, 80);
 }).observe(previewEl);
 
-async function render(src) {
-  const mine = ++seq;
+function render(src) {
   lastSrc = src;
-  const out = await fn.compile(src, widthPt);
-  if (mine !== seq) return;
+  wanted = src;
+  if (!running) running = pump();
+  return running;
+}
+
+async function pump() {
+  try {
+    while (wanted !== null) {
+      const src = wanted;
+      wanted = null;
+      const out = await fn.compile(src, widthPt);
+      if (wanted === null) show(out);
+    }
+  } finally {
+    running = null;
+  }
+}
+
+function show(out) {
   last = out;
   if (active) active.out = out;
-  previewEl.innerHTML = last.html;
+  patch(previewEl, last);
   if (window.functorNotes) window.functorNotes(previewEl);
   rebreak();
   const errors = last.diagnostics.filter((d) => d.severity === 'error').length;
   const warnings = last.diagnostics.length - errors;
   const parts = [fn.native ? `Compiled in ${last.nativeMs.toFixed(1)} ms (native)` : `Compiled in ${last.ms.toFixed(1)} ms`];
+  parts.push(`${last.stats.rendered} of ${last.stats.rendered + last.stats.reused} blocks new`);
   parts.push(errors ? `${errors} error${errors > 1 ? 's' : ''}` : 'no errors');
   if (warnings) parts.push(`${warnings} warning${warnings > 1 ? 's' : ''}`);
   parts.push(`${last.stats.built} built, ${last.stats.hits} cached, ${last.stats.fromFont} from font`);
@@ -146,7 +165,7 @@ function schedule(src) {
     render(src);
     markDirty();
     saveSession();
-  }, fn.native ? 30 : 60);
+  }, fn.native || fn.worker ? 30 : 60);
 }
 
 function setSource(text) {
@@ -198,7 +217,7 @@ function activate(tab) {
   view.setState(tab.state);
   nameEl.value = tab.name;
   last = tab.out;
-  if (last) previewEl.innerHTML = last.html;
+  if (last) patch(previewEl, last);
   requestAnimationFrame(() => {
     view.scrollDOM.scrollTop = tab.scroll;
     rightEl.scrollTop = tab.previewScroll;

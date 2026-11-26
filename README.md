@@ -22,7 +22,7 @@ Download the command line tool, the desktop app and the Chrome extension from [R
 
 The website has an editor at the left and a live preview at the right. It runs the compiler in your browser as WebAssembly. No server is necessary.
 
-- Type in the editor. The preview changes at each key.
+- Type in the editor. The preview changes at each key. Only the blocks that you change are compiled and drawn again, and the compiler runs in a background worker, so long notes stay fast.
 - Errors show in the editor and in the problem list. Click a problem to go to its line.
 - Type `.` after a symbol in math to see the operations. Each one shows its meaning and a preview of the glyph.
 - **+** opens a new tab. The browser keeps your tabs and their text.
