@@ -24,6 +24,7 @@ The website has an editor at the left and a live preview at the right. It runs t
 
 - Type in the editor. The preview changes at each key.
 - Errors show in the editor and in the problem list. Click a problem to go to its line.
+- Double-click a word or math in the preview to go to it in the source. Press `Alt+Enter`, or click **Locate**, to find the cursor's place in the preview.
 - Type `.` after a symbol in math to see the operations. Each one shows its meaning and a preview of the glyph.
 - A wavy line marks a word that is not in the dictionary. Only prose is checked: math, code, labels, references and declarations are not. Right-click the word, or press Ctrl+. (Cmd+. on a Mac), for suggestions and **Add to my word list**. Alt+F7 goes to the next word. **Spelling** turns the check on or off, sets UK or US English, and shows your word list.
 - **+** opens a new tab. The browser keeps your tabs and their text.

@@ -292,6 +292,7 @@ pub fn layout(doc: &Doc, diags: &mut Diagnostics) -> Layout {
         notes: 0,
         note_src: Vec::new(),
         after_par: false,
+        top_line: None,
     };
     let c = palette(look, s.accent.as_deref());
     let mut p = P { r, v: Vec::new(), size, measure, indent: 0.0, base: Style::default(), side: Vec::new(), lead: None, tight: false, look, c, head: Vec::new() };
