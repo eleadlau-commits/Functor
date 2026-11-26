@@ -22,7 +22,7 @@ pub enum Align {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Block {
-    Heading { level: usize, content: Vec<Inline>, label: Option<String>, number: Option<String> },
+    Heading { level: usize, content: Vec<Inline>, label: Option<String>, number: Option<String>, new_page: bool },
     Para(Vec<Inline>),
     Math { src: String, line: usize, col: usize, label: Option<String>, number: Option<usize> },
     List { ordered: bool, items: Vec<Vec<Inline>> },
@@ -30,6 +30,7 @@ pub enum Block {
     Code { lang: String, text: String },
     Env(Env),
     Rule,
+    PageBreak,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -320,6 +320,7 @@ fn kind_default(kind: &str, key: &str) -> String {
         ("document", "style") => st.style.clone(),
         ("document", "accent") => "none".into(),
         ("heading", "numbering") => if st.numbering { "on".into() } else { "none".into() },
+        ("heading", "new_page") => if st.new_page == 0 { "none".into() } else { st.new_page.to_string() },
         ("page", "size") => st.page.clone(),
         ("page", "margin") => st.margin.clone(),
         ("text", "size") => st.text_size.clone(),
