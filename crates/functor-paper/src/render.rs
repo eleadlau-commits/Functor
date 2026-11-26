@@ -48,6 +48,7 @@ pub(crate) struct R<'a> {
     pub(crate) notes: usize,
     pub(crate) note_src: Vec<(usize, Vec<Inline>)>,
     pub(crate) after_par: bool,
+    pub(crate) top_line: Option<usize>,
 }
 
 pub fn length_pt(s: &str) -> Option<f64> {
@@ -189,6 +190,7 @@ pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -
         notes: 0,
         note_src: Vec::new(),
         after_par: false,
+        top_line: None,
     };
     r.out.push_str(&format!(
         "<article class=\"fn-doc fn-style-{}{}{}\" data-page=\"{}\" style=\"--fn-page-width:{}pt;--fn-margin:{};--fn-text-size:{}{}{}\">",
@@ -216,8 +218,9 @@ pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -
         }
         r.out.push_str("</header>");
     }
-    for b in &doc.blocks {
-        r.block(b);
+    for (b, s) in doc.blocks.iter().zip(&doc.spans) {
+        r.top_line = None;
+        r.block_at(b, *s);
     }
     r.out.push_str("</article>");
     r.out
@@ -236,6 +239,22 @@ impl R<'_> {
         self.block_inner(b);
         if !para {
             self.after_par = false;
+        }
+    }
+
+    pub(crate) fn block_at(&mut self, b: &Block, (from, to): (usize, usize)) {
+        let start = self.out.len();
+        let attr = match self.top_line {
+            Some(top) => format!(" data-fn-rel=\"{}-{}\"", from.saturating_sub(top), to.saturating_sub(top)),
+            None => format!(" data-fn-line=\"{from}\" data-fn-end-line=\"{to}\""),
+        };
+        let outer = self.top_line.replace(self.top_line.unwrap_or(from));
+        self.block(b);
+        self.top_line = outer;
+        let open = &self.out[start..];
+        if open.starts_with('<') {
+            let name = open[1..].find(|c: char| !c.is_ascii_alphanumeric()).map_or(open.len(), |k| k + 1);
+            self.out.insert_str(start + name, &attr);
         }
     }
 
@@ -327,8 +346,8 @@ impl R<'_> {
             let width = e.width.as_deref().map(|w| format!(" style=\"max-width:{}\"", escape_attr(w))).unwrap_or_default();
             self.out.push_str(&format!("<figure class=\"fn-figure\"{id}{width}>"));
             let was = std::mem::replace(&mut self.in_figure, true);
-            for b in &e.body {
-                self.block(b);
+            for (b, s) in e.body.iter().zip(&e.spans) {
+                self.block_at(b, *s);
             }
             self.in_figure = was;
             self.out.push_str("<figcaption>");
@@ -362,8 +381,8 @@ impl R<'_> {
                 self.out.push_str(&format!(" <span class=\"fn-env-title\">({})</span>", escape(t)));
             }
             self.out.push_str("</div>");
-            for b in &e.body {
-                self.block(b);
+            for (b, s) in e.body.iter().zip(&e.spans) {
+                self.block_at(b, *s);
             }
             (self.base, self.indent) = saved;
             self.out.push_str("</section>");
@@ -376,7 +395,7 @@ impl R<'_> {
             prefix.push((format!(" ({t})"), Style { bold: false, ..self.base }, Wrap { open: "<span class=\"fn-env-title\">".into(), close: "</span>" }));
         }
         prefix.push((".".into(), name_style, name_wrap));
-        let mut body = e.body.iter();
+        let mut body = e.body.iter().zip(&e.spans);
         let first_done = match e.body.first() {
             Some(Block::Para(c)) => self.para(c, &prefix),
             _ => false,
@@ -390,8 +409,8 @@ impl R<'_> {
             }
             self.out.push_str("<span class=\"fn-env-sep\">.</span> ");
         }
-        for b in body {
-            self.block(b);
+        for (b, s) in body {
+            self.block_at(b, *s);
         }
         (self.base, self.indent) = saved;
         if e.kind == "proof" {

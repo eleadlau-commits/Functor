@@ -24,6 +24,7 @@ The website has an editor at the left and a live preview at the right. It runs t
 
 - Type in the editor. The preview changes at each key.
 - Errors show in the editor and in the problem list. Click a problem to go to its line.
+- Double-click a word or math in the preview to go to it in the source. Press `Alt+Enter`, or click **Locate**, to find the cursor's place in the preview.
 - Type `.` after a symbol in math to see the operations. Each one shows its meaning and a preview of the glyph.
 - **+** opens a new tab. The browser keeps your tabs and their text.
 - **Save .fn** downloads your file. **Open** loads a file. **HTML** downloads the compiled page. **PDF** downloads a PDF that Functor sets itself. **Print** opens the print dialog.

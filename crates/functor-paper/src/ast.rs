@@ -41,6 +41,7 @@ pub struct Env {
     pub number: Option<usize>,
     pub caption: Option<Vec<Inline>>,
     pub body: Vec<Block>,
+    pub spans: Vec<(usize, usize)>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
