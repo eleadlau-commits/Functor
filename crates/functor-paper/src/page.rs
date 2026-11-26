@@ -5,7 +5,7 @@ use crate::diag::Diagnostics;
 use crate::doc::Doc;
 use crate::linebreak::INF;
 use crate::math::{self, LBox};
-use crate::render::{capital, columns, has_notes, length_pt, math_pos, page_width_pt, Look, Notes, COLUMN_GAP_PT, NOTE_COLUMN_PT, R};
+use crate::render::{capital, columns, has_notes, length_pt, math_pos, page_width_pt, Look, Notes, COLUMN_GAP_PT, NOTE_COLUMN_PT, PAR_INDENT, R};
 use crate::text::{self, Builder, PItem, PLine, Style, Wrap};
 
 pub const INK: [f32; 3] = [0.106, 0.106, 0.122];
@@ -184,6 +184,7 @@ pub fn layout(doc: &Doc, diags: &mut Diagnostics) -> Layout {
         pdf: true,
         notes: 0,
         note_src: Vec::new(),
+        after_par: false,
     };
     let c = palette(look, s.accent.as_deref());
     let mut p = P { r, v: Vec::new(), size, measure, indent: 0.0, base: Style::default(), side: Vec::new(), lead: None, tight: false, look, c, head: Vec::new() };
@@ -330,6 +331,10 @@ impl P<'_> {
 
     fn para_with(&mut self, c: &[Inline], prefix: &[(String, Style, Wrap)], extra: Option<Draw>) {
         let mut b = self.builder();
+        let indented = self.r.indent_next(prefix.is_empty() && !c.is_empty());
+        if indented {
+            b.indent(PAR_INDENT);
+        }
         for (t, st, w) in prefix {
             b.push(*st, Some(w.clone()));
             b.text(t);
@@ -346,11 +351,25 @@ impl P<'_> {
         let lines = b.place(m, true, true);
         let x0 = self.indent;
         let after = self.place_notes(&lines);
-        self.par_skip();
+        if indented {
+            self.par_join();
+        } else {
+            self.par_skip();
+        }
         let extra = extra.map(|e| e.shifted(self.measure, 0.0));
         self.lines(lines, self.size, x0, self.c.ink, extra);
+        self.r.after_par = after.is_empty();
         self.emit_after(after, x0);
         self.par_skip();
+    }
+
+    fn par_join(&mut self) {
+        let s = self.size;
+        if let Some(V::Glue { w, stretch, shrink }) = self.v.last_mut() {
+            (*w, *stretch, *shrink) = (0.0, 0.1 * s, 0.0);
+            return;
+        }
+        self.v.push(V::Glue { w: 0.0, stretch: 0.1 * s, shrink: 0.0 });
     }
 
     fn place_notes(&mut self, lines: &[PLine]) -> Vec<Vec<PLine>> {
@@ -501,6 +520,17 @@ impl P<'_> {
     }
 
     fn block(&mut self, b: &Block) {
+        let para = matches!(b, Block::Para(_));
+        if !para {
+            self.r.after_par = false;
+        }
+        self.block_inner(b);
+        if !para {
+            self.r.after_par = false;
+        }
+    }
+
+    fn block_inner(&mut self, b: &Block) {
         let s = self.size;
         match b {
             Block::Heading { level, content, number, .. } => {
@@ -1155,6 +1185,23 @@ fn emit(o: &Open, top: f64, draws: &mut Vec<Draw>, behind: &mut Vec<Draw>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn first_x(l: &Layout, word: &str) -> f64 {
+        l.pages.iter().flat_map(|p| &p.draws).find_map(|d| if let Draw::Text { x, s, .. } = d { s.starts_with(word).then_some(*x) } else { None }).unwrap()
+    }
+
+    #[test]
+    fn compact_indents_in_pdf() {
+        let src = "---\nfunctor: 1\n---\n\nset document(style: STYLE)\n\n# One\n\nAnn text.\n\nBob text.\n\n$$ x $$\n\nCal text.\n";
+        for (st, want) in [("compact", true), ("quiet", false)] {
+            let mut diags = Diagnostics::default();
+            let d = crate::doc::parse(&src.replace("STYLE", st), &mut diags);
+            let l = layout(&d, &mut diags);
+            let (a, b, c) = (first_x(&l, "Ann"), first_x(&l, "Bob"), first_x(&l, "Cal"));
+            assert_eq!(b - a > 5.0, want, "{st}: {a} {b}");
+            assert!((c - a).abs() < 0.5, "{st}: {a} {c}");
+        }
+    }
 
     #[test]
     fn margin_notes_do_not_overlap() {

@@ -133,6 +133,10 @@ body:has(> .fn-doc) { container-type: inline-size; margin: 0; }
 .fn-style-compact :is(.fn-definition, .fn-example, .fn-remark) { border-left-color: var(--fn-rule) !important; }
 .fn-style-compact .fn-env:not(.fn-definition, .fn-example, .fn-remark, .fn-proof) > * > .fn-env-name, .fn-style-compact .fn-env:not(.fn-definition, .fn-example, .fn-remark, .fn-proof) .fn-env-name { color: var(--fn-accent); }
 .fn-style-compact .fn-qed { float: none; margin-left: .4em; }
+.fn-doc .fn-indent { display: inline-block; }
+.fn-doc .fn-indented { margin-top: 0; }
+.fn-doc :is(.fn-par, p):has(+ .fn-indented) { margin-bottom: 0; }
+.fn-doc p.fn-indented:not(.fn-par) { text-indent: 1.2em; }
 .fn-doc.fn-style-board { --fn-ink: #e8eef1; --fn-muted: #9fb0ba; --fn-rule: #3a4b55; --fn-accent: #a9c4da; --fn-label: #f0dfa0; --fn-paper: #1e2a31; --fn-code-bg: #2a3a44; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .fn-style-board .fn-title { text-align: left; margin-bottom: 2em; }
 .fn-style-board .fn-title h1 { font-size: 2.1em; line-height: 1.08; margin: 0 0 .35em; }
