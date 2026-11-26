@@ -44,9 +44,9 @@ pub struct Doc {
     pub meta: Meta,
     pub settings: Settings,
     pub blocks: Vec<Block>,
+    pub spans: Vec<(usize, usize)>,
     pub env: MathEnv,
     pub labels: HashMap<String, Target>,
-    pub spans: Vec<(usize, usize)>,
 }
 
 type Line<'a> = (usize, &'a str);
@@ -61,10 +61,9 @@ pub fn parse(src: &str, diags: &mut Diagnostics) -> Doc {
         vars: HashMap::new(),
         labels: HashMap::new(),
         counters: Counters::default(),
-        spans: Vec::new(),
     };
     let body_start = p.front_matter(&lines);
-    let blocks = p.blocks(&lines[body_start..], 0);
+    let (blocks, spans) = p.blocks(&lines[body_start..], 0);
     if p.meta.version.is_none() {
         p.diags.warning(
             1,
@@ -73,7 +72,7 @@ pub fn parse(src: &str, diags: &mut Diagnostics) -> Doc {
             Some("Add `functor: 1` to the front matter, between two `---` lines.".into()),
         );
     }
-    Doc { meta: p.meta, settings: p.settings, blocks, env: p.env, labels: p.labels, spans: p.spans }
+    Doc { meta: p.meta, settings: p.settings, blocks, spans, env: p.env, labels: p.labels }
 }
 
 #[derive(Default)]
@@ -92,7 +91,6 @@ struct DocParser<'d> {
     vars: HashMap<String, String>,
     labels: HashMap<String, Target>,
     counters: Counters,
-    spans: Vec<(usize, usize)>,
 }
 
 fn indent_col(line: &str) -> usize {
@@ -487,129 +485,123 @@ impl DocParser<'_> {
         }
     }
 
-    fn blocks(&mut self, lines: &[Line], depth: usize) -> Vec<Block> {
+    fn blocks(&mut self, lines: &[Line], depth: usize) -> (Vec<Block>, Vec<(usize, usize)>) {
         let mut out = Vec::new();
+        let mut spans = Vec::new();
         let mut para = Span::new();
+        let mut para_span = (0, 0);
         let mut i = 0;
-        let mut par = (0, 0);
-        let mut mark;
+        let end = |k: usize| lines[(k.max(1) - 1).min(lines.len() - 1)].0;
         macro_rules! flush {
             () => {
                 if !para.text.is_empty() {
                     let p = std::mem::replace(&mut para, Span::new());
                     let content = self.inline(&p);
                     out.push(Block::Para(content));
-                    if depth == 0 {
-                        self.spans.push(par);
-                    }
+                    spans.push(para_span);
                 }
-                mark = out.len();
             };
         }
         while i < lines.len() {
             let (n, line) = lines[i];
-            let from = i;
-            mark = out.len();
-            'body: {
-                let t = line.trim();
-                let col = indent_col(line);
-                if t.is_empty() {
-                    flush!();
-                    i += 1;
-                    break 'body;
-                }
-                if self.declaration(n, line) {
-                    flush!();
-                    i += 1;
-                    break 'body;
-                }
-                if let Some(level) = heading_level(t) {
-                    flush!();
-                    let text = t[level..].trim_start();
-                    let text_col = col + (t.len() - text.len());
-                    let (text, label, _) = self.label_attr(text, n, text_col);
-                    let content = self.inline_line(&text, n, text_col);
-                    let number = self.settings.numbering.then(|| self.next_heading(level));
-                    let plain = plain_text(&content);
-                    self.add_label(&label, Target::Heading { number: number.clone(), text: plain }, n, col);
-                    out.push(Block::Heading { level, content, label, number });
-                    i += 1;
-                    break 'body;
-                }
-                if t.starts_with("$$") {
-                    flush!();
-                    let (block, used) = self.display_math(&lines[i..]);
-                    out.push(block);
-                    i += used;
-                    break 'body;
-                }
-                if t.starts_with("```") {
-                    flush!();
-                    let lang = t[3..].trim().to_string();
-                    let mut text = Vec::new();
-                    let mut j = i + 1;
-                    while j < lines.len() && !lines[j].1.trim_start().starts_with("```") {
-                        text.push(lines[j].1);
-                        j += 1;
-                    }
-                    if j >= lines.len() {
-                        self.diags.error(n, col, "This code block has no closing ```.", Some("Add a line with ``` after the code.".into()));
-                    }
-                    out.push(Block::Code { lang, text: text.join("\n") });
-                    i = (j + 1).min(lines.len());
-                    break 'body;
-                }
-                if t.starts_with(":::") {
-                    flush!();
-                    if t == ":::" {
-                        self.diags.error(n, col, "This `:::` closes a block that is not open.", Some("Remove it, or open a block with `::: theorem`.".into()));
-                        i += 1;
-                        break 'body;
-                    }
-                    let (block, used) = self.env_block(&lines[i..], depth);
-                    if let Some(b) = block {
-                        out.push(b);
-                    }
-                    i += used;
-                    break 'body;
-                }
-                if t == "---" || t == "***" {
-                    flush!();
-                    out.push(Block::Rule);
-                    i += 1;
-                    break 'body;
-                }
-                if list_marker(t).is_some() {
-                    flush!();
-                    let (block, used) = self.list(&lines[i..]);
-                    out.push(block);
-                    i += used;
-                    break 'body;
-                }
-                if t.starts_with('|') && lines.get(i + 1).is_some_and(|(_, l)| is_table_sep(l.trim())) {
-                    flush!();
-                    let (block, used) = self.table(&lines[i..]);
-                    out.push(block);
-                    i += used;
-                    break 'body;
-                }
-                if para.text.is_empty() {
-                    par.0 = n;
-                }
-                par.1 = n;
-                para.push_line(t, n, col);
+            let t = line.trim();
+            let col = indent_col(line);
+            if t.is_empty() {
+                flush!();
                 i += 1;
+                continue;
             }
-            if depth == 0 {
-                let end = lines[i.max(from + 1) - 1].0;
-                for _ in mark..out.len() {
-                    self.spans.push((n, end));
+            if self.declaration(n, line) {
+                flush!();
+                i += 1;
+                continue;
+            }
+            if let Some(level) = heading_level(t) {
+                flush!();
+                let text = t[level..].trim_start();
+                let text_col = col + (t.len() - text.len());
+                let (text, label, _) = self.label_attr(text, n, text_col);
+                let content = self.inline_line(&text, n, text_col);
+                let number = self.settings.numbering.then(|| self.next_heading(level));
+                let plain = plain_text(&content);
+                self.add_label(&label, Target::Heading { number: number.clone(), text: plain }, n, col);
+                out.push(Block::Heading { level, content, label, number });
+                spans.push((n, n));
+                i += 1;
+                continue;
+            }
+            if t.starts_with("$$") {
+                flush!();
+                let (block, used) = self.display_math(&lines[i..]);
+                out.push(block);
+                spans.push((n, end(i + used)));
+                i += used;
+                continue;
+            }
+            if t.starts_with("```") {
+                flush!();
+                let lang = t[3..].trim().to_string();
+                let mut text = Vec::new();
+                let mut j = i + 1;
+                while j < lines.len() && !lines[j].1.trim_start().starts_with("```") {
+                    text.push(lines[j].1);
+                    j += 1;
                 }
+                if j >= lines.len() {
+                    self.diags.error(n, col, "This code block has no closing ```.", Some("Add a line with ``` after the code.".into()));
+                }
+                out.push(Block::Code { lang, text: text.join("\n") });
+                spans.push((n, end(j + 1)));
+                i = (j + 1).min(lines.len());
+                continue;
             }
+            if t.starts_with(":::") {
+                flush!();
+                if t == ":::" {
+                    self.diags.error(n, col, "This `:::` closes a block that is not open.", Some("Remove it, or open a block with `::: theorem`.".into()));
+                    i += 1;
+                    continue;
+                }
+                let (block, used) = self.env_block(&lines[i..], depth);
+                if let Some(b) = block {
+                    out.push(b);
+                    spans.push((n, end(i + used)));
+                }
+                i += used;
+                continue;
+            }
+            if t == "---" || t == "***" {
+                flush!();
+                out.push(Block::Rule);
+                spans.push((n, n));
+                i += 1;
+                continue;
+            }
+            if list_marker(t).is_some() {
+                flush!();
+                let (block, used) = self.list(&lines[i..]);
+                out.push(block);
+                spans.push((n, end(i + used)));
+                i += used;
+                continue;
+            }
+            if t.starts_with('|') && lines.get(i + 1).is_some_and(|(_, l)| is_table_sep(l.trim())) {
+                flush!();
+                let (block, used) = self.table(&lines[i..]);
+                out.push(block);
+                spans.push((n, end(i + used)));
+                i += used;
+                continue;
+            }
+            if para.text.is_empty() {
+                para_span.0 = n;
+            }
+            para_span.1 = n;
+            para.push_line(t, n, col);
+            i += 1;
         }
         flush!();
-        let _ = mark;
-        out
+        (out, spans)
     }
 
     fn next_heading(&mut self, level: usize) -> String {
@@ -724,7 +716,8 @@ impl DocParser<'_> {
             }
             body_lines.push((bn, bl));
         }
-        let body = self.blocks(&body_lines, depth + 1);
+        let (body, spans) = self.blocks(&body_lines, depth + 1);
+        let spans = spans.into_iter().map(|(a, b)| (a - n, b - n)).collect();
         let get = |k: &str| attrs.iter().find(|(a, _)| a == k).map(|(_, v)| v.clone());
         for (k, _) in &attrs {
             if !["title", "width"].contains(&k.as_str()) {
@@ -734,7 +727,7 @@ impl DocParser<'_> {
         if kind == "figure" && caption.is_none() {
             self.diags.warning(n, col, "This figure has no caption.", Some("Add a line `Caption: ...` inside the figure.".into()));
         }
-        (Some(Block::Env(Env { kind, label, title: get("title"), width: get("width"), number, caption, body })), used)
+        (Some(Block::Env(Env { kind, label, title: get("title"), width: get("width"), number, caption, body, spans })), used)
     }
 
     fn list(&mut self, lines: &[Line]) -> (Block, usize) {

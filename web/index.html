@@ -30,7 +30,10 @@
         <div class="problems">
           <div class="problems-head">
             <span id="status" class="status">Loading the compiler…</span>
-            <button id="toggle" class="link" aria-expanded="true">Problems</button>
+            <span class="problems-tools">
+              <button id="locate" class="link" title="Show the cursor's place in the preview (Alt+Enter). Double-click the preview to jump back to the source">Locate</button>
+              <button id="toggle" class="link" aria-expanded="true">Problems</button>
+            </span>
           </div>
           <ul id="list" class="list"></ul>
         </div>

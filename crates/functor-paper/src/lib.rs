@@ -136,6 +136,16 @@ mod tests {
     const SAMPLE: &str = "---\nfunctor: 1\ntitle: Test\n---\n\nobject vec: F\nsym csum = sum.circle\nlet n = 3\n\n# Intro {#sec:intro}\n\nWe have $F = m a$ and {n} items, see @eq:main and @sec:intro.\n\n$$\ncsum_(k = 1)^n a_k = 0\n$$ {#eq:main}\n\n::: theorem {#thm:a title=\"Main\"}\nIf $x in.not A$ then @thm:a holds.\n:::\n";
 
     #[test]
+    fn blocks_carry_source_lines() {
+        let src = "---\nfunctor: 1\n---\n\n# Intro\n\nOne line\nand two.\n\n::: note\nFirst.\n\n$$\nx = 1\n$$\n:::\n";
+        let html = compile(src).html;
+        assert!(html.contains("<h2 data-fn-line=\"5\" data-fn-end-line=\"5\""), "{html}");
+        assert!(html.contains("<p data-fn-line=\"7\" data-fn-end-line=\"8\""), "{html}");
+        assert!(html.contains("data-fn-line=\"10\" data-fn-end-line=\"16\""), "{html}");
+        assert!(html.contains("<div data-fn-rel=\"3-5\" class=\"fn-equation\""), "{html}");
+    }
+
+    #[test]
     fn compiles_sample_without_diagnostics() {
         let out = compile(SAMPLE);
         assert!(out.diagnostics.is_empty(), "{:?}", out.diagnostics);

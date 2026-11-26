@@ -102,7 +102,7 @@ impl Session {
                     let mut bd = Diagnostics::default();
                     trace::start();
                     let mut st = flow;
-                    let html = render::render_block(&d, &f, &mut bd, &rel, &mut st);
+                    let html = render::render_block(&d, &f, &mut bd, &rel, &mut st, None);
                     let traces = trace::finish();
                     let grew = Flow { after_par: st.after_par, notes: st.notes - flow.notes };
                     self.pieces.entry(key).or_insert(Piece { html, diags: bd.items, traces, at: 1, flow: grew, used: 0 })
@@ -287,10 +287,24 @@ fn moved(t: &[Trace], from: usize, to: usize) -> Vec<Trace> {
 mod tests {
     use super::*;
 
+    fn without_lines(html: &str) -> String {
+        let mut out = String::new();
+        let mut rest = html;
+        while let Some(k) = rest.find(" data-fn-line=\"") {
+            out.push_str(&rest[..k]);
+            let tail = &rest[k + 1..];
+            let close = tail.find("\" data-fn-end-line=\"").unwrap();
+            let after = &tail[close + 20..];
+            rest = &after[after.find('"').unwrap() + 1..];
+        }
+        out.push_str(rest);
+        out
+    }
+
     fn same(s: &mut Session, src: &str, w: Option<f64>) -> Update {
         let full = crate::compile_width(src, w);
         let u = s.compile(src, w);
-        assert_eq!(s.html(&u), full.html);
+        assert_eq!(s.html(&u), without_lines(&full.html));
         assert_eq!(u.diagnostics, full.diagnostics);
         assert_eq!(s.traces(&u), full.traces);
         u

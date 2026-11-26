@@ -48,6 +48,7 @@ pub(crate) struct R<'a> {
     pub(crate) notes: usize,
     pub(crate) note_src: Vec<(usize, Vec<Inline>)>,
     pub(crate) after_par: bool,
+    pub(crate) top_line: Option<usize>,
 }
 
 pub fn length_pt(s: &str) -> Option<f64> {
@@ -146,8 +147,8 @@ pub fn render_width(doc: &Doc, diags: &mut Diagnostics, width_pt: Option<f64>) -
     let f = frame(doc, width_pt);
     let mut out = format!("{}{}", f.open, f.title);
     let mut st = Flow::default();
-    for b in &doc.blocks {
-        out.push_str(&render_block(doc, &f, diags, b, &mut st));
+    for (i, b) in doc.blocks.iter().enumerate() {
+        out.push_str(&render_block(doc, &f, diags, b, &mut st, doc.spans.get(i).copied()));
     }
     out.push_str("</article>");
     out
@@ -166,7 +167,7 @@ pub struct Flow {
     pub notes: usize,
 }
 
-pub fn render_block(doc: &Doc, f: &Frame, diags: &mut Diagnostics, b: &Block, st: &mut Flow) -> String {
+pub fn render_block(doc: &Doc, f: &Frame, diags: &mut Diagnostics, b: &Block, st: &mut Flow, lines: Option<(usize, usize)>) -> String {
     let mut r = R {
         env: &doc.env,
         labels: &doc.labels,
@@ -181,8 +182,15 @@ pub fn render_block(doc: &Doc, f: &Frame, diags: &mut Diagnostics, b: &Block, st
         notes: st.notes,
         note_src: Vec::new(),
         after_par: st.after_par,
+        top_line: None,
     };
-    r.block(b);
+    match lines {
+        Some(span) => r.block_at(b, span),
+        None => {
+            r.top_line = Some(0);
+            r.block(b);
+        }
+    }
     *st = Flow { after_par: r.after_par, notes: r.notes };
     r.out
 }
@@ -263,6 +271,22 @@ impl R<'_> {
         self.block_inner(b);
         if !para {
             self.after_par = false;
+        }
+    }
+
+    pub(crate) fn block_at(&mut self, b: &Block, (from, to): (usize, usize)) {
+        let start = self.out.len();
+        let (attr, inner) = match self.top_line {
+            Some(base) => (format!(" data-fn-rel=\"{}-{}\"", base + from, base + to), base + from),
+            None => (format!(" data-fn-line=\"{from}\" data-fn-end-line=\"{to}\""), 0),
+        };
+        let outer = self.top_line.replace(inner);
+        self.block(b);
+        self.top_line = outer;
+        let open = &self.out[start..];
+        if open.starts_with('<') {
+            let name = open[1..].find(|c: char| !c.is_ascii_alphanumeric()).map_or(open.len(), |k| k + 1);
+            self.out.insert_str(start + name, &attr);
         }
     }
 
@@ -354,8 +378,8 @@ impl R<'_> {
             let width = e.width.as_deref().map(|w| format!(" style=\"max-width:{}\"", escape_attr(w))).unwrap_or_default();
             self.out.push_str(&format!("<figure class=\"fn-figure\"{id}{width}>"));
             let was = std::mem::replace(&mut self.in_figure, true);
-            for b in &e.body {
-                self.block(b);
+            for (b, s) in e.body.iter().zip(&e.spans) {
+                self.block_at(b, *s);
             }
             self.in_figure = was;
             self.out.push_str("<figcaption>");
@@ -389,8 +413,8 @@ impl R<'_> {
                 self.out.push_str(&format!(" <span class=\"fn-env-title\">({})</span>", escape(t)));
             }
             self.out.push_str("</div>");
-            for b in &e.body {
-                self.block(b);
+            for (b, s) in e.body.iter().zip(&e.spans) {
+                self.block_at(b, *s);
             }
             (self.base, self.indent) = saved;
             self.out.push_str("</section>");
@@ -403,7 +427,7 @@ impl R<'_> {
             prefix.push((format!(" ({t})"), Style { bold: false, ..self.base }, Wrap { open: "<span class=\"fn-env-title\">".into(), close: "</span>" }));
         }
         prefix.push((".".into(), name_style, name_wrap));
-        let mut body = e.body.iter();
+        let mut body = e.body.iter().zip(&e.spans);
         let first_done = match e.body.first() {
             Some(Block::Para(c)) => self.para(c, &prefix),
             _ => false,
@@ -417,8 +441,8 @@ impl R<'_> {
             }
             self.out.push_str("<span class=\"fn-env-sep\">.</span> ");
         }
-        for b in body {
-            self.block(b);
+        for (b, s) in body {
+            self.block_at(b, *s);
         }
         (self.base, self.indent) = saved;
         if e.kind == "proof" {
