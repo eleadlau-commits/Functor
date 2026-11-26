@@ -380,3 +380,35 @@ flowchart LR
 
 - The browser test found a margin-note bug: a cached block kept an absolute note number, so notes after a deleted note had the wrong number. The cache now keeps the count that each block adds.
 - A space at the end of a line does not change a block, so the preview does not change. This is correct, but it made the first timing script wait for ever.
+
+## Page breaks
+
+A page break at a heading is style. A page break in one place is layout in the source.
+
+```mermaid
+flowchart LR
+  A["<code>set heading(new_page: 1)</code>"] --> B["Parser marks each heading<br/>of level 1 that has text before it"]
+  C["<code>===</code> on its own line"] --> D["Page break block"]
+  B --> E["PDF: forced break<br/>compact skips the right column"]
+  D --> E
+  B --> F["HTML: dashed line on screen,<br/>new page when printed"]
+  D --> F
+```
+
+- One rule for all headings of a level and above. Chapters, sections and subsections use the same option with a different number. There is no new chapter level.
+- `===` is one new line form. It looks like a heavy `---` rule. It has no keyword and no backslash.
+- A heading right after the title does not start a page, so `new_page: 1` does not leave the title alone on a page. Two breaks in a row give one break.
+
+| Principle | Score | What it does | Gap |
+|:--|:-:|:--|:--|
+| Meaning | 4 | A heading stays a heading. The rule says only how it starts on the page. | `===` is layout in the source, not meaning. It is for the few places that a rule cannot cover. |
+| Style | 5 | One `set heading(new_page:)` rule for the whole file, the same as `numbering`. | None. |
+| Tight grammar | 4 | One option and one line form. Clear errors for a bad level, `===` in a block, and `===` under a line of text (a Markdown heading). | `===` is new syntax. |
+| Personal use | 5 (was 3) | Chapters on new pages in the PDF and in print. The phase 0 gap "No page breaks for print" is closed. | No odd-page start for two-sided print. |
+
+Total for page breaks: 18 of 20.
+
+### Key hiccups
+
+- Kerning splits a word into more than one text draw in the PDF, so the first test could not find "Alpha". The tests use words with no kerning pair.
+- In `compact`, a forced break goes to the next column. A heading break now also skips the empty right column.

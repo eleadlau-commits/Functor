@@ -220,6 +220,19 @@ mod tests {
     }
 
     #[test]
+    fn page_break_rules() {
+        let out = compile("---\nfunctor: 1\n---\n\nset heading(new_page: 1)\n\n# One\n\nText.\n\n# Two\n\nText.\n\n===\n\n## Three\n");
+        assert!(out.diagnostics.iter().all(|d| d.severity != crate::diag::Severity::Error));
+        assert_eq!(out.html.matches("fn-new-page").count(), 1);
+        assert_eq!(out.html.matches("fn-page-break").count(), 1);
+        let bad = compile("---\nfunctor: 1\n---\n\nset heading(new_page: 7)\n\nTitle\n===\n\n::: note\n===\n:::\n");
+        let msgs: Vec<&str> = bad.diagnostics.iter().map(|d| d.message.as_str()).collect();
+        assert!(msgs.iter().any(|m| m.contains("not a heading level")), "{msgs:?}");
+        assert!(msgs.iter().any(|m| m.contains("does not make the line above a heading")), "{msgs:?}");
+        assert!(msgs.iter().any(|m| m.contains("cannot go in a block")), "{msgs:?}");
+    }
+
+    #[test]
     fn document_style_rules() {
         let quiet = compile("---\nfunctor: 1\n---\n\nText.\n");
         assert!(quiet.html.contains("fn-doc fn-style-quiet"));

@@ -19,6 +19,33 @@ These parts work as in Markdown, with labels added.
 
 One to six `#` signs give the level. Headings have numbers, for example 2.1. A label in curly brackets at the end lets text refer to the heading: `@sec:fields` shows "Section 1". The rule `set heading(numbering: none)` removes the numbers.
 
+# Page breaks
+
+A line with only `===` starts a new page.
+
+```fn
+Text at the end of a part.
+
+===
+
+Text on the next page.
+```
+
+The rule `set heading(new_page: LEVEL)` starts a new page at each heading of that level or a higher level. `new_page: 1` starts a new page at each `#` heading, for example a chapter. `new_page: 2` starts a new page at each `#` and `##` heading. The default is `none`.
+
+```fn
+set heading(new_page: 1)
+```
+
+Things to know:
+
+- The PDF starts a new page. In the `compact` style, the new page is a new page, not the next column.
+- The HTML preview shows a dashed line where the page starts. When you print the HTML page, the browser starts a new page there.
+- A heading at the start of the text, after the title only, does not start a new page. To put the title on its own page, write `===` after the front matter.
+- Two breaks in a row give one break. A break at the end of the file does nothing.
+- `===` cannot go in a `:::` block.
+- `===` directly under a line of text gives a warning. In Markdown, that makes a heading. In Functor, write `# Title`.
+
 # Lists
 
 ```fn

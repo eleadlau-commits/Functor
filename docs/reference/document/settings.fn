@@ -9,7 +9,7 @@ Four rules set the look of the whole page. The rules for math kinds are on [Grid
 
 ```fn
 set document(style: classic, accent: #4a6a85)
-set heading(numbering: none)
+set heading(numbering: none, new_page: 1)
 set page(size: a5, margin: 2cm)
 set text(size: 10pt, font: "Functor LM")
 ```
@@ -23,7 +23,10 @@ set text(size: 10pt, font: "Functor LM")
 
 # heading
 
-`numbering: none` removes the numbers from headings.
+| Option | Values | Result |
+|:--|:--|:--|
+| `numbering` | `none` | removes the numbers from headings |
+| `new_page` | `none` (default), or a level from `1` to `6` | each heading of that level or a higher level starts a new page. `new_page: 1` breaks at each `#` heading. See [Page breaks](document/parts.html). |
 
 # page
 

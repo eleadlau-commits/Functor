@@ -22,13 +22,14 @@ pub struct Settings {
     pub text_size: String,
     pub font: Option<String>,
     pub numbering: bool,
+    pub new_page: usize,
     pub style: String,
     pub accent: Option<String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { page: "a4".into(), margin: "2.5cm".into(), text_size: "11pt".into(), font: None, numbering: true, style: "quiet".into(), accent: None }
+        Settings { page: "a4".into(), margin: "2.5cm".into(), text_size: "11pt".into(), font: None, numbering: true, new_page: 0, style: "quiet".into(), accent: None }
     }
 }
 
@@ -421,6 +422,11 @@ impl DocParser<'_> {
                     }
                 }
                 ("heading", "numbering") => self.settings.numbering = v != "none",
+                ("heading", "new_page") => match v.parse::<usize>() {
+                    Ok(level @ 1..=6) => self.settings.new_page = level,
+                    _ if v == "none" => self.settings.new_page = 0,
+                    _ => self.diags.error(n, arg_col, format!("`{v}` is not a heading level."), Some("Use a level from `1` to `6`, or `none`. `new_page: 2` starts a new page at each `#` and `##` heading.".into())),
+                },
                 ("page", "size") => {
                     if ["a4", "a5", "letter"].contains(&v.as_str()) {
                         self.settings.page = v;
@@ -525,7 +531,8 @@ impl DocParser<'_> {
                 let number = self.settings.numbering.then(|| self.next_heading(level));
                 let plain = plain_text(&content);
                 self.add_label(&label, Target::Heading { number: number.clone(), text: plain }, n, col);
-                out.push(Block::Heading { level, content, label, number });
+                let new_page = level <= self.settings.new_page && !out.is_empty() && !matches!(out.last(), Some(Block::PageBreak));
+                out.push(Block::Heading { level, content, label, number, new_page });
                 spans.push((n, n));
                 i += 1;
                 continue;
@@ -568,6 +575,22 @@ impl DocParser<'_> {
                     spans.push((n, end(i + used)));
                 }
                 i += used;
+                continue;
+            }
+            if t == "===" {
+                if !para.text.is_empty() {
+                    self.diags.warning(n, col, "`===` starts a new page. It does not make the line above a heading.", Some("For a heading, write `# Title`. For a page break, put an empty line before `===`.".into()));
+                }
+                flush!();
+                if depth > 0 {
+                    self.diags.error(n, col, "A page break cannot go in a block.", Some("Put `===` after the `:::` line that closes the block.".into()));
+                } else if out.is_empty() && self.meta.title.is_none() && self.meta.authors.is_empty() {
+                    self.diags.warning(n, col, "This page break has nothing before it.", Some("Remove `===`, or put it after some text.".into()));
+                } else if !matches!(out.last(), Some(Block::PageBreak)) {
+                    out.push(Block::PageBreak);
+                    spans.push((n, n));
+                }
+                i += 1;
                 continue;
             }
             if t == "---" || t == "***" {

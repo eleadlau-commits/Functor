@@ -82,6 +82,7 @@ Use @eq:work.
 | Write | Result |
 |:--|:--|
 | `# Title {#sec:a}`, `## Sub` | Numbered heading with a label |
+| `===` on its own line | New page |
 | `*italic*`, `**bold**`, a word between backticks | Emphasis, bold, code |
 | `[text](https://example.com)`, `![alt](plot.svg)` | Link, image |
 | `- item`, `1. item` | Lists |
@@ -206,7 +207,7 @@ $$ {#eq:square}
 | `set sum(...)`, `set integral(...)`, `set lim(...)`, other big operators and functions with limits | `limits: over` or `side` |
 | `set limits(...)` | `overhang: off` keeps each limit inside the width of its operator |
 | `set document(...)` | `style: quiet`, `classic`, `lecture`, `compact` or `board`; `accent: #4a6a85` |
-| `set heading(...)` | `numbering: none` |
+| `set heading(...)` | `numbering: none`, `new_page: 1` (each `#` heading starts a page; `2` adds `##`) |
 | `set page(...)` | `size: a4`, `a5` or `letter`, `margin: 2.5cm` |
 | `set text(...)` | `size: 11pt`, `font: "Name"` |
 | `set lint(...)` | `notation: off` turns off the notation check |

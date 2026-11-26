@@ -233,7 +233,7 @@ fn block_refs<'a>(b: &'a Block, out: &mut Vec<&'a str>) {
                 inline_refs(c, out);
             }
         }
-        Block::Math { .. } | Block::Code { .. } | Block::Rule => {}
+        Block::Math { .. } | Block::Code { .. } | Block::Rule | Block::PageBreak => {}
     }
 }
 
@@ -265,7 +265,7 @@ fn shift_block(b: &mut Block, off: usize) {
                 shift_inlines(c, off);
             }
         }
-        Block::Code { .. } | Block::Rule => {}
+        Block::Code { .. } | Block::Rule | Block::PageBreak => {}
     }
 }
 

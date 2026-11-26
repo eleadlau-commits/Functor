@@ -292,10 +292,11 @@ impl R<'_> {
 
     fn block_inner(&mut self, b: &Block) {
         match b {
-            Block::Heading { level, content, label, number } => {
+            Block::Heading { level, content, label, number, new_page } => {
                 let lv = (*level + 1).min(6);
                 let id = label.as_deref().map(|l| format!(" id=\"{}\"", label_id(l))).unwrap_or_default();
-                self.out.push_str(&format!("<h{lv}{id}>"));
+                let class = if *new_page { " class=\"fn-new-page\"" } else { "" };
+                self.out.push_str(&format!("<h{lv}{id}{class}>"));
                 if let Some(n) = number {
                     self.out.push_str(&format!("<span class=\"fn-num\">{n}</span> "));
                 }
@@ -369,6 +370,7 @@ impl R<'_> {
             }
             Block::Env(e) => self.env_block(e),
             Block::Rule => self.out.push_str("<hr>"),
+            Block::PageBreak => self.out.push_str("<div class=\"fn-page-break\" role=\"separator\" aria-label=\"Page break\"></div>"),
         }
     }
 

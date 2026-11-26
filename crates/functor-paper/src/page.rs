@@ -60,6 +60,7 @@ enum V {
     Box { h: f64, d: f64, draws: Vec<Draw>, side: Vec<Side> },
     Glue { w: f64, stretch: f64, shrink: f64 },
     Penalty(f64),
+    NewPage,
     Open(Span),
     Close,
 }
@@ -637,7 +638,10 @@ impl P<'_> {
     fn block_inner(&mut self, b: &Block) {
         let s = self.size;
         match b {
-            Block::Heading { level, content, number, .. } => {
+            Block::Heading { level, content, number, new_page, .. } => {
+                if *new_page {
+                    self.v.push(V::NewPage);
+                }
                 let k = match level {
                     1 => 1.3,
                     2 => 1.12,
@@ -729,6 +733,7 @@ impl P<'_> {
             Block::Table { align, header, rows } => self.table(align, header, rows),
             Block::Code { text, .. } => self.code(text),
             Block::Env(e) => self.env(e),
+            Block::PageBreak => self.v.push(V::NewPage),
             Block::Rule => {
                 self.glue(0.8 * s, 0.2 * s, 0.2 * s);
                 let draws = vec![Draw::Rect { x: 0.0, y: 0.0, w: self.measure, h: 0.5, color: self.c.rule }];
@@ -1062,6 +1067,11 @@ impl P<'_> {
         };
         while start < n {
             while start < n && !matches!(v[start], V::Box { .. }) {
+                if matches!(v[start], V::NewPage) {
+                    while !frames.len().is_multiple_of(g.cols) {
+                        frames.push(Vec::new());
+                    }
+                }
                 track(&v[start], &mut open, &mut Vec::new(), &mut Vec::new());
                 start += 1;
             }
@@ -1080,11 +1090,16 @@ impl P<'_> {
             while i < n {
                 let legal = match &v[i] {
                     V::Penalty(p) => *p < INF,
+                    V::NewPage => true,
                     V::Glue { .. } => i > start && prev_box(i, start),
                     _ => false,
                 };
                 if legal {
-                    let pi = if let V::Penalty(p) = v[i] { p } else { 0.0 };
+                    let pi = match v[i] {
+                        V::Penalty(p) => p,
+                        V::NewPage => -INF,
+                        _ => 0.0,
+                    };
                     let total = t + prev_d;
                     let b = if total <= goal {
                         if stretch > 0.0 {
@@ -1187,6 +1202,11 @@ impl P<'_> {
             frames.push(behind);
             start = end;
             if start < n && !matches!(v[start], V::Box { .. }) {
+                if matches!(v[start], V::NewPage) {
+                    while !frames.len().is_multiple_of(g.cols) {
+                        frames.push(Vec::new());
+                    }
+                }
                 track(&v[start], &mut open, &mut Vec::new(), &mut Vec::new());
                 start += 1;
             }
@@ -1295,6 +1315,42 @@ mod tests {
 
     fn first_x(l: &Layout, word: &str) -> f64 {
         l.pages.iter().flat_map(|p| &p.draws).find_map(|d| if let Draw::Text { x, s, .. } = d { s.starts_with(word).then_some(*x) } else { None }).unwrap()
+    }
+
+    fn pages_with(src: &str) -> Vec<Vec<String>> {
+        let mut diags = Diagnostics::default();
+        let d = crate::doc::parse(src, &mut diags);
+        let l = layout(&d, &mut diags);
+        assert!(diags.items.iter().all(|x| x.severity != crate::diag::Severity::Error), "{:?}", diags.items);
+        l.pages.iter().map(|p| p.draws.iter().filter_map(|d| if let Draw::Text { s, .. } = d { Some(s.clone()) } else { None }).collect()).collect()
+    }
+
+    fn page_of(pages: &[Vec<String>], word: &str) -> usize {
+        pages.iter().position(|p| p.iter().any(|s| s.starts_with(word))).unwrap_or_else(|| panic!("{word} in {pages:?}"))
+    }
+
+    #[test]
+    fn headings_start_new_pages_by_level() {
+        let src = "---\nfunctor: 1\ntitle: Notes\n---\n\nset heading(new_page: LEVEL)\n\n# Ezra\n\nAnn.\n\n## Beta\n\nBob.\n\n### Gamma\n\nCal.\n\n# Delta\n\nDan.\n";
+        for (level, want) in [("none", [0, 0, 0, 0]), ("1", [0, 0, 0, 1]), ("2", [0, 1, 1, 2]), ("3", [0, 1, 2, 3])] {
+            let pages = pages_with(&src.replace("LEVEL", level));
+            let got: Vec<usize> = ["Ezra", "Beta", "Gamma", "Delta"].iter().map(|w| page_of(&pages, w)).collect();
+            assert_eq!(got, want, "new_page: {level}");
+            assert_eq!(page_of(&pages, "Notes"), 0);
+        }
+    }
+
+    #[test]
+    fn manual_page_breaks() {
+        let pages = pages_with("---\nfunctor: 1\ntitle: Notes\n---\n\n===\n\nAnn.\n\n===\n\n===\n\nBob.\n\n===\n");
+        assert_eq!(pages.len(), 3);
+        assert_eq!((page_of(&pages, "Notes"), page_of(&pages, "Ann"), page_of(&pages, "Bob")), (0, 1, 2));
+    }
+
+    #[test]
+    fn new_page_in_two_columns_skips_the_right_column() {
+        let pages = pages_with("---\nfunctor: 1\n---\n\nset document(style: compact)\nset page(margin: 1cm)\nset heading(new_page: 1)\n\n# Ezra\n\nAnn.\n\n# Beta\n\nBob.\n");
+        assert_eq!((page_of(&pages, "Ezra"), page_of(&pages, "Beta")), (0, 1));
     }
 
     #[test]
