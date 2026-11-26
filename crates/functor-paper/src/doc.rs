@@ -717,6 +717,7 @@ impl DocParser<'_> {
             body_lines.push((bn, bl));
         }
         let (body, spans) = self.blocks(&body_lines, depth + 1);
+        let spans = spans.into_iter().map(|(a, b)| (a - n, b - n)).collect();
         let get = |k: &str| attrs.iter().find(|(a, _)| a == k).map(|(_, v)| v.clone());
         for (k, _) in &attrs {
             if !["title", "width"].contains(&k.as_str()) {

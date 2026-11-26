@@ -244,11 +244,11 @@ impl R<'_> {
 
     pub(crate) fn block_at(&mut self, b: &Block, (from, to): (usize, usize)) {
         let start = self.out.len();
-        let attr = match self.top_line {
-            Some(top) => format!(" data-fn-rel=\"{}-{}\"", from.saturating_sub(top), to.saturating_sub(top)),
-            None => format!(" data-fn-line=\"{from}\" data-fn-end-line=\"{to}\""),
+        let (attr, inner) = match self.top_line {
+            Some(base) => (format!(" data-fn-rel=\"{}-{}\"", base + from, base + to), base + from),
+            None => (format!(" data-fn-line=\"{from}\" data-fn-end-line=\"{to}\""), 0),
         };
-        let outer = self.top_line.replace(self.top_line.unwrap_or(from));
+        let outer = self.top_line.replace(inner);
         self.block(b);
         self.top_line = outer;
         let open = &self.out[start..];
