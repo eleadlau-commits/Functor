@@ -115,6 +115,23 @@ fn compile(app: AppHandle, src: String, width: Option<f64>) -> String {
     format!("{{\"nativeMs\":{},{}", t.elapsed().as_secs_f64() * 1000.0, &json[1..])
 }
 
+thread_local! {
+    static SESSION: std::cell::RefCell<functor_paper::incr::Session> = std::cell::RefCell::new(functor_paper::incr::Session::new());
+}
+
+#[tauri::command]
+fn compile_parts(app: AppHandle, src: String, width: Option<f64>, reset: bool) -> String {
+    let t = Instant::now();
+    let json = SESSION.with(|s| {
+        let mut s = s.borrow_mut();
+        if reset {
+            s.reset();
+        }
+        with_glyph_cache(&app, || s.compile(&src, width)).to_json().to_string()
+    });
+    format!("{{\"nativeMs\":{},{}", t.elapsed().as_secs_f64() * 1000.0, &json[1..])
+}
+
 #[tauri::command]
 fn glyph(app: AppHandle, recipe: String) -> String {
     with_glyph_cache(&app, || functor_paper::glyph_svg(&recipe)).unwrap_or_default()
@@ -239,6 +256,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             compile,
+            compile_parts,
             glyph,
             symbols,
             initial_file,

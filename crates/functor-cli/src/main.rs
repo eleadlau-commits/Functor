@@ -174,6 +174,27 @@ fn bench(file: Option<&str>) -> Result<bool, String> {
         compile(&src);
         let after = ms(t);
         println!("disk      {} glyphs, {} bytes, load {:.3} ms, then compile {:.2} ms", n, text.len(), load, after);
+        let lines: Vec<&str> = src.lines().collect();
+        let mid = (lines.len() / 2..lines.len()).chain(0..lines.len()).find(|&i| lines[i].chars().next().is_some_and(char::is_alphabetic));
+        if let Some(mid) = mid {
+            let mut session = functor_paper::incr::Session::new();
+            session.compile(&src, None);
+            let mut runs = Vec::new();
+            let mut last = None;
+            for k in 0..20 {
+                let mut edited = lines.clone();
+                let line = format!("{} {}", lines[mid], "w".repeat(k + 1));
+                edited[mid] = &line;
+                let t = Instant::now();
+                last = Some(session.compile(&edited.join("\n"), None));
+                runs.push(ms(t));
+            }
+            runs.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            let gate_edit = runs[runs.len() / 2] < 16.0;
+            ok &= gate_edit;
+            let u = last.unwrap_or_else(|| session.compile(&src, None));
+            println!("edit      line {}: median {:.2} ms, {} of {} blocks new  gate < 16 ms: {}", mid + 1, runs[runs.len() / 2], u.rendered, u.rendered + u.reused, pass(gate_edit));
+        }
     }
     Ok(ok)
 }

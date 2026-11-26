@@ -176,6 +176,61 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('.cm-misspelled').length === 2, null, { timeout: 5000 });
   await page.keyboard.press('Escape');
 
+  const long = ['---\nfunctor: 1\ntitle: Long notes\n---\n\nobject vec: v\n\n'];
+  for (let i = 0; i < 40; i++) {
+    long.push(`# Part ${i} {#sec:p${i}}\n\nWe use $f_${i}(x) = sum_(k = 0)^n a_k x^k$ and $theta.hat$ with plain words to fill the line.^[Note ${i}.]\n\n$$\nintegral_0^1 g(t) dd t = ${i}\n$$ {#eq:e${i}}\n\n::: theorem {#thm:t${i}}\nBy @eq:e${i} and @sec:p${i}, $v + norm(v)$ holds.\n:::\n\n`);
+  }
+  const base = long.join('');
+  const wide = base.replace('object vec: v', 'object vec: v, w');
+  const variants = [
+    base,
+    wide,
+  ];
+  variants.push(wide.replace('# Part 20 {', () => '$$\nx = 1\n$$ {#eq:new}\n\n# Part 20 {').replace('By @eq:e3 ', 'By @eq:new ').replace(/# Part 7 \{[^]*?# Part 8 /, '# Part 8 '));
+  variants.push(variants[2].replace('# Part 30 {', 'A new paragraph in the middle.\n\n# Part 30 {'));
+  const sameAsFull = (src) =>
+    page.evaluate(async (src) => {
+      const x = window.__full || (window.__full = (await WebAssembly.instantiate(await (await fetch('functor.wasm')).arrayBuffer(), {})).instance.exports);
+      const data = new TextEncoder().encode(src);
+      const ptr = x.alloc(data.length);
+      new Uint8Array(x.memory.buffer, ptr, data.length).set(data);
+      const art = document.querySelector('#preview article');
+      const doc = document.querySelector('#preview .fn-doc');
+      const cs = getComputedStyle(doc);
+      const w = Math.round((doc.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) * 0.75 * 100) / 100;
+      const len = x.compile_width(ptr, data.length, w);
+      const full = JSON.parse(new TextDecoder().decode(new Uint8Array(x.memory.buffer, x.result_ptr(), len))).html;
+      const clean = (el) => {
+        el.querySelectorAll('[data-fn-line]').forEach((n) => {
+          n.removeAttribute('data-fn-line');
+          n.removeAttribute('data-fn-end-line');
+        });
+        el.querySelectorAll('.fn-side').forEach((n) => n.removeAttribute('style'));
+        return el.outerHTML;
+      };
+      const t = document.createElement('template');
+      t.innerHTML = full;
+      return clean(art.cloneNode(true)) === clean(t.content.firstElementChild);
+    }, src);
+  await page.click('#tabs .tab-add');
+  await page.click('.cm-content');
+  for (const [i, v] of variants.entries()) {
+    await page.keyboard.press('Control+a');
+    await page.keyboard.insertText(v);
+    const ok = await page.waitForFunction((n) => document.querySelectorAll('#preview .fn-eqnum').length === n, (v.match(/\{#eq:/g) || []).length, { timeout: 10000 }).then(() => true, () => false);
+    let same = false;
+    for (let k = 0; k < 50 && ok && !same; k++) {
+      same = await sameAsFull(v);
+      if (!same) await page.waitForTimeout(100);
+    }
+    if (!same) fail(`incremental preview ${i} differs from a full compile`);
+  }
+  const incStatus = await page.textContent('#status');
+  console.log('incremental:', incStatus);
+  const [, fresh, all] = incStatus.match(/(\d+) of (\d+) blocks new/) || [];
+  if (!(Number(fresh) > 0 && Number(fresh) * 4 < Number(all))) fail('the last edit did not reuse blocks');
+  if (!page.workers().length) fail('the compile does not run in a worker');
+
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await mobile.goto(url);
   await mobile.waitForSelector('.status', { timeout: 10000 });

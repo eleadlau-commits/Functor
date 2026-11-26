@@ -341,6 +341,46 @@ Total for diagrams: 19 of 20 (was 18).
 - At 60° the arrow head of a curved arrow touched the cell. The end of a curved arrow now stops a little earlier when the angle is steep.
 - A loop that faced the next cell sat on the arrow between the two cells. The gap now grows to hold the loop and the arrow.
 
+## Incremental preview
+
+"Speed is part of the design" also applies to the live preview. Before this change, each key compiled the whole file, made all of its HTML again (4 MB for an 850-line note) and replaced the whole preview. The compile also ran on the main thread of the browser.
+
+```mermaid
+flowchart LR
+  K["Key"] --> P["Parse the whole file<br/>labels, numbers, rules"]
+  P --> H["Hash each top-level block<br/>lines relative to the block"]
+  H -->|"same hash"| C["Reuse the HTML from the cache"]
+  H -->|"new hash"| R["Render this block only"]
+  C --> D["Send only new HTML"]
+  R --> D
+  D --> M["Patch only the changed<br/>nodes in the preview"]
+```
+
+- The parse still reads the whole file. It is cheap (2 ms for 3,400 lines), and it gives the correct numbers, labels and rules for each block.
+- The hash of a block has its content with lines relative to the block, the document rules, the width, and the targets of its `@` references. A block that only moves down is not rendered again. A block whose equation number or reference text changes is rendered again.
+- The margin-note number and the paragraph indent flow from block to block. A cached block keeps how many notes it adds, not an absolute number.
+- The compiler runs in a Web Worker on the website. The desktop app keeps one session in the native compiler.
+- `functor bench file.fn` now prints the time of one edit. Gate: 16 ms, one frame.
+
+| Measure | Before | After |
+|:--|:-:|:-:|
+| 850-line note, native compile for one key | 28 ms | 1.7 ms |
+| 850-line note, key to painted preview (browser, with 30 to 60 ms wait) | 249 ms | 62 ms |
+| 3,400-line note, key to painted preview | 898 ms | 120 ms |
+| Longest main-thread block, 3,400 lines | 1,131 ms | 60 ms |
+| HTML sent for one key, 850 lines | 4.7 MB | about 50 KB |
+
+| Principle | Score | What it does now | Gap |
+|:--|:-:|:--|:--|
+| Speed | 5 | Only changed blocks render. Only changed nodes change in the preview. The main thread stays free. | A change to a rule, the width or a heading number above renders many blocks again, as it must. |
+| Correctness | 5 | A test compares the incremental HTML, problems and traces with a full compile after many edits. The browser test compares the preview with a full compile. | None. |
+| One code path | 4 | The full compile uses the same block renderer as the session. | The PDF still sets the whole file each time. |
+
+### Key hiccups
+
+- The browser test found a margin-note bug: a cached block kept an absolute note number, so notes after a deleted note had the wrong number. The cache now keeps the count that each block adds.
+- A space at the end of a line does not change a block, so the preview does not change. This is correct, but it made the first timing script wait for ever.
+
 ## Page breaks
 
 A page break at a heading is style. A page break in one place is layout in the source.
