@@ -6,6 +6,8 @@ import { forceLinting } from '@codemirror/lint';
 import { loadFunctor, loadNative, isDesktop } from './functor.js';
 import { functorLanguage, functorHighlight, functorCompletion, functorLinter } from './lang.js';
 import { createInspector, traceAt } from './inspector.js';
+import { spellCheck } from './spell/index.js';
+import { spellPanel } from './spell/panel.js';
 import sample from '../../examples/sample.fn?raw';
 import docCss from './doc.css?raw';
 import refsJs from './refs.js?raw';
@@ -554,6 +556,7 @@ async function main() {
     functorHighlight,
     functorCompletion(fn, info),
     functorLinter(() => last),
+    spellCheck(),
     EditorView.lineWrapping,
     EditorView.updateListener.of((u) => {
       if (u.docChanged) schedule(u.state.doc.toString());
@@ -574,6 +577,7 @@ async function main() {
   if (fn.native) setupDesktop();
   else setupWeb();
   $('print').addEventListener('click', () => window.print());
+  spellPanel($('spell'));
   window.functorRefs(previewEl);
   const dark = $('dark');
   const setDark = (on) => {

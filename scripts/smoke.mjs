@@ -92,6 +92,37 @@ try {
   console.log('tabs after reload:', tabNames);
   if (tabNames.length !== 2 || tabNames[1] !== 'notes.fn') fail('the website did not keep its tabs');
 
+  await page.click('#tabs .tab-add');
+  await page.click('.cm-content');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('---\nfunctor: 1\ntitle: Teh title\n---\n\nobject recieve: v\n\nThe teh word $alpah + recieve$ and `teh` and @eq:teh {#sec:teh} and teh.hat.\n');
+  await page.waitForSelector('.cm-misspelled', { timeout: 10000 });
+  const wrong = await page.locator('.cm-misspelled').allTextContents();
+  console.log('misspelled:', wrong);
+  if (JSON.stringify(wrong) !== '["Teh","teh"]') fail(`spell check marks ${JSON.stringify(wrong)}, not only the prose words`);
+  await page.locator('.cm-misspelled').nth(1).click({ button: 'right' });
+  await page.waitForSelector('.cm-spell-fix', { timeout: 10000 });
+  const fixes = await page.locator('.cm-spell-fix').allTextContents();
+  console.log('suggestions:', fixes);
+  if (!fixes.includes('the')) fail('no suggestion "the" for teh');
+  if (shots) await page.screenshot({ path: `${shots}/site-spell-menu.png` });
+  await page.locator('.cm-spell-fix', { hasText: /^the$/ }).click();
+  await page.waitForFunction(() => document.querySelector('.cm-content').textContent.includes('The the word'), null, { timeout: 5000 });
+  await page.waitForFunction(() => document.querySelectorAll('.cm-misspelled').length === 1, null, { timeout: 5000 });
+  await page.keyboard.press('Control+End');
+  await page.keyboard.type('A zorbly word.');
+  await page.waitForFunction(() => document.querySelectorAll('.cm-misspelled').length === 2, null, { timeout: 5000 });
+  await page.locator('.cm-misspelled').last().click({ button: 'right' });
+  await page.click('.cm-spell-add');
+  await page.waitForFunction(() => document.querySelectorAll('.cm-misspelled').length === 1, null, { timeout: 5000 });
+  await page.click('#spell');
+  const mine = await page.locator('.spell-words li span').allTextContents();
+  if (!mine.includes('zorbly')) fail('zorbly is not in the word list');
+  if (shots) await page.screenshot({ path: `${shots}/site-spell-panel.png` });
+  await page.click('.spell-words button');
+  await page.waitForFunction(() => document.querySelectorAll('.cm-misspelled').length === 2, null, { timeout: 5000 });
+  await page.keyboard.press('Escape');
+
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await mobile.goto(url);
   await mobile.waitForSelector('.status', { timeout: 10000 });
