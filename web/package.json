@@ -1,7 +1,7 @@
 {
   "name": "functor-web",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "wasm": "cargo build --release -p functor-wasm --target wasm32-unknown-unknown && node -e \"const fs=require('fs');fs.mkdirSync('public',{recursive:true});fs.copyFileSync('../target/wasm32-unknown-unknown/release/functor_wasm.wasm','public/functor.wasm')\"",

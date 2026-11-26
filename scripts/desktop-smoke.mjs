@@ -106,11 +106,12 @@ try {
   await page.goto(url);
   await page.waitForSelector('.status.ok', { timeout: 10000 });
 
-  if ((await names(page)).join() !== 'sample.fn') fail(`first start tabs: ${await names(page)}`);
+  if ((await names(page)).join() !== 'untitled.fn') fail(`first start tabs: ${await names(page)}`);
+  if ((await editorText(page)).includes('# ')) fail('first start tab is not empty');
 
   await page.click('.cm-content');
   await page.keyboard.press('Control+t');
-  if ((await names(page)).join() !== 'sample.fn,untitled.fn') fail(`after Ctrl+T: ${await names(page)}`);
+  if ((await names(page)).join() !== 'untitled.fn,untitled-2.fn') fail(`after Ctrl+T: ${await names(page)}`);
   if (!(await editorText(page)).includes('Write $x.hat$ here.')) fail('new tab has no blank document');
   await page.keyboard.press('Control+End');
   await page.keyboard.type('\nA draft line with $x^2$.');
@@ -118,18 +119,18 @@ try {
 
   await page.keyboard.press('Control+o');
   await page.waitForFunction(() => document.querySelectorAll('#tabs .tab').length === 4);
-  if ((await names(page)).join() !== 'sample.fn,untitled.fn,groups.fn,limits.fn') fail(`after open: ${await names(page)}`);
+  if ((await names(page)).join() !== 'untitled.fn,untitled-2.fn,groups.fn,limits.fn') fail(`after open: ${await names(page)}`);
   if ((await activeName(page)) !== 'limits.fn') fail('the last opened file is not active');
   const title = await page.title();
   if (title !== 'limits.fn · Functor') fail(`title is ${title}`);
 
   await page.keyboard.press('Control+1');
-  if ((await activeName(page)) !== 'sample.fn') fail('Ctrl+1 does not show the first tab');
+  if ((await activeName(page)) !== 'untitled.fn') fail('Ctrl+1 does not show the first tab');
   await page.keyboard.press('Control+Shift+Tab');
   if ((await activeName(page)) !== 'limits.fn') fail('Ctrl+Shift+Tab does not wrap to the last tab');
   await page.keyboard.press('Control+Tab');
   await page.keyboard.press('Control+Tab');
-  if ((await activeName(page)) !== 'untitled.fn') fail('Ctrl+Tab does not go to the next tab');
+  if ((await activeName(page)) !== 'untitled-2.fn') fail('Ctrl+Tab does not go to the next tab');
   if (!(await editorText(page)).includes('A draft line')) fail('the untitled tab lost its text');
 
   await page.evaluate(() => {
@@ -156,7 +157,7 @@ try {
   await page.mouse.move(from.x + from.width / 2 + 20, from.y + from.height / 2, { steps: 3 });
   await page.mouse.move(to.x + to.width * 0.8, to.y + to.height / 2, { steps: 8 });
   await page.mouse.up();
-  if ((await names(page)).join() !== 'sample.fn,untitled.fn,limits.fn,groups.fn') fail(`drag did not reorder: ${await names(page)}`);
+  if ((await names(page)).join() !== 'untitled.fn,untitled-2.fn,limits.fn,groups.fn') fail(`drag did not reorder: ${await names(page)}`);
 
   if (shots) {
     await page.click('#tabs .tab:nth-child(4)');
@@ -179,7 +180,7 @@ try {
   await page.click('#tabs .tab:nth-child(4)');
   await page.reload();
   await page.waitForSelector('.status.ok', { timeout: 10000 });
-  if ((await names(page)).join() !== 'sample.fn,untitled.fn,limits.fn,groups.fn') fail(`restore order: ${await names(page)}`);
+  if ((await names(page)).join() !== 'untitled.fn,untitled-2.fn,limits.fn,groups.fn') fail(`restore order: ${await names(page)}`);
   if ((await activeName(page)) !== 'groups.fn') fail('restore did not keep the active tab');
   await page.click('#tabs .tab:nth-child(2)');
   if (!(await editorText(page)).includes('A draft line')) fail('restore lost the unsaved draft');
