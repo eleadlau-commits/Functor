@@ -23,6 +23,16 @@ The website and the desktop app have the same editor. The source is at the left.
  k-th "related" in lines 73-75 ◄── k-th "related" in the block text
 ```
 
+# See the current section
+
+When you scroll the preview, a bar at its top shows the section that you read. It shows the number and the title of each level, for example:
+
+```text
+ 2 Vectors  ›  2.3 Inner products
+```
+
+Click a part of the bar to go to the start of that section. The bar is hidden above the first heading. HTML pages that `functor compile` writes have the same bar. Print and the PDF do not show it.
+
 # Spelling
 
 The editor checks the spelling of prose. A wavy line marks a word that is not in the dictionary. Math, code, labels, references, declarations and URLs are not checked.

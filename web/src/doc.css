@@ -177,7 +177,7 @@ body:has(> .fn-doc) { container-type: inline-size; margin: 0; }
   .fn-style-lecture :is(.fn-theorem, .fn-lemma, .fn-corollary, .fn-proposition).fn-headed { margin-right: 0; }
 }
 }
-.fn-dark .fn-doc, .fn-doc.fn-dark, .fn-pop.fn-dark {
+.fn-dark .fn-doc, .fn-doc.fn-dark, .fn-pop.fn-dark, .fn-here.fn-dark {
   --fn-ink: #e4e5ea;
   --fn-muted: #a2a6b2;
   --fn-rule: #3a3f49;
@@ -207,6 +207,24 @@ body:has(> .fn-doc) { container-type: inline-size; margin: 0; }
 .fn-pop .fn-env-sep { display: none; }
 .fn-pop .fn-qed { display: none; }
 .fn-pop .fn-math { display: inline-block; overflow: visible; }
+.fn-here {
+  --fn-ink: #1b1b1f; --fn-muted: #5b5b66; --fn-rule: #d9d9e0; --fn-accent: #4a6a85; --fn-paper: #fff;
+  position: fixed; z-index: 40; box-sizing: border-box; display: flex; align-items: baseline; gap: .4em; overflow: hidden; white-space: nowrap;
+  padding: .45em 1.2em; background: color-mix(in srgb, var(--fn-paper) 92%, transparent); backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--fn-rule); color: var(--fn-muted);
+  font-family: var(--fn-font, "Functor LM", "Latin Modern Roman", "CMU Serif", serif); font-size: 14px; line-height: 1.3;
+}
+.fn-here[hidden] { display: none; }
+.fn-here.fn-style-board { --fn-ink: #e8eef1; --fn-muted: #9fb0ba; --fn-rule: #3a4b55; --fn-accent: #a9c4da; --fn-paper: #1e2a31; }
+.fn-here-item { all: unset; cursor: pointer; display: inline-flex; align-items: baseline; gap: .45em; min-width: 0; overflow: hidden; text-overflow: ellipsis; border-radius: 3px; }
+.fn-here-item:last-child { color: var(--fn-ink); flex-shrink: 0; max-width: 70%; }
+.fn-here-item:hover .fn-here-text { text-decoration: underline; text-decoration-color: var(--fn-rule); text-underline-offset: 3px; }
+.fn-here-item:focus-visible { outline: 2px solid var(--fn-accent); outline-offset: 2px; }
+.fn-here-num { color: var(--fn-accent); font-variant-numeric: lining-nums tabular-nums; }
+.fn-here-text { overflow: hidden; text-overflow: ellipsis; }
+.fn-here-text .fn-math { vertical-align: middle; }
+.fn-here-sep { color: var(--fn-rule); }
+.fn-doc :is(h2, h3, h4, h5, h6) { scroll-margin-top: 2.6rem; }
 .fn-back {
   position: fixed; z-index: 50; right: 16px; bottom: 16px; font: 500 13px/1 system-ui, sans-serif; color: #fff; background: #4a6a85;
   border: 0; border-radius: 99px; padding: 9px 14px; box-shadow: 0 4px 14px rgba(0, 0, 0, .2); cursor: pointer;
@@ -221,7 +239,7 @@ body:has(> .fn-doc) { container-type: inline-size; margin: 0; }
 }
 @media print {
   .fn-doc, .fn-dark .fn-doc, .fn-doc.fn-dark, body > .fn-doc { width: auto; max-width: none; padding: 0; --fn-ink: #1b1b1f; --fn-muted: #5b5b66; --fn-rule: #d9d9e0; --fn-accent: #4a6a85; --fn-paper: #fff; --fn-code-bg: #f5f5f8; }
-  .fn-pop, .fn-back { display: none !important; }
+  .fn-pop, .fn-back, .fn-here { display: none !important; }
   .fn-doc .fn-page-break { break-after: page; border: 0; margin: 0; }
   .fn-doc .fn-new-page { break-before: page; margin-top: 0; }
   .fn-doc .fn-new-page::before { display: none; }
