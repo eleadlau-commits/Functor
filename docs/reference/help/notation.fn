@@ -18,7 +18,9 @@ The compiler keeps a trace for each symbol. The trace shows the four layers of t
 
 # See a trace
 
-In the editor and the desktop app, put the cursor on a symbol. The **Inspector** under the editor shows its four layers and the glyph.
+In the editor and the desktop app, put the cursor on a symbol. The **Symbol** panel shows its four layers and the glyph.
+
+The **Symbol** panel and the **Problems** panel are dock panels. Each panel has three buttons in its title bar. One button moves the panel between the bottom of the editor and the side of the window. One button opens the panel in its own window. One button hides the panel. The **Problems** and **Symbol** buttons in the status bar show a hidden panel again. In a panel window, the dock button puts the panel back. Click a problem in a panel window to move the cursor in the editor.
 
 In a terminal, `functor trace file.fn` prints the trace of each symbol. Add a line, or a line and a column, to see one place:
 
@@ -33,7 +35,7 @@ $ functor trace paper.fn 9:7
 
 # The notation check
 
-The check compares the traces of all symbols in the document. It finds two problems: one look with two meanings, and one meaning with two looks. Each finding is a warning with a hint. `functor check` shows the same warnings.
+The check compares the traces of all symbols in the document. It finds two problems: one look with two meanings, and one meaning with two looks. Each finding is a warning with a hint in the **Problems** panel. `functor check` shows the same warnings.
 
 | Check | You wrote | Hint |
 |:--|:--|:--|

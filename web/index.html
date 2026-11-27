@@ -27,22 +27,21 @@
     <main class="panes">
       <section class="left">
         <div id="editor" class="editor"></div>
-        <section id="inspector" class="inspector" aria-label="Symbol inspector" aria-live="polite" hidden></section>
-        <div class="problems">
-          <div class="problems-head">
-            <span id="status" class="status">Loading the compiler…</span>
-            <span class="problems-tools">
-              <button id="locate" class="link" title="Show the cursor's place in the preview (Alt+Enter). Double-click the preview to jump back to the source">Locate</button>
-              <button id="toggle" class="link" aria-expanded="true">Problems</button>
-            </span>
-          </div>
-          <ul id="list" class="list"></ul>
+        <div id="dock-bottom" class="dock dock-bottom" aria-label="Bottom dock" hidden></div>
+        <div class="statusbar">
+          <span id="status" class="status">Loading the compiler…</span>
+          <span class="status-tools">
+            <button id="locate" class="link" title="Show the cursor's place in the preview (Alt+Enter). Double-click the preview to jump back to the source">Locate</button>
+            <button id="show-problems" class="link toggle" aria-pressed="true">Problems</button>
+            <button id="show-symbol" class="link toggle" aria-pressed="true">Symbol</button>
+          </span>
         </div>
       </section>
       <div class="divider" id="divider" role="separator" aria-orientation="vertical"></div>
       <section class="right">
         <div id="preview" class="preview"></div>
       </section>
+      <aside id="dock-side" class="dock dock-side" aria-label="Side dock" hidden></aside>
     </main>
     <script type="module" src="./src/main.js"></script>
   </body>

@@ -6,6 +6,7 @@ import { forceLinting } from '@codemirror/lint';
 import { loadFunctor, loadNative, isDesktop } from './functor.js';
 import { functorLanguage, functorHighlight, functorCompletion, functorLinter } from './lang.js';
 import { createInspector, traceAt } from './inspector.js';
+import { createDock } from './dock.js';
 import { patch } from './parts.js';
 import { spellCheck } from './spell/index.js';
 import { spellPanel } from './spell/panel.js';
@@ -41,7 +42,6 @@ const store = {
 
 const $ = (id) => document.getElementById(id);
 const statusEl = $('status');
-const listEl = $('list');
 const previewEl = $('preview');
 const nameEl = $('name');
 const tabsEl = $('tabs');
@@ -49,6 +49,7 @@ const rightEl = document.querySelector('.right');
 
 let fn;
 let inspect = () => {};
+let dock = null;
 let sync = null;
 let last = null;
 let timer = 0;
@@ -119,43 +120,23 @@ function show(out) {
   if (warnings) parts.push(`${warnings} warning${warnings > 1 ? 's' : ''}`);
   parts.push(`${last.stats.built} built, ${last.stats.hits} cached, ${last.stats.fromFont} from font`);
   statusEl.textContent = parts.join(' · ');
+  statusEl.title = statusEl.textContent;
   statusEl.className = 'status ' + (errors ? 'bad' : warnings ? 'warn' : 'ok');
-  listEl.replaceChildren(
-    ...last.diagnostics.map((d) => {
-      const li = document.createElement('li');
-      li.className = d.severity;
-      const loc = document.createElement('span');
-      loc.className = 'loc';
-      loc.textContent = `${d.line}:${d.col}`;
-      const msg = document.createElement('span');
-      msg.className = 'msg';
-      msg.textContent = d.message;
-      li.append(loc, msg);
-      if (d.hint) {
-        const hint = document.createElement('span');
-        hint.className = 'hint';
-        hint.textContent = d.hint;
-        li.append(hint);
-      }
-      li.tabIndex = 0;
-      const jump = () => {
-        const doc = view.state.doc;
-        const line = doc.line(Math.min(Math.max(d.line, 1), doc.lines));
-        const pos = Math.min(line.from + d.col - 1, line.to);
-        view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
-        view.focus();
-      };
-      li.addEventListener('click', jump);
-      li.addEventListener('keydown', (e) => { if (e.key === 'Enter') jump(); });
-      return li;
-    }),
-  );
+  dock?.update('problems', last.diagnostics);
   if (view) {
     sync?.mark();
     inspectCursor(view.state);
     forceLinting(view);
     if (view.hasFocus) view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: 'nearest' }) });
   }
+}
+
+function jumpTo(lineNo, col) {
+  const doc = view.state.doc;
+  const line = doc.line(Math.min(Math.max(lineNo, 1), doc.lines));
+  const pos = Math.min(line.from + col - 1, line.to);
+  view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+  view.focus();
 }
 
 function inspectCursor(state) {
@@ -570,7 +551,14 @@ function setupDivider() {
 
 async function main() {
   fn = isDesktop ? await loadNative() : await loadFunctor(new URL('functor.wasm', document.baseURI).href);
-  inspect = createInspector($('inspector'), fn);
+  dock = await createDock({
+    store,
+    docks: { bottom: $('dock-bottom'), side: $('dock-side') },
+    toggles: { problems: $('show-problems'), symbol: $('show-symbol') },
+    onJump: (line, col) => view && jumpTo(line, col),
+    onNote: showError,
+  });
+  inspect = createInspector(fn, (t, svg) => dock.update('symbol', { t, svg }));
   const info = await fn.symbols();
   extensions = [
     basicSetup,
@@ -615,10 +603,6 @@ async function main() {
   };
   setDark(store.get(KEY_DARK) === '1');
   dark.addEventListener('click', () => setDark(!previewEl.classList.contains('fn-dark')));
-  $('toggle').addEventListener('click', (e) => {
-    const open = document.body.classList.toggle('problems-closed');
-    e.target.setAttribute('aria-expanded', String(!open));
-  });
   setupDivider();
 }
 
