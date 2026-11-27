@@ -6,7 +6,7 @@ on:
       tag:
         description: Tag of the release, for example v0.1.0
         required: true
-        default: v0.1.1
+        default: v0.1.2
       publish:
         description: Publish the draft that a past run made. Builds nothing.
         type: boolean
