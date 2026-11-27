@@ -18,6 +18,7 @@
   margin: 0 auto;
   padding: var(--fn-margin, 2.5cm);
   box-sizing: border-box;
+  position: relative;
 }
 .fn-doc .fn-math { display: inline-block; overflow: visible; }
 .fn-doc .fn-par { margin: .6em 0; text-align: left; hyphens: manual; }
