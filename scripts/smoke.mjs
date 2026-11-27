@@ -101,7 +101,7 @@ try {
   await page.keyboard.press('Control+End');
   await page.keyboard.type('\n\nBad $alpah + x.circel$ and @eq:nope.\n');
   await page.waitForSelector('.status.bad', { timeout: 5000 });
-  const items = await page.locator('#list li').allTextContents();
+  const items = await page.locator('#panel-problems li').allTextContents();
   console.log('problems:', items);
   if (!items.some((t) => t.includes('Did you mean `alpha`?'))) fail('no suggestion for alpah');
   if (!items.some((t) => t.includes('Did you mean `circle`?'))) fail('no suggestion for circel');
@@ -119,19 +119,50 @@ try {
   await page.keyboard.press('Control+a');
   await page.keyboard.type('---\nfunctor: 1\n---\n\nobject vec: v\n\n$$\nnorm(v) = (v).vbar.x2\n$$\n\nVector $v$');
   await page.keyboard.press('ArrowLeft');
-  await page.waitForSelector('#inspector:not([hidden]) .insp-layers', { timeout: 5000 });
-  const layers = await page.locator('#inspector .insp-layers li').allTextContents();
+  await page.waitForSelector('#panel-symbol .insp-layers', { timeout: 5000 });
+  const layers = await page.locator('#panel-symbol .insp-layers li').allTextContents();
   console.log('inspector:', layers);
   if (layers.length !== 4 || !layers[0].includes('object vec: v') || !layers[2].includes('v.arrow')) fail('inspector does not show the four layers of v');
-  const notes = await page.locator('#list li').allTextContents();
+  const notes = await page.locator('#panel-problems li').allTextContents();
   if (!notes.some((t) => t.includes('Write `norm(v)`.'))) fail('no notation warning for (v).vbar.x2');
   if (shots) await page.screenshot({ path: `${shots}/site-inspector.png` });
   await page.keyboard.press('ArrowUp');
   await page.keyboard.press('ArrowUp');
   await page.keyboard.press('End');
   for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowLeft');
-  await page.waitForFunction(() => document.querySelector('#inspector .insp-source')?.textContent === '(v).vbar.x2', null, { timeout: 5000 });
+  await page.waitForFunction(() => document.querySelector('#panel-symbol .insp-source')?.textContent === '(v).vbar.x2', null, { timeout: 5000 });
   if (shots) await page.screenshot({ path: `${shots}/site-inspector-hand.png` });
+
+  await page.click('#panel-symbol [data-act="move"]');
+  await page.waitForSelector('#dock-side:not([hidden]) #panel-symbol .insp-layers', { timeout: 5000 });
+  if (await page.locator('#dock-bottom #panel-symbol').count()) fail('the symbol panel did not leave the bottom dock');
+  if (shots) await page.screenshot({ path: `${shots}/site-dock-side.png` });
+  const [popup] = await Promise.all([page.waitForEvent('popup'), page.click('#panel-problems [data-act="pop"]')]);
+  await popup.waitForSelector('#panel li.warning', { timeout: 5000 });
+  const popped = await popup.locator('#panel li').allTextContents();
+  console.log('popped problems:', popped);
+  if (!popped.some((t) => t.includes('Write `norm(v)`.'))) fail('the popped problems window does not show the warning');
+  if (await page.locator('#panel-problems:not([hidden])').count()) fail('the problems panel stays in the editor after pop-out');
+  if ((await page.getAttribute('#show-problems', 'aria-pressed')) !== 'true') fail('the Problems button does not show the panel as open');
+  await page.keyboard.press('Control+End');
+  await popup.click('#panel li.warning');
+  await page.waitForTimeout(150);
+  const jumped = await page.evaluate(() => document.querySelector('.cm-activeLine')?.textContent ?? '');
+  console.log('jump from popped window:', jumped);
+  if (!jumped.includes('(v).vbar.x2')) fail('a click in the popped window did not move the cursor');
+  if (shots) {
+    await popup.setViewportSize({ width: 560, height: 300 });
+    await popup.screenshot({ path: `${shots}/site-popped-problems.png` });
+  }
+  await popup.click('[data-act="dock"]');
+  await page.waitForSelector('#dock-bottom #panel-problems:not([hidden]) li', { timeout: 5000 });
+  await page.waitForFunction(() => document.body.classList.contains('has-side-dock'));
+  await page.click('#show-symbol');
+  if (!(await page.locator('#dock-side[hidden]').count())) fail('the side dock stays open with no panel');
+  await page.click('#show-symbol');
+  await page.waitForSelector('#dock-side #panel-symbol:not([hidden])', { timeout: 5000 });
+  await page.click('#panel-symbol [data-act="move"]');
+  await page.waitForSelector('#dock-bottom #panel-symbol', { timeout: 5000 });
 
   await page.click('#tabs .tab-add');
   await page.waitForFunction(() => document.querySelectorAll('#tabs .tab').length === 2);

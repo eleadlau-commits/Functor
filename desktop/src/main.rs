@@ -251,6 +251,11 @@ fn main() {
     builder
         .plugin(tauri_plugin_dialog::init())
         .manage(Files::default())
+        .on_window_event(|window, event| {
+            if window.label() == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
+                window.app_handle().exit(0);
+            }
+        })
         .on_menu_event(|app, event| {
             let _ = app.emit("menu", event.id().0.clone());
         })

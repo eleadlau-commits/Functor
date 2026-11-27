@@ -83,6 +83,9 @@ const shell = () => {
         case 'save_file': disk[args.path] = args.text; keep(); return doc(args.path);
         case 'close_file': return null;
         case 'ask_discard': return window.__mock.discard;
+        case 'plugin:webview|create_webview_window': window.__mock.created = args.options; return null;
+        case 'plugin:window|get_all_windows': return [];
+        case 'plugin:event|emit': window.__mock.sent = [...(window.__mock.sent || []), args.payload]; return null;
         case 'plugin:event|listen':
           if (!listeners.has(args.event)) listeners.set(args.event, []);
           listeners.get(args.event).push(args.handler);
@@ -193,6 +196,23 @@ try {
   for (let i = 0; i < 3; i++) await page.keyboard.press('Control+w');
   await page.waitForFunction(() => document.querySelectorAll('#tabs .tab').length === 1);
   if ((await names(page)).join() !== 'untitled.fn') fail(`closing all tabs leaves: ${await names(page)}`);
+
+  await page.click('#panel-problems [data-act="pop"]');
+  await page.waitForFunction(() => window.__mock.created);
+  const made = await page.evaluate(() => window.__mock.created);
+  console.log('panel window:', made.label, made.url, made.title);
+  if (made.label !== 'panel-problems' || made.url !== 'panel.html?p=problems&id=desktop') fail('pop-out did not ask for a panel window');
+  await page.waitForSelector('#panel-problems[hidden]', { state: 'attached', timeout: 3000 });
+  if ((await page.getAttribute('#show-problems', 'aria-pressed')) !== 'true') fail('the Problems button does not show the panel as open');
+  await page.evaluate(() => window.__mock.emit('functor-panel', { id: 'desktop', from: 'problems', type: 'hello' }));
+  const state = await page.evaluate(() => window.__mock.sent.find((m) => m.type === 'state' && m.panel === 'problems'));
+  if (!state || !Array.isArray(state.data)) fail('the main window did not send the problems to the panel window');
+  await page.evaluate(() => window.__mock.emit('functor-panel', { id: 'desktop', from: 'problems', type: 'jump', line: 2, col: 3 }));
+  await page.waitForTimeout(100);
+  const jumped = await page.evaluate(() => document.querySelector('.cm-activeLine')?.textContent ?? '');
+  if (jumped !== 'functor: 1') fail(`a jump from the panel window went to "${jumped}"`);
+  await page.evaluate(() => window.__mock.emit('tauri://destroyed', null));
+  await page.waitForSelector('#dock-bottom #panel-problems:not([hidden])', { timeout: 3000 });
 
   if (errors.length) fail(`page errors: ${errors.join('; ')}`);
   if (!process.exitCode) console.log('desktop smoke test passed');

@@ -412,3 +412,35 @@ Total for page breaks: 18 of 20.
 
 - Kerning splits a word into more than one text draw in the PDF, so the first test could not find "Alpha". The tests use words with no kerning pair.
 - In `compact`, a forced break goes to the next column. A heading break now also skips the empty right column.
+
+## Dock panels for problems and symbols
+
+The Problems list and the symbol inspector are now two dock panels. Each panel can sit under the editor, at the side of the window, or in its own window. The desktop app opens a Tauri window. The website opens a browser window.
+
+```mermaid
+flowchart LR
+  C["Compile output<br/>problems + traces"] --> M["Main window<br/>dock manager"]
+  M -->|docked| B["Bottom or side dock"]
+  M -->|"state message"| W["Panel window<br/>panel.html"]
+  W -->|"jump, dock"| M
+  M -.->|"desktop: Tauri events<br/>web: BroadcastChannel"| W
+```
+
+- One render function per panel. The dock and the panel window use the same code, so a popped panel shows the same thing as a docked panel.
+- The panel window has no compiler. The main window sends the problems, the trace and the glyph SVG. The window opens fast and the compile stays in one place.
+- The place of each panel stays in local storage. A panel that was in its own window comes back to its dock after a reload.
+
+| Principle | Score | What it does | Gap |
+|:--|:-:|:--|:--|
+| Meaning | 5 | The Symbol panel shows the four layers. More room at the side or in a window makes the layers easy to read next to the preview. | None. |
+| Personal use | 4 | Put the problems on a second screen, or keep the symbol layers open beside the page. | No drag and drop between docks. A popped panel does not come back as a window after a restart. |
+| One code path | 5 | Web and desktop use the same panel page and the same messages. Only the transport is different. | None. |
+| Speed | 5 | No new compile work. A panel window gets data only when it changes. | None. |
+
+Total for dock panels: 19 of 20.
+
+### Key hiccups
+
+- Tauri sends an event to all windows, the sender too. Each message has a `from` field, and each side ignores its own messages.
+- A web pop-out can be blocked by the browser. The editor then says so in the status line, and the panel stays in its dock.
+
