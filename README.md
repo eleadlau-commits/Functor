@@ -14,7 +14,7 @@ $$
 
 ## Status
 
-Version 0.1.1 is a pre-release. The language still changes, so old files can stop working in a new version.
+Version 0.1.2 is a pre-release. The language still changes, so old files can stop working in a new version.
 
 Download the command line tool, the desktop app and the Chrome extension from [Releases](https://github.com/eleadlau-commits/Functor/releases). Or use the [website](https://eleadlau-commits.github.io/Functor/) with no install.
 
